@@ -23,6 +23,7 @@ app.use(function (req, res, next) {
 app.get("/",            require("./router/login"));
 app.get("/login",       require("./router/login"));
 app.get("/price-list",  require("./middleware/auth"), require("./router/priceList"));
+app.get("/settings",    require("./middleware/auth"), require("./router/settings"));
 app.get("/logout",      require("./router/logout"));
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────
