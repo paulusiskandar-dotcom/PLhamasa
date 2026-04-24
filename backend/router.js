@@ -29,4 +29,8 @@ module.exports = function (app) {
     app.get("/master/brands",     auth.verifyToken, require("./controllers/master")._getBrands);
     app.get("/master/grades",     auth.verifyToken, require("./controllers/master")._getGrades);
 
+    // ─── Settings ──────────────────────────────────────────────────────────────
+    app.get("/settings/extended-categories",  auth.verifyToken, require("./controllers/settings")._getExtendedCategories);
+    app.post("/settings/extended-categories", auth.verifyToken, require("./controllers/settings")._setExtendedCategories);
+
 };
