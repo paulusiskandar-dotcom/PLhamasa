@@ -24,6 +24,7 @@ plmApp.controller("priceListController", function (
             case "minus_nominal": return Math.max(0, Math.round(old - mod));
             case "plus_percent":  return Math.max(0, Math.round(old + mod / 100 * old));
             case "minus_percent": return Math.max(0, Math.round(old - mod / 100 * old));
+            case "set_price":     return Math.max(0, Math.round(mod));
             default: return old;
         }
     }
@@ -42,10 +43,11 @@ plmApp.controller("priceListController", function (
     // ── Init ──────────────────────────────────────────────────────────────────
     function init() {
         $scope.modifierOptions = [
-            { id: "plus_nominal",  label: "+ Rp" },
-            { id: "minus_nominal", label: "- Rp" },
-            { id: "plus_percent",  label: "+ %"  },
-            { id: "minus_percent", label: "- %"  },
+            { id: "plus_nominal",  label: "+ Rp"    },
+            { id: "minus_nominal", label: "- Rp"    },
+            { id: "plus_percent",  label: "+ %"     },
+            { id: "minus_percent", label: "- %"     },
+            { id: "set_price",     label: "= Harga" },
         ];
         $scope.groupOptions = [
             { id: null, label: "Semua Golongan" },
@@ -165,6 +167,14 @@ plmApp.controller("priceListController", function (
     $scope.onItemCheck = function () {
         var items = $scope.items || [];
         $scope.selection.all = items.length > 0 && items.every(function (i) { return i.checked; });
+    };
+
+    $scope.getNilaiPlaceholder = function () {
+        if (!$scope.modifier || !$scope.modifier.selected) return '0';
+        var id = $scope.modifier.selected.id;
+        if (id === 'set_price')                                   return 'Harga/kg baru';
+        if (id === 'plus_percent' || id === 'minus_percent')      return '%';
+        return 'Rp';
     };
 
     // ── Modifier Targets ──────────────────────────────────────────────────────

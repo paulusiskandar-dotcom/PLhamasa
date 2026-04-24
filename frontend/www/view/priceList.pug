@@ -106,7 +106,7 @@ block content
             input.form-control.modifier-input(
               type="number"
               ng-model="modifier.value"
-              placeholder="0"
+              placeholder="{{ getNilaiPlaceholder() }}"
               min="0"
             )
           div.modifier-field.modifier-action
