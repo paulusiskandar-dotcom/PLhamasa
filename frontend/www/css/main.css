@@ -873,3 +873,91 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   margin-right: auto;
   font-style: italic;
 }
+
+/* ─── Grouped table headers ──────────────────────────────────── */
+.th-check { width: 36px; text-align: center; }
+.td-check  { text-align: center; }
+
+.th-group {
+  background: var(--navy-light);
+  color: #fff;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  border-right: 2px solid rgba(255,255,255,.2);
+}
+.th-group-alt { background: #2F5A8A; }
+.th-group-sub {
+  background: rgba(42,79,130,.75);
+  color: rgba(255,255,255,.85);
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  border-right: 1px solid rgba(255,255,255,.15);
+}
+
+.th-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.th-sortable:hover { background: rgba(255,255,255,.08); }
+
+.th-new  { min-width: 100px; background: rgba(212,168,67,.2); }
+.th-lbr  { min-width: 90px;  background: rgba(212,168,67,.1); color: var(--gold-light); }
+
+.sort-icon {
+  font-size: 11px;
+  margin-left: 4px;
+  opacity: .5;
+}
+.th-sortable:hover .sort-icon,
+[ng-class-active="true"] .sort-icon { opacity: 1; }
+
+.td-new { padding: 4px 8px; }
+
+/* ─── Modifier targets (dynamic checkboxes) ──────────────────── */
+.target-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  min-height: 36px;
+}
+.target-check-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: rgba(255,255,255,.9);
+  user-select: none;
+  white-space: nowrap;
+}
+.target-check-label input[type="checkbox"] {
+  accent-color: var(--gold);
+  width: 14px;
+  height: 14px;
+}
+.target-group-tag {
+  font-size: 10px;
+  background: rgba(255,255,255,.15);
+  color: rgba(255,255,255,.6);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family: var(--mono);
+}
+.quick-select { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-qs {
+  padding: 4px 10px;
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: var(--radius);
+  color: rgba(255,255,255,.85);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .1s;
+}
+.btn-qs:hover { background: rgba(255,255,255,.2); }

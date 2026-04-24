@@ -84,18 +84,20 @@ block content
             i.bi.bi-lightning-charge
             |  Pengubah Harga
         div.modifier-body
+          //- Target checkboxes (dynamic per priceTypes)
           div.modifier-field
             label Target
-            div.radio-group
-              label.radio-label
-                input(type="radio" ng-model="modifier.target" value="cash")
-                span Cash
-              label.radio-label
-                input(type="radio" ng-model="modifier.target" value="credit")
-                span Kredit
-              label.radio-label
-                input(type="radio" ng-model="modifier.target" value="both")
-                span Keduanya
+            div.target-checks
+              label.target-check-label(ng-repeat="pt in priceTypes")
+                input(type="checkbox" ng-model="modifier.targets[pt.code]")
+                span {{ pt.label }}
+                span.target-group-tag(ng-if="isExtended")  {{ pt.group }}
+          //- Quick-select (show group buttons only if extended)
+          div.modifier-field
+            label &nbsp;
+            div.quick-select
+              button.btn-qs(ng-click="selectAllTargets()") Semua
+              button.btn-qs(ng-if="isExtended" ng-repeat="g in priceGroups" ng-click="selectGroupTargets(g)") {{ g }}
           div.modifier-field
             label Modifier
             select.form-control.modifier-select(ng-model="modifier.selected" ng-options="m.label for m in modifierOptions track by m.id")
@@ -112,7 +114,7 @@ block content
               i.bi.bi-lightning-charge
               |  Generate Harga Baru
 
-        //- Save & Export (dalam modifier-section, muncul setelah ada draft)
+        //- Save & Export
         div.save-section(ng-if="hasDrafts()")
           div.sync-indicator(ng-if="syncState === 'saving'")
             i.bi.bi-arrow-repeat.spin
@@ -171,71 +173,104 @@ block content
 
         div.table-scroll(ng-if="items.length > 0")
           table.data-table
-            thead
+
+            //- ─ STANDARD header (2 price types: Cash, Kredit) ─
+            thead(ng-if="!isExtended")
               tr
-                th(style="width:36px")
-                  input(type="checkbox" ng-model="headerChecked" ng-change="toggleAll()")
-                th(style="width:36px") No
-                th Nama Barang
-                th.text-right Berat (kg)
-                th.col-price
-                  | Cash/kg
-                  span.warn-icon(ng-if="catMaxUpdatedAt" title="Tanda ⚠ muncul jika item berbeda dari update massal kategori")
-                th.col-price-new(ng-if="hasGenerated") Cash/kg Baru
-                th.col-price-lbr(ng-if="hasGenerated") Cash/Lbr
-                th.col-price
-                  | Kredit/kg
-                th.col-price-new(ng-if="hasGenerated") Kredit/kg Baru
-                th.col-price-lbr(ng-if="hasGenerated") Kredit/Lbr
-                th.col-sync Update / Sync
+                th.th-check(rowspan="2")
+                  input(type="checkbox" ng-model="selectAll" ng-change="toggleSelectAll()")
+                th(rowspan="2" style="width:38px") No
+                th.th-sortable(rowspan="2" ng-click="sortBy('name')")
+                  | Nama Barang
+                  i.bi.sort-icon(ng-class="sortIcon('name')" ng-class-active="sortActive('name')")
+                th.th-sortable.text-right(rowspan="2" ng-click="sortBy('weight')")
+                  | Berat
+                  i.bi.sort-icon(ng-class="sortIcon('weight')" ng-class-active="sortActive('weight')")
+                th.th-group(colspan="3") CASH
+                th.th-group.th-group-alt(colspan="3") KREDIT
+              tr
+                th.th-sortable.text-right(ng-click="sortBy('cash_gudang')")
+                  | /kg
+                  i.bi.sort-icon(ng-class="sortIcon('cash_gudang')")
+                th.th-new /kg Baru
+                th.th-lbr /lbr
+                th.th-sortable.text-right(ng-click="sortBy('kredit_gudang')")
+                  | /kg
+                  i.bi.sort-icon(ng-class="sortIcon('kredit_gudang')")
+                th.th-new /kg Baru
+                th.th-lbr /lbr
+
+            //- ─ EXTENDED header (4 price types: Gudang & Pabrik) ─
+            thead(ng-if="isExtended")
+              tr
+                th.th-check(rowspan="3")
+                  input(type="checkbox" ng-model="selectAll" ng-change="toggleSelectAll()")
+                th(rowspan="3" style="width:38px") No
+                th.th-sortable(rowspan="3" ng-click="sortBy('name')")
+                  | Nama Barang
+                  i.bi.sort-icon(ng-class="sortIcon('name')")
+                th.th-sortable.text-right(rowspan="3" ng-click="sortBy('weight')")
+                  | Berat
+                  i.bi.sort-icon(ng-class="sortIcon('weight')")
+                th.th-group(colspan="6") GUDANG
+                th.th-group.th-group-alt(colspan="6") PABRIK
+              tr
+                th.th-group-sub(colspan="3") Cash
+                th.th-group-sub(colspan="3") Kredit
+                th.th-group-sub(colspan="3") Cash
+                th.th-group-sub(colspan="3") Kredit
+              tr
+                th.th-sortable.text-right(ng-click="sortBy('cash_gudang')")
+                  | /kg
+                  i.bi.sort-icon(ng-class="sortIcon('cash_gudang')")
+                th.th-new /kg Baru
+                th.th-lbr /lbr
+                th.th-sortable.text-right(ng-click="sortBy('kredit_gudang')")
+                  | /kg
+                  i.bi.sort-icon(ng-class="sortIcon('kredit_gudang')")
+                th.th-new /kg Baru
+                th.th-lbr /lbr
+                th.th-sortable.text-right(ng-click="sortBy('cash_pabrik')")
+                  | /kg
+                  i.bi.sort-icon(ng-class="sortIcon('cash_pabrik')")
+                th.th-new /kg Baru
+                th.th-lbr /lbr
+                th.th-sortable.text-right(ng-click="sortBy('kredit_pabrik')")
+                  | /kg
+                  i.bi.sort-icon(ng-class="sortIcon('kredit_pabrik')")
+                th.th-new /kg Baru
+                th.th-lbr /lbr
+
+            //- ─ TBODY (dynamic columns via ng-repeat-start/end) ─
             tbody
               tr(
                 ng-repeat="item in items"
-                ng-class="{'row-changed': item.cashKgBaru || item.kreditKgBaru, 'row-just-edited': item.justEdited}"
+                ng-class="{'row-changed': hasDrafts() && item.checked, 'row-just-edited': item.justEdited}"
               )
-                td
-                  input(type="checkbox" ng-model="item.checked" ng-change="updateHeaderCheckbox()")
+                td.td-check
+                  input(type="checkbox" ng-model="item.checked" ng-change="onItemCheck()")
                 td.text-muted {{ $index + 1 }}
-                td {{ item.name }}
+                td
+                  | {{ item.name }}
+                  span.warn-badge(
+                    ng-if="isSpotUpdate(item)"
+                    title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
+                  ) ⚠
                 td.mono.text-right {{ item.weight }}
-                td.mono.text-right
-                  span {{ item.cashKgLama | number }}
-                  span.warn-badge(
-                    ng-if="catMaxUpdatedAt && item.erp_updated_at && item.erp_updated_at !== catMaxUpdatedAt"
-                    title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
-                  ) ⚠
-                td.price-new(ng-if="hasGenerated")
+                //- Per price-type: /kg | /kg Baru (input) | /lbr
+                td.mono.text-right(ng-repeat-start="pt in priceTypes track by pt.code")
+                  | {{ item.prices[pt.code].current | number }}
+                td.td-new
                   input.price-input(
+                    ng-if="hasGenerated"
                     type="number"
-                    ng-model="item.cashKgBaru"
-                    ng-change="recalcAndSave(item, 'cash')"
+                    ng-model="item.new[pt.code]"
+                    ng-change="recalcLbr(item, pt)"
                     placeholder="-"
                     min="0"
                   )
-                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.cashLbr | number:0 }}
-                td.mono.text-right
-                  span {{ item.kreditKgLama | number }}
-                  span.warn-badge(
-                    ng-if="catMaxUpdatedAt && item.erp_updated_at && item.erp_updated_at !== catMaxUpdatedAt"
-                    title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
-                  ) ⚠
-                td.price-new(ng-if="hasGenerated")
-                  input.price-input(
-                    type="number"
-                    ng-model="item.kreditKgBaru"
-                    ng-change="recalcAndSave(item, 'credit')"
-                    placeholder="-"
-                    min="0"
-                  )
-                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.kreditLbr | number:0 }}
-                td.sync-cell
-                  span.sync-date(ng-if="item.erp_updated_at") {{ item.erp_updated_at | plmDate }}
-                  span.sync-date(ng-if="!item.erp_updated_at") —
-                  span.sync-badge-icon(
-                    ng-if="item.sync_status"
-                    ng-class="'sync-' + item.sync_status"
-                    title="{{ syncLabel(item.sync_status) }}"
-                  ) {{ syncIcon(item.sync_status) }}
+                td.mono.text-right.price-lbr(ng-repeat-end)
+                  span(ng-if="hasGenerated") {{ item.new_unit[pt.code] | number:0 }}
 
       //- ── History Modal ────────────────────────────────────────────────────
       div.modal-backdrop(ng-if="showHistoryModal" ng-click="closeHistoryModal()")
