@@ -961,3 +961,51 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   transition: background .1s;
 }
 .btn-qs:hover { background: rgba(255,255,255,.2); }
+
+/* ─── Action Bar ─────────────────────────────────────────────── */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  flex-wrap: wrap;
+}
+.action-bar-left { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.action-bar-right { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn-action-save {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 20px;
+  background: var(--navy); color: #fff;
+  border: none; border-radius: var(--radius);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background .15s;
+}
+.btn-action-save:hover:not(:disabled) { background: var(--navy-light); }
+.btn-action-save:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-action-export {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px;
+  background: var(--gold); color: var(--navy);
+  border: none; border-radius: var(--radius);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background .15s;
+}
+.btn-action-export:hover:not(:disabled) { background: var(--gold-light); }
+.btn-action-export:disabled { opacity: .4; cursor: not-allowed; }
+
+.btn-action-print {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 16px;
+  background: transparent; color: var(--navy);
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  font-size: 13px; cursor: not-allowed; opacity: .45;
+}
+
+/* ─── Price cell states ───────────────────────────────────────── */
+.td-has-new { background: rgba(212,168,67,.12); }
+.row-has-new { background: #FFFBF0; }
+.price-unit-empty { color: var(--text-muted); font-size: 11px; }
+.sync-row { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
