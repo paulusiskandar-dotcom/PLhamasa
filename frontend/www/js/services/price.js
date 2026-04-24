@@ -1,13 +1,7 @@
 plmApp.factory("$priceService", function ($http) {
     return {
-        // New combined endpoint — replaces separate /items + /price/info
         getInfo: function (params) {
             return $http.get(api.url + "price/info", { params: params })
-                .then(function (r) { return r.data; });
-        },
-
-        getPricesInfo: function (ig_ids, cat_id) {
-            return $http.post(api.url + "price/info", { ig_ids: ig_ids, cat_id: cat_id || null })
                 .then(function (r) { return r.data; });
         },
 
@@ -16,13 +10,15 @@ plmApp.factory("$priceService", function ($http) {
                 .then(function (r) { return r.data; });
         },
 
-        autosave: function (ig_id, pr_id, price) {
-            return $http.post(api.url + "price/autosave", { ig_id: ig_id, pr_id: pr_id, price: price })
-                .then(function (r) { return r.data; });
+        // Fire-and-forget: caller doesn't need to await
+        autoSave: function (igId, prId, newPricePerKg) {
+            return $http.post(api.url + "price/autosave", {
+                ig_id: igId, pr_id: prId, price: newPricePerKg
+            }).then(function (r) { return r.data; });
         },
 
-        saveBatch: function (items) {
-            return $http.post(api.url + "price/save", { items: items })
+        saveAll: function (changes) {
+            return $http.post(api.url + "price/save", { changes: changes })
                 .then(function (r) { return r.data; });
         }
     };
