@@ -2,52 +2,44 @@ const fs   = require("fs");
 const path = require("path");
 const mime = require("mime");
 
-const response    = require("../utils/response");
-const $excel      = require("../utils/excel");
-const $itemModel  = require("../models/item");
-const $priceModel = require("../models/price");
+const response      = require("../utils/response");
+const $excel        = require("../utils/excel");
+const $itemModel    = require("../models/item");
+const $exportModel  = require("../models/export");
 
-// ─── Helper: stream file ke client ───────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function streamFile(res, filePath, filename) {
     const mimetype = mime.lookup(filePath);
-    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.setHeader("Content-Type", mimetype);
     fs.createReadStream(filePath).pipe(res);
 }
 
-// ─── Helper: round harga ke ratusan (dari existing program) ──────────────────
 function roundPrice(raw) {
-    if (raw % 100 <= 10) {
-        return Math.floor(raw / 100) * 100;
-    }
+    if (raw % 100 <= 10) return Math.floor(raw / 100) * 100;
     return Math.ceil(raw / 100) * 100;
+}
+
+const HISTORY_DIR = path.join($rootPath, "public", "export_history");
+function ensureHistoryDir() {
+    if (!fs.existsSync(HISTORY_DIR)) fs.mkdirSync(HISTORY_DIR, { recursive: true });
 }
 
 /*
  * POST /export/erp
- * Export Price List ke format template ERP (PLETL)
- *
- * Body: { item_prices: [{ ig_id, pr_id, new_price }] }
- *
- * Alur:
- *   1. Ambil master data item dari DB ERP
- *   2. Ambil price types dari DB ERP
- *   3. Ambil harga existing dari DB ERP (harga per unit)
- *   4. Untuk item yang diubah: harga_per_kg × berat → round → replace
- *   5. Export ke Excel format ETL/PLETL
+ * Body: { item_prices: [{ ig_id, pr_id, new_price }], cat_id, cat_name }
  */
 module.exports._exportPriceListERP = async function (req, res) {
     try {
-        const { item_prices } = req.body;
-
-        if (!item_prices || !Array.isArray(item_prices) || item_prices.length === 0) {
+        const { item_prices, cat_id, cat_name } = req.body;
+        if (!item_prices || !Array.isArray(item_prices) || item_prices.length === 0)
             return response.error(res, "miss_param", null, 400);
-        }
 
-        const ig_ids = [...new Set(item_prices.map(i => i.ig_id))];
+        const ig_ids    = [...new Set(item_prices.map(i => i.ig_id))];
+        const itemRows  = await $itemModel.getItemById(ig_ids);
+        const priceTypes = await $itemModel.getPriceTypes();
+        const erpPrices  = await $itemModel.getItemPriceERP(ig_ids);
 
-        // 1. Master item dari DB ERP
-        const itemRows = await $itemModel.getItemById(ig_ids);
         const items = {};
         itemRows.forEach(it => {
             items[it.ig_id] = {
@@ -63,30 +55,18 @@ module.exports._exportPriceListERP = async function (req, res) {
             };
         });
 
-        // 2. Price types dari DB ERP
-        const priceTypes = await $itemModel.getPriceTypes();
-
-        // 3. Harga FINAL existing dari DB ERP (per unit)
-        const existingPrices = await $itemModel.getItemPriceERP(ig_ids);
-        existingPrices.forEach(({ ig_id, pr_id, i_price }) => {
+        erpPrices.forEach(({ ig_id, pr_id, i_price }) => {
             const pt = priceTypes.find(p => p.pr_id === pr_id);
-            if (pt && items[ig_id]) {
-                items[ig_id][pt.pr_code] = parseFloat(i_price);
-            }
+            if (pt && items[ig_id]) items[ig_id][pt.pr_code] = parseFloat(i_price);
         });
 
-        // 4. Terapkan harga baru (harga_per_kg × berat → round)
         const prCodeMap = { 2: "cash_gudang", 4: "kredit_gudang" };
         item_prices.forEach(({ ig_id, pr_id, new_price }) => {
-            const pr_code = prCodeMap[pr_id];
-            if (!items[ig_id] || !pr_code) return;
-
-            const weight = items[ig_id].weight;
-            const raw    = parseFloat(new_price) * weight;
-            items[ig_id][pr_code] = roundPrice(raw);
+            const code = prCodeMap[pr_id];
+            if (!items[ig_id] || !code) return;
+            items[ig_id][code] = roundPrice(parseFloat(new_price) * items[ig_id].weight);
         });
 
-        // 5. Susun kolom ERP
         const cols = [
             { name: "ID BARANG",   key: "ig_id",  width: 10 },
             { name: "KODE BARANG", key: "id",     width: 20 },
@@ -98,26 +78,43 @@ module.exports._exportPriceListERP = async function (req, res) {
             { name: "UNIT",        key: "unit",   width: 10 },
             { name: "BERAT",       key: "weight", width: 10 },
         ];
-        priceTypes.forEach(pt => {
-            cols.push({ name: pt.pr_name, key: pt.pr_code, width: 15 });
-        });
+        priceTypes.forEach(pt => cols.push({ name: pt.pr_name, key: pt.pr_code, width: 15 }));
 
-        // Sanitize rows
-        const rows = ig_ids.map(ig_id => {
-            const row = items[ig_id] || {};
+        const rows = ig_ids.map(id => {
+            const row = items[id] || {};
             for (const k in row) {
-                if (typeof row[k] === "string") {
-                    row[k] = row[k].replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, "");
-                } else if (typeof row[k] === "number" && isNaN(row[k])) {
-                    row[k] = 0;
-                }
+                if (typeof row[k] === "string") row[k] = row[k].replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, "");
+                else if (typeof row[k] === "number" && isNaN(row[k])) row[k] = 0;
             }
             return row;
         });
 
-        const filename = `PriceList_ERP_${moment().format("DDMMYYYYHHmmss")}.xlsx`;
-        const outPath  = await $excel.exportPriceListERP(filename, cols, rows);
-        streamFile(res, outPath, filename);
+        const ts       = moment().format("DDMMYYYYHHmmss");
+        const filename = `PriceList_ERP_${ts}.xlsx`;
+        const tmpPath  = await $excel.exportPriceListERP(filename, cols, rows);
+
+        // Save persistent copy for history re-download
+        ensureHistoryDir();
+        const histFilename = `${(cat_name || "export").replace(/[^a-zA-Z0-9]/g, "_")}_${ts}.xlsx`;
+        const histPath     = path.join(HISTORY_DIR, histFilename);
+        fs.copyFileSync(tmpPath, histPath);
+        const fileSize = fs.statSync(histPath).size;
+
+        // Insert export_log (fire-and-forget)
+        $exportModel.insertExportLog({
+            export_type:   "erp",
+            cat_id:        cat_id   || null,
+            cat_name:      cat_name || null,
+            ig_ids:        ig_ids,
+            item_count:    ig_ids.length,
+            exported_by:   res.locals.user.id,
+            exporter_name: res.locals.user.username || "unknown",
+            file_name:     histFilename,
+            file_size:     fileSize,
+            file_path:     histPath,
+        }).catch(e => console.error("[export_log]", e.message));
+
+        streamFile(res, tmpPath, filename);
     } catch (err) {
         return response.error(res, null, err);
     }
@@ -125,85 +122,102 @@ module.exports._exportPriceListERP = async function (req, res) {
 
 /*
  * POST /export/manual
- * Export Price List ke format PL Manual
- *
- * Body: { item_prices: [{ ig_id, pr_id, new_price }], company_name, date }
+ * Body: { item_prices: [...], company_name, date, cat_id, cat_name }
  */
 module.exports._exportPriceListManual = async function (req, res) {
     try {
-        const { item_prices, company_name, date } = req.body;
-
-        if (!item_prices || !Array.isArray(item_prices) || item_prices.length === 0) {
+        const { item_prices, company_name, date, cat_id, cat_name } = req.body;
+        if (!item_prices || !Array.isArray(item_prices) || item_prices.length === 0)
             return response.error(res, "miss_param", null, 400);
-        }
 
-        const ig_ids = [...new Set(item_prices.map(i => i.ig_id))];
+        const ig_ids    = [...new Set(item_prices.map(i => i.ig_id))];
+        const itemRows  = await $itemModel.getItemById(ig_ids);
+        const priceTypes = await $itemModel.getPriceTypes();
+        const erpPrices  = await $itemModel.getItemPriceERP(ig_ids);
 
-        // Master item dari DB ERP
-        const itemRows = await $itemModel.getItemById(ig_ids);
         const items = {};
         itemRows.forEach(it => {
-            items[it.ig_id] = {
-                ig_id:  it.ig_id,
-                id:     it.i_id,
-                name:   it.i_name,
-                unit:   it.unit,
-                weight: parseFloat(it.i_weight) || 0,
-            };
+            items[it.ig_id] = { ig_id: it.ig_id, id: it.i_id, name: it.i_name, unit: it.unit, weight: parseFloat(it.i_weight) || 0 };
         });
-
-        // Harga existing dari DB ERP
-        const priceTypes = await $itemModel.getPriceTypes();
-        const existingPrices = await $itemModel.getItemPriceERP(ig_ids);
-        existingPrices.forEach(({ ig_id, pr_id, i_price }) => {
+        erpPrices.forEach(({ ig_id, pr_id, i_price }) => {
             const pt = priceTypes.find(p => p.pr_id === pr_id);
-            if (pt && items[ig_id]) {
-                items[ig_id][pt.pr_code] = parseFloat(i_price);
-            }
+            if (pt && items[ig_id]) items[ig_id][pt.pr_code] = parseFloat(i_price);
         });
-
-        // Terapkan harga baru
         const prCodeMap = { 2: "cash_gudang", 4: "kredit_gudang" };
         item_prices.forEach(({ ig_id, pr_id, new_price }) => {
-            const pr_code = prCodeMap[pr_id];
-            if (!items[ig_id] || !pr_code) return;
-            const weight = items[ig_id].weight;
-            items[ig_id][pr_code] = roundPrice(parseFloat(new_price) * weight);
+            const code = prCodeMap[pr_id];
+            if (!items[ig_id] || !code) return;
+            items[ig_id][code] = roundPrice(parseFloat(new_price) * items[ig_id].weight);
         });
 
-        const header = {
-            company: company_name || "PT. HAMASA",
-            title:   "DAFTAR HARGA",
-            date:    date || moment().format("DD MMMM YYYY"),
-        };
-
+        const header = { company: company_name || "PT. HAMASA", title: "DAFTAR HARGA", date: date || moment().format("DD MMMM YYYY") };
         const cols = [
-            { name: "NO",          key: "no",            width: 5  },
-            { name: "KODE BARANG", key: "id",            width: 20 },
-            { name: "NAMA BARANG", key: "name",          width: 35 },
-            { name: "SATUAN",      key: "unit",          width: 10 },
-            { name: "BERAT (kg)",  key: "weight",        width: 12 },
-            { name: "HARGA CASH",  key: "cash_gudang",   width: 18 },
-            { name: "HARGA KREDIT",key: "kredit_gudang", width: 18 },
+            { name: "NO",           key: "no",            width: 5  },
+            { name: "KODE BARANG",  key: "id",            width: 20 },
+            { name: "NAMA BARANG",  key: "name",          width: 35 },
+            { name: "SATUAN",       key: "unit",          width: 10 },
+            { name: "BERAT (kg)",   key: "weight",        width: 12 },
+            { name: "HARGA CASH",   key: "cash_gudang",   width: 18 },
+            { name: "HARGA KREDIT", key: "kredit_gudang", width: 18 },
         ];
-
-        const rows = ig_ids.map((ig_id, idx) => {
-            const it = items[ig_id] || {};
-            return {
-                no:            idx + 1,
-                id:            it.id,
-                name:          it.name,
-                unit:          it.unit,
-                weight:        it.weight,
-                cash_gudang:   it.cash_gudang   || 0,
-                kredit_gudang: it.kredit_gudang || 0,
-            };
+        const rows = ig_ids.map((id, idx) => {
+            const it = items[id] || {};
+            return { no: idx + 1, id: it.id, name: it.name, unit: it.unit, weight: it.weight, cash_gudang: it.cash_gudang || 0, kredit_gudang: it.kredit_gudang || 0 };
         });
 
-        const filename = `PriceList_Manual_${moment().format("DDMMYYYYHHmmss")}.xlsx`;
-        const outPath  = await $excel.exportPriceListManual(filename, header, cols, rows);
-        streamFile(res, outPath, filename);
+        const ts       = moment().format("DDMMYYYYHHmmss");
+        const filename = `PriceList_Manual_${ts}.xlsx`;
+        const tmpPath  = await $excel.exportPriceListManual(filename, header, cols, rows);
+
+        ensureHistoryDir();
+        const histFilename = `Manual_${(cat_name || "export").replace(/[^a-zA-Z0-9]/g, "_")}_${ts}.xlsx`;
+        const histPath     = path.join(HISTORY_DIR, histFilename);
+        fs.copyFileSync(tmpPath, histPath);
+
+        $exportModel.insertExportLog({
+            export_type: "manual", cat_id, cat_name, ig_ids,
+            item_count: ig_ids.length, exported_by: res.locals.user.id,
+            exporter_name: res.locals.user.username || "unknown",
+            file_name: histFilename, file_size: fs.statSync(histPath).size, file_path: histPath,
+        }).catch(e => console.error("[export_log]", e.message));
+
+        streamFile(res, tmpPath, filename);
     } catch (err) {
         return response.error(res, null, err);
     }
+};
+
+/*
+ * GET /export/history?cat_id=BP&limit=20&offset=0
+ */
+module.exports._getExportHistory = async function (req, res) {
+    try {
+        const { cat_id, limit, offset } = req.query;
+        const rows = await $exportModel.getExportHistory(cat_id || null, parseInt(limit) || 20, parseInt(offset) || 0);
+        return response.success(res, rows);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+/*
+ * GET /export/history/:id/download
+ */
+module.exports._downloadHistory = async function (req, res) {
+    try {
+        const record = await $exportModel.getExportById(parseInt(req.params.id));
+        if (!record) return response.error(res, "not_found", null, 404);
+        if (!record.file_path || !fs.existsSync(record.file_path))
+            return response.error(res, "file_not_found", null, 404);
+        streamFile(res, record.file_path, record.file_name || `export_${record.id}.xlsx`);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+/*
+ * POST /export/pdf — stub
+ */
+module.exports._exportPdf = function (req, res) {
+    res.status(501).json({ status: "error", message: "PDF export belum tersedia" });
 };

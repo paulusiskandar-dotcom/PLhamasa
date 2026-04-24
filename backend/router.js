@@ -11,21 +11,20 @@ module.exports = function (app) {
     app.get("/items/:ig_id", auth.verifyToken, require("./controllers/item")._getItemById);
 
     // ─── Price ─────────────────────────────────────────────────────────────────
-    app.get("/price/types",          auth.verifyToken, require("./controllers/price")._getPriceTypes);
-    app.post("/price/info",          auth.verifyToken, require("./controllers/price")._getPricesInfo);
-    app.post("/price/save",          auth.verifyToken, require("./controllers/price")._savePrices);
-
-    // ─── Draft workflow ────────────────────────────────────────────────────────
-    app.post("/price/draft/save",    auth.verifyToken, require("./controllers/price")._saveDraft);
-    app.post("/price/draft/commit",  auth.verifyToken, require("./controllers/price")._commitDrafts);
-    app.post("/price/draft/discard", auth.verifyToken, require("./controllers/price")._discardDrafts);
-    app.get("/price/draft/changes",  auth.verifyToken, require("./controllers/price")._getDraftChanges);
+    app.get("/price/types",         auth.verifyToken, require("./controllers/price")._getPriceTypes);
+    app.post("/price/info",         auth.verifyToken, require("./controllers/price")._getPricesInfo);
+    app.get("/price/category-info", auth.verifyToken, require("./controllers/price")._getCategoryInfo);
+    app.post("/price/autosave",     auth.verifyToken, require("./controllers/price")._autosave);
+    app.post("/price/save",         auth.verifyToken, require("./controllers/price")._saveBatch);
 
     // ─── Export ────────────────────────────────────────────────────────────────
-    app.post("/export/erp",          auth.verifyToken, require("./controllers/exportPrice")._exportPriceListERP);
-    app.post("/export/manual",       auth.verifyToken, require("./controllers/exportPrice")._exportPriceListManual);
+    app.post("/export/erp",                   auth.verifyToken, require("./controllers/exportPrice")._exportPriceListERP);
+    app.post("/export/manual",                auth.verifyToken, require("./controllers/exportPrice")._exportPriceListManual);
+    app.post("/export/pdf",                   auth.verifyToken, require("./controllers/exportPrice")._exportPdf);
+    app.get("/export/history",                auth.verifyToken, require("./controllers/exportPrice")._getExportHistory);
+    app.get("/export/history/:id/download",   auth.verifyToken, require("./controllers/exportPrice")._downloadHistory);
 
-    // ─── Master Data (dropdown) ────────────────────────────────────────────────
+    // ─── Master Data ───────────────────────────────────────────────────────────
     app.get("/master/categories", auth.verifyToken, require("./controllers/master")._getCategories);
     app.get("/master/brands",     auth.verifyToken, require("./controllers/master")._getBrands);
     app.get("/master/grades",     auth.verifyToken, require("./controllers/master")._getGrades);
