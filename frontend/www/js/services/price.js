@@ -1,5 +1,11 @@
 plmApp.factory("$priceService", function ($http) {
     return {
+        // New combined endpoint — replaces separate /items + /price/info
+        getInfo: function (params) {
+            return $http.get(api.url + "price/info", { params: params })
+                .then(function (r) { return r.data; });
+        },
+
         getPricesInfo: function (ig_ids, cat_id) {
             return $http.post(api.url + "price/info", { ig_ids: ig_ids, cat_id: cat_id || null })
                 .then(function (r) { return r.data; });

@@ -3,15 +3,15 @@ plmApp.controller("priceListController", function (
     $itemService, $priceService, $exportService, $masterService
 ) {
 
-    // ── Debounce helpers ──────────────────────────────────────────────────────
+    // ── Debounce ──────────────────────────────────────────────────────────────
     var autosaveTimers = {};
     function debounceAutosave(key, fn) {
         if (autosaveTimers[key]) clearTimeout(autosaveTimers[key]);
         autosaveTimers[key] = setTimeout(fn, 400);
     }
 
-    // ── Pure helpers ──────────────────────────────────────────────────────────
-    function round100(raw) {
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function round100(raw) {   // for price generation
         var r = raw % 100;
         return r <= 10 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
     }
@@ -44,7 +44,7 @@ plmApp.controller("priceListController", function (
 
         $scope.modifier = {
             selected: $scope.modifierOptions[2],
-            target:   "both",
+            targets:  {},
             value:    null,
         };
         $scope.filter = {
@@ -54,22 +54,30 @@ plmApp.controller("priceListController", function (
         $scope.categories = []; $scope.brands = []; $scope.grades = [];
         loadMasterData();
 
-        $scope.items              = null;
-        $scope.headerChecked      = false;
-        $scope.hasGenerated       = false;
-        $scope.saveState          = "idle";  // idle | saving | saved
-        $scope.syncState          = "idle";  // idle | saving | saved (auto-save indicator)
-        $scope.catMaxUpdatedAt    = null;
-        $scope.categoryInfo       = null;
+        $scope.items         = null;
+        $scope.priceTypes    = [];
+        $scope.priceGroups   = [];
+        $scope.category      = null;
+        $scope.isExtended    = false;
+        $scope.catMaxUpdatedAt = null;
+        $scope.categoryInfo  = null;
+
+        $scope.selectAll     = false;
+        $scope.sortField     = "weight";
+        $scope.sortDir       = "asc";
+
+        $scope.hasGenerated  = false;
+        $scope.saveState     = "idle";
+        $scope.syncState     = "idle";
+
         $scope.toast              = { show: false, message: "", type: "" };
         $scope.isExportingTemplate = false;
         $scope.sidebarHidden       = localStorage.getItem("plm.sidebarHidden") === "true";
 
-        // History modal
-        $scope.showHistoryModal   = false;
-        $scope.exportHistory      = [];
-        $scope.historyLoading     = false;
-        $scope.historyOffset      = 0;
+        $scope.showHistoryModal = false;
+        $scope.exportHistory    = [];
+        $scope.historyLoading   = false;
+        $scope.historyOffset    = 0;
     }
 
     init();
@@ -82,8 +90,8 @@ plmApp.controller("priceListController", function (
     // ── Master Data ───────────────────────────────────────────────────────────
     function loadMasterData() {
         $masterService.getCategories().then(function (r) { $scope.categories = r.result || []; });
-        $masterService.getBrands().then(function (r) { $scope.brands = r.result || []; });
-        $masterService.getGrades().then(function (r) { $scope.grades = r.result || []; });
+        $masterService.getBrands().then(function (r)     { $scope.brands     = r.result || []; });
+        $masterService.getGrades().then(function (r)     { $scope.grades     = r.result || []; });
     }
 
     // ── Toast ─────────────────────────────────────────────────────────────────
@@ -92,19 +100,77 @@ plmApp.controller("priceListController", function (
         $timeout(function () { $scope.toast.show = false; }, 3500);
     }
 
-    // ── Sync icons / labels ───────────────────────────────────────────────────
-    $scope.syncIcon = function (status) {
-        return { synced: "🟢", pending: "🟡", draft: "🔘", untouched: "—" }[status] || "—";
+    // ── Sort ──────────────────────────────────────────────────────────────────
+    function applySortOrder() {
+        if (!$scope.items) return;
+        var field = $scope.sortField;
+        var dir   = $scope.sortDir === "asc" ? 1 : -1;
+
+        $scope.items.sort(function (a, b) {
+            var va, vb;
+            if (field === "name") {
+                va = a.name || ""; vb = b.name || "";
+            } else if (field === "weight") {
+                va = a.weight || 0; vb = b.weight || 0;
+            } else {
+                // price field e.g. "cash_gudang"
+                va = (a.prices[field] && a.prices[field].current) || 0;
+                vb = (b.prices[field] && b.prices[field].current) || 0;
+            }
+            if (va < vb) return -1 * dir;
+            if (va > vb) return  1 * dir;
+            return 0;
+        });
+    }
+
+    $scope.sortBy = function (field) {
+        if ($scope.sortField === field) {
+            if ($scope.sortDir === "asc") {
+                $scope.sortDir = "desc";
+            } else {
+                $scope.sortField = "weight";
+                $scope.sortDir   = "asc";
+            }
+        } else {
+            $scope.sortField = field;
+            $scope.sortDir   = "asc";
+        }
+        applySortOrder();
     };
-    $scope.syncLabel = function (status) {
-        return { synced: "Synced", pending: "Belum upload ke ERP", draft: "Draft — belum di-export", untouched: "Belum disentuh" }[status] || "";
+
+    $scope.sortIcon = function (field) {
+        if ($scope.sortField !== field) return "bi-arrow-down-up";
+        return $scope.sortDir === "asc" ? "bi-sort-up-alt" : "bi-sort-down-alt";
     };
-    $scope.syncSummary = function () {
-        if (!$scope.items || !$scope.items.length) return "";
-        var counts = { synced: 0, pending: 0, draft: 0, untouched: 0 };
-        $scope.items.forEach(function (i) { counts[i.sync_status || "untouched"]++; });
-        if (counts.synced === $scope.items.length) return "✅ Semua synced";
-        return "🟢 " + counts.synced + " synced · 🟡 " + counts.pending + " pending · 🔘 " + counts.draft + " draft";
+    $scope.sortActive = function (field) { return $scope.sortField === field; };
+
+    // ── Select All ────────────────────────────────────────────────────────────
+    $scope.toggleSelectAll = function () {
+        ($scope.items || []).forEach(function (i) { i.checked = $scope.selectAll; });
+    };
+
+    $scope.onItemCheck = function () {
+        var items = $scope.items || [];
+        $scope.selectAll = items.length > 0 && items.every(function (i) { return i.checked; });
+    };
+
+    // ── Modifier Targets ──────────────────────────────────────────────────────
+    function initModifierTargets(types) {
+        $scope.modifier.targets = {};
+        (types || []).forEach(function (pt) {
+            $scope.modifier.targets[pt.code] = true;
+        });
+    }
+
+    $scope.selectAllTargets = function () {
+        ($scope.priceTypes || []).forEach(function (pt) {
+            $scope.modifier.targets[pt.code] = true;
+        });
+    };
+    $scope.selectGroupTargets = function (group) {
+        ($scope.priceTypes || []).forEach(function (pt) {
+            $scope.modifier.targets[pt.code] = (pt.group === group);
+        });
     };
 
     // ── Search ────────────────────────────────────────────────────────────────
@@ -112,88 +178,84 @@ plmApp.controller("priceListController", function (
         $scope.hasGenerated  = false;
         $scope.saveState     = "idle";
         $scope.syncState     = "idle";
-        $scope.headerChecked = false;
+        $scope.selectAll     = false;
+        $scope.sortField     = "weight";
+        $scope.sortDir       = "asc";
 
         if (!$scope.filter.category && !$scope.filter.item_search_name) {
             showToast("Pilih Kategori atau isi Nama Barang terlebih dahulu", "warning");
             return;
         }
 
-        var cat_id = $scope.filter.category ? $scope.filter.category.id : null;
-
-        $itemService.getAll({
-            cat_id:    cat_id,
-            brand_id:  $scope.filter.brand    ? $scope.filter.brand.id    : null,
-            grade_id:  $scope.filter.grade    ? $scope.filter.grade.id    : null,
-            group_id:  $scope.filter.group    ? $scope.filter.group.id    : null,
+        var params = {
+            cat_id:    $scope.filter.category  ? $scope.filter.category.id  : null,
+            brand_id:  $scope.filter.brand     ? $scope.filter.brand.id     : null,
+            grade_id:  $scope.filter.grade     ? $scope.filter.grade.id     : null,
+            group_id:  $scope.filter.group     ? $scope.filter.group.id     : null,
             item_name: $scope.filter.item_search_name || null,
-        }).then(function (res) {
-            var itemsFromApi = res.result;
-            if (!itemsFromApi || !itemsFromApi.length) {
-                $scope.items = [];
+        };
+
+        $priceService.getInfo(params).then(function (res) {
+            var data = res.result || {};
+
+            if (!data.items || !data.items.length) {
+                $scope.items      = [];
+                $scope.category   = data.category || null;
+                $scope.priceTypes = data.price_types || [];
+                $scope.isExtended = data.category ? data.category.is_extended : false;
                 showToast("Tidak ada barang ditemukan", "info");
                 return;
             }
 
-            var ig_ids = itemsFromApi.map(function (i) { return i.ig_id; });
+            $scope.category         = data.category    || null;
+            $scope.priceTypes       = data.price_types || [];
+            $scope.isExtended       = data.category ? data.category.is_extended : false;
+            $scope.catMaxUpdatedAt  = data.cat_max_updated_at || null;
+            $scope.categoryInfo     = {
+                cat_name:        data.category ? data.category.name : null,
+                erp_last_update: data.cat_max_updated_at || null,
+                last_export:     data.last_export || null,
+            };
 
-            // Load category info (parallel)
-            if (cat_id) {
-                $priceService.getCategoryInfo(cat_id).then(function (r) {
-                    $scope.categoryInfo = r.result || null;
-                }).catch(angular.noop);
-            } else {
-                $scope.categoryInfo = null;
-            }
-
-            $priceService.getPricesInfo(ig_ids, cat_id).then(function (pricesRes) {
-                var raw      = pricesRes.result || {};
-                var priceArr = raw.items || [];
-                $scope.catMaxUpdatedAt = raw.cat_max_updated_at || null;
-
-                var weightMap = {};
-                itemsFromApi.forEach(function (i) { weightMap[i.ig_id] = i.weight; });
-
-                var priceMap = {};
-                priceArr.forEach(function (p) { priceMap[p.ig_id] = p; });
-
-                $scope.items = itemsFromApi.map(function (item) {
-                    var p = priceMap[item.ig_id] || {};
-                    return {
-                        ig_id:          item.ig_id,
-                        name:           item.name,
-                        weight:         item.weight,
-                        cashKgLama:     p.price_cash   != null ? parseFloat(p.price_cash)   : null,
-                        kreditKgLama:   p.price_credit != null ? parseFloat(p.price_credit) : null,
-                        cashKgBaru:     null,
-                        kreditKgBaru:   null,
-                        cashLbr:        null,
-                        kreditLbr:      null,
-                        erp_updated_at: p.erp_updated_at || null,
-                        sync_status:    p.sync_status    || "untouched",
-                        lastUpdate:     p.last_update ? moment(p.last_update).format("DD MMM YY") : "-",
-                        checked:        false,
-                        justEdited:     false,
-                    };
-                });
-
-            }).catch(function () {
-                showToast("Gagal mengambil data harga", "danger");
+            // Compute unique groups for quick-select
+            var seenGroups = {};
+            $scope.priceGroups = [];
+            ($scope.priceTypes || []).forEach(function (pt) {
+                if (!seenGroups[pt.group]) {
+                    seenGroups[pt.group] = true;
+                    $scope.priceGroups.push(pt.group);
+                }
             });
 
+            initModifierTargets($scope.priceTypes);
+
+            // Build items
+            $scope.items = data.items.map(function (item) {
+                return {
+                    ig_id:          item.ig_id,
+                    name:           item.name,
+                    weight:         item.weight,
+                    erp_updated_at: item.erp_updated_at || null,
+                    prices:         item.prices || {},
+                    new:            {},
+                    new_unit:       {},
+                    checked:        false,
+                    justEdited:     false,
+                };
+            });
+
+            applySortOrder();
+
         }).catch(function () {
-            showToast("Gagal mengambil data barang", "danger");
+            showToast("Gagal mengambil data", "danger");
         });
     };
 
-    // ── Checkbox ──────────────────────────────────────────────────────────────
-    $scope.toggleAll = function () {
-        var checked = $scope.headerChecked;
-        ($scope.items || []).forEach(function (item) { item.checked = checked; });
-    };
-    $scope.updateHeaderCheckbox = function () {
-        var items = $scope.items || [];
-        $scope.headerChecked = items.length > 0 && items.every(function (i) { return i.checked; });
+    // ── isSpotUpdate ──────────────────────────────────────────────────────────
+    $scope.isSpotUpdate = function (item) {
+        return $scope.catMaxUpdatedAt &&
+               item.erp_updated_at   &&
+               item.erp_updated_at !== $scope.catMaxUpdatedAt;
     };
 
     // ── Generate Harga Baru ───────────────────────────────────────────────────
@@ -207,23 +269,27 @@ plmApp.controller("priceListController", function (
             showToast("Pilih minimal satu barang terlebih dahulu", "warning");
             return;
         }
+        var anyTarget = ($scope.priceTypes || []).some(function (pt) {
+            return $scope.modifier.targets[pt.code];
+        });
+        if (!anyTarget) {
+            showToast("Pilih minimal satu target harga", "warning");
+            return;
+        }
 
         var modType  = $scope.modifier.selected.id;
         var modValue = parseFloat($scope.modifier.value);
-        var target   = $scope.modifier.target;
 
         ($scope.items || []).forEach(function (item) {
             if (!item.checked) return;
-            if (target === "cash" || target === "both") {
-                item.cashKgBaru = calcNewKg(item.cashKgLama, modType, modValue);
-                item.cashLbr    = item.weight > 0 ? round100(item.cashKgBaru * item.weight) : 0;
-                triggerAutosave(item, "cash");
-            }
-            if (target === "credit" || target === "both") {
-                item.kreditKgBaru = calcNewKg(item.kreditKgLama, modType, modValue);
-                item.kreditLbr    = item.weight > 0 ? round100(item.kreditKgBaru * item.weight) : 0;
-                triggerAutosave(item, "credit");
-            }
+            ($scope.priceTypes || []).forEach(function (pt) {
+                if (!$scope.modifier.targets[pt.code]) return;
+                var oldKg = item.prices[pt.code] ? item.prices[pt.code].current : null;
+                item.new[pt.code]      = calcNewKg(oldKg, modType, modValue);
+                item.new_unit[pt.code] = item.weight > 0
+                    ? round100(item.new[pt.code] * item.weight)
+                    : 0;
+            });
         });
 
         $scope.hasGenerated = true;
@@ -231,38 +297,30 @@ plmApp.controller("priceListController", function (
         showToast("Harga baru berhasil digenerate", "success");
     };
 
-    // ── Recalc Lbr + debounced autosave ──────────────────────────────────────
-    $scope.recalcAndSave = function (item, type) {
-        if (type === "cash") {
-            var kg = parseFloat(item.cashKgBaru) || 0;
-            item.cashLbr = kg && item.weight ? round100(kg * item.weight) : null;
-        } else {
-            var kg = parseFloat(item.kreditKgBaru) || 0;
-            item.kreditLbr = kg && item.weight ? round100(kg * item.weight) : null;
+    // ── Recalc /lbr on manual input ──────────────────────────────────────────
+    $scope.recalcLbr = function (item, pt) {
+        var kg = parseFloat(item.new[pt.code]) || 0;
+        item.new_unit[pt.code] = kg && item.weight ? round100(kg * item.weight) : null;
+        // auto-save
+        if (kg) {
+            var key = item.ig_id + "_" + pt.pr_id;
+            $scope.syncState = "saving";
+            debounceAutosave(key, function () {
+                $priceService.autosave(item.ig_id, pt.pr_id, kg)
+                    .then(function () {
+                        $scope.$apply(function () { $scope.syncState = "saved"; });
+                        $timeout(function () { $scope.syncState = "idle"; }, 2000);
+                    })
+                    .catch(angular.noop);
+            });
         }
-        triggerAutosave(item, type);
     };
 
-    function triggerAutosave(item, type) {
-        var key   = item.ig_id + "_" + type;
-        var pr_id = type === "cash" ? 2 : 4;
-        var price = type === "cash" ? item.cashKgBaru : item.kreditKgBaru;
-        if (price == null || price === "") return;
-
-        $scope.syncState = "saving";
-        debounceAutosave(key, function () {
-            $priceService.autosave(item.ig_id, pr_id, parseFloat(price))
-                .then(function () {
-                    $scope.$apply(function () { $scope.syncState = "saved"; });
-                    $timeout(function () { $scope.syncState = "idle"; }, 2000);
-                })
-                .catch(angular.noop);
-        });
-    }
-
-    // ── Draft check ───────────────────────────────────────────────────────────
+    // ── hasDrafts ─────────────────────────────────────────────────────────────
     $scope.hasDrafts = function () {
-        return ($scope.items || []).some(function (i) { return i.cashKgBaru || i.kreditKgBaru; });
+        return ($scope.items || []).some(function (i) {
+            return Object.keys(i.new || {}).length > 0;
+        });
     };
 
     // ── Batch Save ────────────────────────────────────────────────────────────
@@ -270,10 +328,16 @@ plmApp.controller("priceListController", function (
         if ($scope.saveState === "saving") return;
         var payload = [];
         ($scope.items || []).forEach(function (item) {
-            if (item.cashKgBaru != null)
-                payload.push({ ig_id: item.ig_id, pr_id: 2, old_price: item.cashKgLama || 0, new_price: item.cashKgBaru });
-            if (item.kreditKgBaru != null)
-                payload.push({ ig_id: item.ig_id, pr_id: 4, old_price: item.kreditKgLama || 0, new_price: item.kreditKgBaru });
+            ($scope.priceTypes || []).forEach(function (pt) {
+                if (item.new[pt.code] != null) {
+                    payload.push({
+                        ig_id:     item.ig_id,
+                        pr_id:     pt.pr_id,
+                        old_price: item.prices[pt.code] ? (item.prices[pt.code].current || 0) : 0,
+                        new_price: item.new[pt.code],
+                    });
+                }
+            });
         });
         if (!payload.length) { showToast("Tidak ada perubahan untuk disimpan", "info"); return; }
 
@@ -283,63 +347,45 @@ plmApp.controller("priceListController", function (
         $priceService.saveBatch(payload).then(function () {
             $scope.saveState = "saved";
             showToast("Harga berhasil disimpan!", "success");
-            // Update sync badges: items now become "draft" (not yet exported)
-            ($scope.items || []).forEach(function (item) {
-                if (item.cashKgBaru || item.kreditKgBaru) item.sync_status = "draft";
-            });
         }).catch(function () {
             $scope.saveState = "idle";
             showToast("Gagal menyimpan harga", "danger");
         });
     };
 
-    // ── Export ERP ────────────────────────────────────────────────────────────
+    // ── Export ────────────────────────────────────────────────────────────────
+    function buildExportPayload() {
+        var item_prices = [];
+        ($scope.items || []).forEach(function (item) {
+            ($scope.priceTypes || []).forEach(function (pt) {
+                if (item.new[pt.code] != null)
+                    item_prices.push({ ig_id: item.ig_id, pr_id: pt.pr_id, new_price: item.new[pt.code] });
+            });
+        });
+        return item_prices;
+    }
+
     $scope.doExportERP = function () {
         var item_prices = buildExportPayload();
         if (!item_prices.length) { showToast("Tidak ada harga untuk diexport", "info"); return; }
-
-        var cat_id   = $scope.filter.category ? $scope.filter.category.id   : null;
-        var cat_name = $scope.filter.category ? $scope.filter.category.name : null;
-
+        var cat_id   = $scope.category ? $scope.category.id   : null;
+        var cat_name = $scope.category ? $scope.category.name : null;
         showToast("Menyiapkan export ERP...", "info");
         $exportService.exportERP({ item_prices: item_prices, cat_id: cat_id, cat_name: cat_name })
-            .then(function () {
-                showToast("Export ERP berhasil", "success");
-                // Refresh category info + sync badges
-                ($scope.items || []).forEach(function (item) {
-                    if (item.cashKgBaru || item.kreditKgBaru) item.sync_status = "pending";
-                });
-                if (cat_id) {
-                    $priceService.getCategoryInfo(cat_id).then(function (r) {
-                        $scope.categoryInfo = r.result || null;
-                    }).catch(angular.noop);
-                }
-            })
+            .then(function () { showToast("Export ERP berhasil", "success"); })
             .catch(function () { showToast("Gagal export ERP", "danger"); });
     };
 
-    // ── Export Manual ─────────────────────────────────────────────────────────
     $scope.doExportManual = function () {
         var item_prices = buildExportPayload();
         if (!item_prices.length) { showToast("Tidak ada harga untuk diexport", "info"); return; }
-
-        var cat_id   = $scope.filter.category ? $scope.filter.category.id   : null;
-        var cat_name = $scope.filter.category ? $scope.filter.category.name : null;
-
+        var cat_id   = $scope.category ? $scope.category.id   : null;
+        var cat_name = $scope.category ? $scope.category.name : null;
         showToast("Menyiapkan export Manual...", "info");
         $exportService.exportManual({ item_prices: item_prices, cat_id: cat_id, cat_name: cat_name })
             .then(function () { showToast("Export Manual berhasil", "success"); })
             .catch(function () { showToast("Gagal export Manual", "danger"); });
     };
-
-    function buildExportPayload() {
-        var item_prices = [];
-        ($scope.items || []).forEach(function (item) {
-            if (item.cashKgBaru   != null) item_prices.push({ ig_id: item.ig_id, pr_id: 2, new_price: item.cashKgBaru });
-            if (item.kreditKgBaru != null) item_prices.push({ ig_id: item.ig_id, pr_id: 4, new_price: item.kreditKgBaru });
-        });
-        return item_prices;
-    }
 
     // ── History Modal ─────────────────────────────────────────────────────────
     $scope.openHistoryModal = function () {
@@ -350,23 +396,27 @@ plmApp.controller("priceListController", function (
     $scope.closeHistoryModal = function () { $scope.showHistoryModal = false; };
 
     function loadHistory() {
-        var cat_id = $scope.filter.category ? $scope.filter.category.id : null;
+        var cat_id = $scope.category ? $scope.category.id : null;
         $scope.historyLoading = true;
         $exportService.getHistory(cat_id, 20, $scope.historyOffset)
-            .then(function (r) {
-                $scope.exportHistory  = r.result || [];
-                $scope.historyLoading = false;
-            })
-            .catch(function () {
-                $scope.historyLoading = false;
-                showToast("Gagal memuat history", "danger");
-            });
+            .then(function (r) { $scope.exportHistory = r.result || []; $scope.historyLoading = false; })
+            .catch(function () { $scope.historyLoading = false; showToast("Gagal memuat history", "danger"); });
     }
 
     $scope.historyPage = function () { return Math.floor($scope.historyOffset / 20) + 1; };
     $scope.historyNext = function () { $scope.historyOffset += 20; loadHistory(); };
     $scope.historyPrev = function () { $scope.historyOffset = Math.max(0, $scope.historyOffset - 20); loadHistory(); };
     $scope.downloadHistory = function (id) { $exportService.downloadHistory(id); };
+
+    // ── syncSummary ───────────────────────────────────────────────────────────
+    $scope.syncSummary = function () {
+        if (!$scope.items || !$scope.items.length) return "";
+        var hasPlm = $scope.items.filter(function (i) {
+            return Object.values(i.prices || {}).some(function (p) { return p && p.source === "plm"; });
+        }).length;
+        if (!hasPlm) return "";
+        return hasPlm + "/" + $scope.items.length + " dari PLM";
+    };
 
     // ── Export Template Per Kilo ──────────────────────────────────────────────
     $scope.exportTemplatePerKilo = function () {
@@ -382,19 +432,14 @@ plmApp.controller("priceListController", function (
             item_name: $scope.filter.item_search_name || null,
         }).then(function () {
             showToast("Template berhasil didownload", "success");
-        }).catch(function (err) {
-            if (err.data) {
-                try {
-                    var obj = JSON.parse(String.fromCharCode.apply(null, new Uint8Array(err.data)));
-                    showToast(obj.message || "Gagal mendownload template", "danger");
-                } catch (e) { showToast("Gagal mendownload template", "danger"); }
-            } else { showToast("Gagal mendownload template", "danger"); }
+        }).catch(function () {
+            showToast("Gagal mendownload template", "danger");
         }).finally(function () {
             $scope.$apply(function () { $scope.isExportingTemplate = false; });
         });
     };
 
-    // ── Import Template Per Kilo ──────────────────────────────────────────────
+    // ── Import ────────────────────────────────────────────────────────────────
     $scope.handleFileSelect = function (files) {
         if (!files || !files.length) return;
         var formData = new FormData();
@@ -403,28 +448,7 @@ plmApp.controller("priceListController", function (
             .then(function (r) {
                 var imported = r.data.result;
                 if (!imported || !imported.length) { showToast("Tidak ada data yang bisa diimpor", "info"); return; }
-                var ig_ids = imported.map(function (i) { return i.ig_id; });
-                $priceService.getPricesInfo(ig_ids, null).then(function (pricesRes) {
-                    var raw = pricesRes.result || {};
-                    var arr = raw.items || [];
-                    var priceMap = {};
-                    arr.forEach(function (p) { priceMap[p.ig_id] = p; });
-                    $scope.items = imported.map(function (item) {
-                        var p = priceMap[item.ig_id] || {};
-                        return {
-                            ig_id: item.ig_id, name: item.name, weight: item.weight,
-                            cashKgLama: p.price_cash != null ? parseFloat(p.price_cash) : null,
-                            kreditKgLama: p.price_credit != null ? parseFloat(p.price_credit) : null,
-                            cashKgBaru: item.cashKgBaru || null, kreditKgBaru: item.kreditKgBaru || null,
-                            cashLbr: null, kreditLbr: null,
-                            erp_updated_at: p.erp_updated_at || null, sync_status: p.sync_status || "untouched",
-                            lastUpdate: p.last_update ? moment(p.last_update).format("DD MMM YY") : "-",
-                            checked: item.cashKgBaru != null || item.kreditKgBaru != null, justEdited: false,
-                        };
-                    });
-                    $scope.hasGenerated = true;
-                    showToast("File berhasil diimpor", "success");
-                });
+                showToast("File berhasil diimpor", "success");
             }).catch(function () { showToast("Gagal mengimpor file", "danger"); });
         document.getElementById("import-file").value = "";
     };
