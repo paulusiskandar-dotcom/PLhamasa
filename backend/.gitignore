@@ -1,0 +1,4 @@
+node_modules/
+.env
+public/tmp_file/*.xlsx
+*.log

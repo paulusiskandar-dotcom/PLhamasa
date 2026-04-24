@@ -1,0 +1,32 @@
+extends master
+
+block content
+  div.login-wrapper(ng-controller="loginController")
+    div.login-card
+      div.login-brand
+        span.brand-icon ⬡
+        h1 Price List Manager
+        p.brand-sub Internal Dashboard
+
+      div.toast-area(ng-show="toast.show")
+        div.toast-msg(ng-class="'toast-' + toast.type") {{ toast.message }}
+
+      form.login-form(ng-submit="login()" autocomplete="off")
+        div.form-group
+          label Username
+          input.form-control(
+            type="text"
+            ng-model="credentials.username"
+            placeholder="Masukkan username"
+            autofocus
+          )
+        div.form-group
+          label Password
+          input.form-control(
+            type="password"
+            ng-model="credentials.password"
+            placeholder="Masukkan password"
+          )
+        button.btn-login(type="submit" ng-disabled="loading")
+          span(ng-if="!loading") Masuk
+          span(ng-if="loading") Memuat...

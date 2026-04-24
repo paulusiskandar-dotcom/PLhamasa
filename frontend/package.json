@@ -1,0 +1,20 @@
+{
+  "name": "price-list-manager-frontend",
+  "version": "1.0.0",
+  "description": "Frontend for Price List Manager",
+  "main": "engine.js",
+  "scripts": {
+    "start": "node engine.js",
+    "dev": "nodemon engine.js",
+    "build": "gulp build"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "pug": "^3.0.2",
+    "cookie-parser": "^1.4.6"
+  },
+  "devDependencies": {
+    "gulp": "^4.0.2",
+    "nodemon": "^3.0.2"
+  }
+}
