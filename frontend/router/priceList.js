@@ -11,6 +11,7 @@ module.exports = function (req, res) {
                     "/js/services/price.js",
                     "/js/services/exportPrice.js",
                     "/js/services/master.js",
+                    "/js/directive/thousandSeparator.js",
                 ]
             }
         }

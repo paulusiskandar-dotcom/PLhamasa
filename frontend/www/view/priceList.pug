@@ -160,7 +160,7 @@ block content
             thead(ng-if="!isExtended")
               tr
                 th.th-check(rowspan="2")
-                  input(type="checkbox" ng-model="selectAll" ng-change="toggleSelectAll()")
+                  input(type="checkbox" ng-model="$parent.selectAll" ng-change="toggleSelectAll()")
                 th(rowspan="2" style="width:38px") No
                 th.th-sortable(rowspan="2" ng-click="sortBy('name')")
                   | Nama Barang
@@ -186,7 +186,7 @@ block content
             thead(ng-if="isExtended")
               tr
                 th.th-check(rowspan="3")
-                  input(type="checkbox" ng-model="selectAll" ng-change="toggleSelectAll()")
+                  input(type="checkbox" ng-model="$parent.selectAll" ng-change="toggleSelectAll()")
                 th(rowspan="3" style="width:38px") No
                 th.th-sortable(rowspan="3" ng-click="sortBy('name')")
                   | Nama Barang
@@ -244,12 +244,13 @@ block content
                   | {{ item.prices[pt.code].current | number }}
                 td.td-new(ng-class="{'td-has-new': item.new[pt.code] != null}")
                   input.price-input(
-                    type="number"
+                    type="text"
+                    inputmode="numeric"
+                    thousand-separator
                     ng-model="item.new[pt.code]"
                     ng-model-options="{ updateOn: 'blur', debounce: { blur: 0 } }"
                     ng-change="onManualOverride(item, pt)"
                     placeholder="—"
-                    min="0"
                   )
                 td.mono.text-right.price-lbr(ng-repeat-end)
                   span(ng-if="item.new_unit[pt.code] != null") {{ item.new_unit[pt.code] | number:0 }}

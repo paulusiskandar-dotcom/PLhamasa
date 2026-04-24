@@ -358,7 +358,8 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .data-table th {
   padding: 11px 14px;
-  text-align: left;
+  text-align: center;
+  vertical-align: middle;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: .06em;
@@ -424,12 +425,19 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .price-input {
   width: 110px;
-  padding: 5px 8px;
-  border: 1.5px solid var(--gold);
-  border-radius: var(--radius);
+  padding: 6px 10px;
+  text-align: right;
   font-family: var(--mono);
-  font-size: 12px;
-  background: #FFFDF5;
+  font-size: 13px;
+  border: 1px solid #D0D4DC;
+  border-radius: 3px;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+.price-input:focus {
+  outline: none;
+  border-color: var(--navy-light);
+  box-shadow: 0 0 0 2px rgba(42, 79, 130, 0.12);
 }
 
 .price-result {
@@ -902,6 +910,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
+  text-align: center;
 }
 .th-sortable:hover { background: rgba(255,255,255,.08); }
 
