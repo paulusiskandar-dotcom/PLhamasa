@@ -1,47 +1,54 @@
-plmApp.directive('thousandSeparator', ['$timeout', function ($timeout) {
+plmApp.directive('thousandSeparator', function () {
     return {
         require: 'ngModel',
         link: function (scope, element, attrs, ngModel) {
-            function format(val) {
-                if (val === null || val === undefined || val === '') return '';
-                var n = Math.round(parseFloat(String(val).replace(/[^\d.]/g, '')));
-                return isNaN(n) ? '' : n.toLocaleString('id-ID');
+            function format(num) {
+                if (num === null || num === undefined || num === '') return '';
+                var n = parseInt(String(num).replace(/[^\d-]/g, ''), 10);
+                if (isNaN(n)) return '';
+                return n.toLocaleString('id-ID');
             }
             function parse(text) {
                 if (!text) return null;
-                var clean = String(text).replace(/[^\d]/g, '');
-                return clean ? parseInt(clean, 10) : null;
+                var clean = String(text).replace(/[^\d-]/g, '');
+                if (!clean || clean === '-') return null;
+                var n = parseInt(clean, 10);
+                return isNaN(n) ? null : n;
             }
 
-            // Model → View: runs when $modelValue changes (initial + programmatic)
-            ngModel.$formatters.push(format);
+            // Override $render: called by Angular whenever $viewValue changes
+            // (includes programmatic model updates from generate())
+            ngModel.$render = function () {
+                element.val(format(ngModel.$viewValue));
+            };
 
-            // Belt-and-suspenders: watch $modelValue directly to catch generate() updates
-            scope.$watch(function () { return ngModel.$modelValue; }, function (newVal) {
-                if (document.activeElement !== element[0]) {
-                    element.val(format(newVal));
-                }
+            // Model → View pipeline: converts raw number to formatted string
+            ngModel.$formatters.push(function (modelVal) {
+                return format(modelVal);
             });
 
-            // View → Model: strip separators, return integer
+            // View → Model pipeline: strips separators, returns integer
             ngModel.$parsers.push(function (viewVal) {
-                var parsed = parse(viewVal);
-                var display = format(parsed);
-                // On blur (updateOn:'blur'), safe to update display + restore cursor
-                if (display !== element.val()) {
-                    var pos = element[0].selectionStart;
-                    element.val(display);
-                    try { element[0].setSelectionRange(pos, pos); } catch (e) {}
-                }
-                return parsed;
+                return parse(viewVal);
             });
 
-            // Re-format on blur after Angular's digest settles
+            // Re-format on blur (belt-and-suspenders)
             element.on('blur', function () {
-                $timeout(function () {
-                    element.val(format(ngModel.$modelValue));
-                }, 0);
+                var val = ngModel.$modelValue;
+                if (val !== null && val !== undefined) {
+                    element.val(format(val));
+                }
             });
+
+            // Watch for programmatic model changes (e.g., generate())
+            scope.$watch(
+                function () { return ngModel.$modelValue; },
+                function (newVal, oldVal) {
+                    if (newVal !== oldVal) {
+                        element.val(format(newVal));
+                    }
+                }
+            );
         }
     };
-}]);
+});
