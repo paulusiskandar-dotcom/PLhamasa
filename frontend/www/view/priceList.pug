@@ -73,66 +73,7 @@ block content
               i.bi.bi-search
               |  Cari
 
-      //- ── Table ──────────────────────────────────────────────────────────────
-      div.table-wrapper(ng-if="items !== null")
-
-        div.table-info(ng-if="items.length > 0")
-          span {{ items.length }} barang ditemukan
-          span.draft-badge(ng-if="hasDrafts()")  · {{ draftCount() }} draft belum disimpan
-
-        div.empty-state(ng-if="items.length === 0")
-          i.bi.bi-inbox
-          p Tidak ada barang ditemukan
-
-        div.table-scroll(ng-if="items.length > 0")
-          table.data-table
-            thead
-              tr
-                th(style="width:36px")
-                  input(type="checkbox" ng-model="headerChecked" ng-change="toggleAll()")
-                th(style="width:36px") No
-                th Nama Barang
-                th.text-right Berat (kg)
-                th.col-price Cash/kg
-                th.col-price-new(ng-if="hasGenerated") Cash/kg Baru
-                th.col-price-lbr(ng-if="hasGenerated") Cash/Lbr
-                th.col-price Kredit/kg
-                th.col-price-new(ng-if="hasGenerated") Kredit/kg Baru
-                th.col-price-lbr(ng-if="hasGenerated") Kredit/Lbr
-                th Update
-            tbody
-              tr(
-                ng-repeat="item in items"
-                ng-class="{'row-changed': item.cashKgBaru || item.kreditKgBaru, 'row-just-edited': item.justEdited}"
-              )
-                td
-                  input(type="checkbox" ng-model="item.checked" ng-change="updateHeaderCheckbox()")
-                td.text-muted {{ $index + 1 }}
-                td {{ item.name }}
-                td.mono.text-right {{ item.weight }}
-                td.mono.text-right {{ item.cashKgLama | number }}
-                td.price-new(ng-if="hasGenerated")
-                  input.price-input(
-                    type="number"
-                    ng-model="item.cashKgBaru"
-                    ng-change="recalcAndSave(item, 'cash')"
-                    placeholder="-"
-                    min="0"
-                  )
-                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.cashLbr | number:0 }}
-                td.mono.text-right {{ item.kreditKgLama | number }}
-                td.price-new(ng-if="hasGenerated")
-                  input.price-input(
-                    type="number"
-                    ng-model="item.kreditKgBaru"
-                    ng-change="recalcAndSave(item, 'credit')"
-                    placeholder="-"
-                    min="0"
-                  )
-                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.kreditLbr | number:0 }}
-                td.mono.date-cell {{ item.lastUpdate }}
-
-      //- ── Modifier Section (bawah tabel) ─────────────────────────────────────
+      //- ── Modifier Section (DI ATAS tabel) ───────────────────────────────────
       div.modifier-section(ng-if="items && items.length > 0")
         div.modifier-header
           span.modifier-title
@@ -163,30 +104,174 @@ block content
               min="0"
             )
           div.modifier-field.modifier-action
-            button.btn-generate(
-              ng-click="generatePrices()"
-              ng-disabled="!items || !items.length"
-            )
+            button.btn-generate(ng-click="generatePrices()")
               i.bi.bi-lightning-charge
               |  Generate Harga Baru
 
-        //- Save & Export row
+        //- Save & Export (dalam modifier-section, muncul setelah ada draft)
         div.save-section(ng-if="hasDrafts()")
+          div.sync-indicator(ng-if="syncState === 'saving'")
+            i.bi.bi-arrow-repeat.spin
+            span  Menyimpan...
+          div.sync-indicator.sync-ok(ng-if="syncState === 'saved'")
+            i.bi.bi-check-circle
+            span  Auto-saved
+
           button.btn-save(
-            ng-click="commitSave()"
+            ng-click="saveAll()"
             ng-disabled="saveState === 'saving'"
           )
             i.bi(ng-class="{'bi-save': saveState !== 'saving', 'bi-hourglass-split': saveState === 'saving'}")
-            span(ng-if="saveState !== 'saving'")  Simpan
+            span(ng-if="saveState !== 'saving'")  Simpan Semua
             span(ng-if="saveState === 'saving'")  Menyimpan...
 
           div.export-actions(ng-if="saveState === 'saved'")
-            button.btn-secondary(ng-click="exportERP()")
+            button.btn-secondary(ng-click="doExportERP()")
               i.bi.bi-file-earmark-excel
               |  Export ERP
+            button.btn-secondary(ng-click="doExportManual()")
+              i.bi.bi-file-earmark-text
+              |  Export Manual
             button.btn-outline.btn-pdf(disabled title="Fitur segera hadir")
               i.bi.bi-printer
               |  Print PDF
+
+      //- ── Table ──────────────────────────────────────────────────────────────
+      div.table-wrapper(ng-if="items !== null")
+
+        //- Category Banner
+        div.category-banner(ng-if="categoryInfo && items.length > 0")
+          div.banner-left
+            span.banner-cat {{ categoryInfo.cat_name || filter.category.name }}
+            span.banner-erp-date(ng-if="categoryInfo.erp_last_update")
+              i.bi.bi-calendar3
+              |  ERP: {{ categoryInfo.erp_last_update | plmDate }}
+            span.banner-sync {{ syncSummary() }}
+          div.banner-right
+            div.banner-export(ng-if="categoryInfo.last_export")
+              span Last Export: {{ categoryInfo.last_export.exported_at | plmDate }}
+              span  · {{ categoryInfo.last_export.exporter_name }}
+              span  · {{ categoryInfo.last_export.item_count }} items
+            div.banner-export(ng-if="!categoryInfo.last_export")
+              span.text-muted Belum pernah di-export
+            button.btn-outline.btn-sm(ng-click="openHistoryModal()")
+              i.bi.bi-clock-history
+              |  Riwayat Export
+
+        div.table-info(ng-if="items.length > 0")
+          span {{ items.length }} barang ditemukan
+
+        div.empty-state(ng-if="items.length === 0")
+          i.bi.bi-inbox
+          p Tidak ada barang ditemukan
+
+        div.table-scroll(ng-if="items.length > 0")
+          table.data-table
+            thead
+              tr
+                th(style="width:36px")
+                  input(type="checkbox" ng-model="headerChecked" ng-change="toggleAll()")
+                th(style="width:36px") No
+                th Nama Barang
+                th.text-right Berat (kg)
+                th.col-price
+                  | Cash/kg
+                  span.warn-icon(ng-if="catMaxUpdatedAt" title="Tanda ⚠ muncul jika item berbeda dari update massal kategori")
+                th.col-price-new(ng-if="hasGenerated") Cash/kg Baru
+                th.col-price-lbr(ng-if="hasGenerated") Cash/Lbr
+                th.col-price
+                  | Kredit/kg
+                th.col-price-new(ng-if="hasGenerated") Kredit/kg Baru
+                th.col-price-lbr(ng-if="hasGenerated") Kredit/Lbr
+                th.col-sync Update / Sync
+            tbody
+              tr(
+                ng-repeat="item in items"
+                ng-class="{'row-changed': item.cashKgBaru || item.kreditKgBaru, 'row-just-edited': item.justEdited}"
+              )
+                td
+                  input(type="checkbox" ng-model="item.checked" ng-change="updateHeaderCheckbox()")
+                td.text-muted {{ $index + 1 }}
+                td {{ item.name }}
+                td.mono.text-right {{ item.weight }}
+                td.mono.text-right
+                  span {{ item.cashKgLama | number }}
+                  span.warn-badge(
+                    ng-if="catMaxUpdatedAt && item.erp_updated_at && item.erp_updated_at !== catMaxUpdatedAt"
+                    title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
+                  ) ⚠
+                td.price-new(ng-if="hasGenerated")
+                  input.price-input(
+                    type="number"
+                    ng-model="item.cashKgBaru"
+                    ng-change="recalcAndSave(item, 'cash')"
+                    placeholder="-"
+                    min="0"
+                  )
+                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.cashLbr | number:0 }}
+                td.mono.text-right
+                  span {{ item.kreditKgLama | number }}
+                  span.warn-badge(
+                    ng-if="catMaxUpdatedAt && item.erp_updated_at && item.erp_updated_at !== catMaxUpdatedAt"
+                    title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
+                  ) ⚠
+                td.price-new(ng-if="hasGenerated")
+                  input.price-input(
+                    type="number"
+                    ng-model="item.kreditKgBaru"
+                    ng-change="recalcAndSave(item, 'credit')"
+                    placeholder="-"
+                    min="0"
+                  )
+                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.kreditLbr | number:0 }}
+                td.sync-cell
+                  span.sync-date(ng-if="item.erp_updated_at") {{ item.erp_updated_at | plmDate }}
+                  span.sync-date(ng-if="!item.erp_updated_at") —
+                  span.sync-badge-icon(
+                    ng-if="item.sync_status"
+                    ng-class="'sync-' + item.sync_status"
+                    title="{{ syncLabel(item.sync_status) }}"
+                  ) {{ syncIcon(item.sync_status) }}
+
+      //- ── History Modal ────────────────────────────────────────────────────
+      div.modal-backdrop(ng-if="showHistoryModal" ng-click="closeHistoryModal()")
+      div.modal-box(ng-if="showHistoryModal")
+        div.modal-head
+          span.modal-title
+            i.bi.bi-clock-history
+            |  Riwayat Export
+          button.modal-close(ng-click="closeHistoryModal()") ×
+        div.modal-body
+          div.loading-state(ng-if="historyLoading")
+            i.bi.bi-arrow-repeat.spin
+            span  Memuat...
+          table.data-table(ng-if="!historyLoading && exportHistory.length > 0")
+            thead
+              tr
+                th Tanggal
+                th Tipe
+                th Jumlah
+                th File
+                th
+            tbody
+              tr(ng-repeat="h in exportHistory")
+                td.mono {{ h.exported_at | plmDateTime }}
+                td
+                  span.badge-type(ng-class="'badge-' + h.export_type") {{ h.export_type | uppercase }}
+                td {{ h.item_count }}
+                td.mono.text-muted {{ h.file_name }}
+                td
+                  button.btn-outline.btn-sm(ng-click="downloadHistory(h.id)" ng-if="h.file_name")
+                    i.bi.bi-download
+          div.empty-state(ng-if="!historyLoading && exportHistory.length === 0")
+            i.bi.bi-inbox
+            p Belum ada history export
+          div.modal-pagination(ng-if="exportHistory.length > 0")
+            button.btn-outline.btn-sm(ng-click="historyPrev()" ng-disabled="historyOffset === 0")
+              i.bi.bi-chevron-left
+            span  Hal {{ historyPage() }}
+            button.btn-outline.btn-sm(ng-click="historyNext()" ng-disabled="exportHistory.length < 20")
+              i.bi.bi-chevron-right
 
       //- Toast
       div.toast-container(ng-if="toast.show")
