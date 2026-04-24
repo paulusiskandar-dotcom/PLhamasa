@@ -49,3 +49,11 @@ CREATE INDEX IF NOT EXISTS idx_price_log_date  ON price_log(plog_date DESC);
 INSERT INTO users (u_username, u_password, u_role) VALUES
     ('admin', 'admin123', 'admin')
 ON CONFLICT DO NOTHING;
+
+-- ── Migration: draft/commit workflow ──────────────────────────
+ALTER TABLE item_price ADD COLUMN IF NOT EXISTS status   VARCHAR(10)  NOT NULL DEFAULT 'final';
+ALTER TABLE item_price ADD COLUMN IF NOT EXISTS draft_by INTEGER;
+ALTER TABLE item_price ADD COLUMN IF NOT EXISTS draft_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_item_price_status
+    ON item_price(status) WHERE status = 'draft';
