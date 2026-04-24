@@ -73,7 +73,7 @@ plmApp.controller("priceListController", function (
         $scope.catMaxUpdatedAt = null;
         $scope.categoryInfo  = null;
 
-        $scope.selectAll     = false;
+        $scope.selection     = { all: false };
         $scope.sortField     = "weight";
         $scope.sortDir       = "asc";
 
@@ -159,12 +159,12 @@ plmApp.controller("priceListController", function (
 
     // ── Select All ────────────────────────────────────────────────────────────
     $scope.toggleSelectAll = function () {
-        ($scope.items || []).forEach(function (i) { i.checked = $scope.selectAll; });
+        ($scope.items || []).forEach(function (i) { i.checked = $scope.selection.all; });
     };
 
     $scope.onItemCheck = function () {
         var items = $scope.items || [];
-        $scope.selectAll = items.length > 0 && items.every(function (i) { return i.checked; });
+        $scope.selection.all = items.length > 0 && items.every(function (i) { return i.checked; });
     };
 
     // ── Modifier Targets ──────────────────────────────────────────────────────
@@ -193,7 +193,7 @@ plmApp.controller("priceListController", function (
         $scope.syncState      = "idle";
         $scope.pendingChanges = [];
         $scope.autoSaveError  = false;
-        $scope.selectAll      = false;
+        $scope.selection.all  = false;
         $scope.sortField      = "weight";
         $scope.sortDir        = "asc";
 

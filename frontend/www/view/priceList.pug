@@ -160,7 +160,7 @@ block content
             thead(ng-if="!isExtended")
               tr
                 th.th-check(rowspan="2")
-                  input(type="checkbox" ng-model="$parent.selectAll" ng-change="toggleSelectAll()")
+                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
                 th(rowspan="2" style="width:38px") No
                 th.th-sortable(rowspan="2" ng-click="sortBy('name')")
                   | Nama Barang
@@ -186,7 +186,7 @@ block content
             thead(ng-if="isExtended")
               tr
                 th.th-check(rowspan="3")
-                  input(type="checkbox" ng-model="$parent.selectAll" ng-change="toggleSelectAll()")
+                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
                 th(rowspan="3" style="width:38px") No
                 th.th-sortable(rowspan="3" ng-click="sortBy('name')")
                   | Nama Barang
