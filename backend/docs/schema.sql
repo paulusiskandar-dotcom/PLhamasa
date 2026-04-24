@@ -58,7 +58,19 @@ CREATE TABLE IF NOT EXISTS export_log (
 CREATE INDEX IF NOT EXISTS idx_export_log_cat_id      ON export_log(cat_id);
 CREATE INDEX IF NOT EXISTS idx_export_log_exported_at ON export_log(exported_at DESC);
 
+-- ── settings ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS settings (
+    key         VARCHAR(50) PRIMARY KEY,
+    value       JSONB        NOT NULL,
+    updated_by  INTEGER,
+    updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ── Seed ──────────────────────────────────────────────────────
 INSERT INTO users (u_username, u_password, u_role) VALUES
     ('admin', 'admin123', 'admin')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO settings (key, value) VALUES
+    ('extended_categories', '[]'::jsonb)
 ON CONFLICT DO NOTHING;
