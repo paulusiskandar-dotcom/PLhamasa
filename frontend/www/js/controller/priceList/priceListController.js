@@ -16,6 +16,20 @@ plmApp.controller("priceListController", function (
         return r <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
     }
 
+    function formatThousand(num) {
+        if (num === null || num === undefined || num === '') return '';
+        var n = parseInt(String(num).replace(/[^\d-]/g, ''), 10);
+        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+    }
+
+    function parseThousand(text) {
+        if (!text) return null;
+        var clean = String(text).replace(/[^\d-]/g, '');
+        if (!clean) return null;
+        var n = parseInt(clean, 10);
+        return isNaN(n) ? null : n;
+    }
+
     function calcNewKg(oldKg, modType, modValue) {
         var old = parseFloat(oldKg) || 0;
         var mod = parseFloat(modValue) || 0;
@@ -263,6 +277,7 @@ plmApp.controller("priceListController", function (
                     erp_updated_at: item.erp_updated_at || null,
                     prices:         item.prices || {},
                     new:            {},
+                    new_display:    {},
                     new_unit:       {},
                     checked:        false,
                     justEdited:     false,
@@ -313,8 +328,9 @@ plmApp.controller("priceListController", function (
                 var newUnit = item.weight > 0 ? roundSpecial(newKg * item.weight) : 0;
 
                 // Accumulative: write only targeted columns, leave others untouched
-                item.new[pt.code]      = newKg;
-                item.new_unit[pt.code] = newUnit;
+                item.new[pt.code]         = newKg;
+                item.new_display[pt.code] = formatThousand(newKg);
+                item.new_unit[pt.code]    = newUnit;
 
                 // Fire-and-forget auto-save
                 fireAutoSave(item.ig_id, pt.pr_id, newKg);
@@ -331,19 +347,24 @@ plmApp.controller("priceListController", function (
         showToast("Generate " + labels + " selesai", "success");
     };
 
-    // ── Manual override on blur ───────────────────────────────────────────────
-    $scope.onManualOverride = function (item, pt) {
-        var kg = parseFloat(item.new[pt.code]);
-        if (isNaN(kg) || kg < 0) return;
-        item.new_unit[pt.code] = item.weight > 0 ? roundSpecial(kg * item.weight) : 0;
+    // ── Manual price input ────────────────────────────────────────────────────
+    $scope.onPriceInputChange = function (item, pt) {
+        var raw = parseThousand(item.new_display[pt.code]);
+        item.new[pt.code]         = raw;
+        item.new_display[pt.code] = formatThousand(raw);
 
-        fireAutoSave(item.ig_id, pt.pr_id, kg);
-        upsertPending(
-            item.ig_id, pt.pr_id,
-            item.prices[pt.code] ? (item.prices[pt.code].current || 0) : 0,
-            kg
-        );
-        $scope.hasGenerated = true;
+        if (raw !== null && raw >= 0) {
+            item.new_unit[pt.code] = item.weight > 0 ? roundSpecial(raw * item.weight) : 0;
+            fireAutoSave(item.ig_id, pt.pr_id, raw);
+            upsertPending(
+                item.ig_id, pt.pr_id,
+                item.prices[pt.code] ? (item.prices[pt.code].current || 0) : 0,
+                raw
+            );
+            $scope.hasGenerated = true;
+        } else {
+            item.new_unit[pt.code] = null;
+        }
     };
 
     // ── Auto-save (fire-and-forget) ───────────────────────────────────────────
@@ -396,8 +417,9 @@ plmApp.controller("priceListController", function (
                         item.prices[pt.code] = { current: item.new[pt.code], source: "plm" };
                     }
                 });
-                item.new      = {};
-                item.new_unit = {};
+                item.new         = {};
+                item.new_display = {};
+                item.new_unit    = {};
             });
             $scope.pendingChanges = [];
             $scope.hasGenerated   = false;

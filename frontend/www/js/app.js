@@ -31,6 +31,15 @@ plmApp.filter("plmDateTime", function () {
     };
 });
 
+plmApp.filter("thousand", function () {
+    return function (input) {
+        if (input === null || input === undefined || input === '') return '';
+        var n = parseInt(String(input).replace(/[^\d-]/g, ''), 10);
+        if (isNaN(n)) return '';
+        return n.toLocaleString('id-ID');
+    };
+});
+
 plmApp.filter("number", function () {
     return function (input, decimals) {
         if (input === null || input === undefined || input === "") return "-";

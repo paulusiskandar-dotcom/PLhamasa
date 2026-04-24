@@ -246,10 +246,8 @@ block content
                   input.price-input(
                     type="text"
                     inputmode="numeric"
-                    thousand-separator
-                    ng-model="item.new[pt.code]"
-                    ng-model-options="{ updateOn: 'blur', debounce: { blur: 0 } }"
-                    ng-change="onManualOverride(item, pt)"
+                    ng-model="item.new_display[pt.code]"
+                    ng-change="onPriceInputChange(item, pt)"
                     placeholder="—"
                   )
                 td.mono.text-right.price-lbr(ng-repeat-end)
