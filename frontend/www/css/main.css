@@ -398,6 +398,14 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 }
 
 .mono { font-family: var(--mono); font-size: 12px; }
+
+/* ─── Numeric table cells ─────────────────────────────────────── */
+.data-table td.num {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
 .date-cell { color: var(--text-muted); font-size: 12px; }
 
 /* ─── Price Cell ─────────────────────────────────────────────── */
@@ -429,6 +437,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   text-align: right;
   font-family: var(--mono);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
   border: 1px solid #D0D4DC;
   border-radius: 3px;
   background: #fff;
@@ -523,7 +532,14 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 /* ─── Price cells ────────────────────────────────────────────── */
 .price-new { padding: 4px 10px; }
-.price-lbr { color: var(--gold); font-weight: 600; }
+.price-lbr {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  font-weight: 700;
+}
 .text-right { text-align: right; }
 .text-muted { color: var(--text-muted); }
 

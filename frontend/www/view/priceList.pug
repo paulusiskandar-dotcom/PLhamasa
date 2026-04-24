@@ -231,17 +231,17 @@ block content
               )
                 td.td-check
                   input(type="checkbox" ng-model="item.checked" ng-change="onItemCheck()")
-                td.text-muted {{ $index + 1 }}
+                td.num.text-muted {{ $index + 1 }}
                 td
                   | {{ item.name }}
                   span.warn-badge(
                     ng-if="isSpotUpdate(item)"
                     title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
                   ) ⚠
-                td.mono.text-right {{ item.weight }}
-                //- Per price-type: /kg lama | /kg baru (input, blur) | /lbr
-                td.mono.text-right(ng-repeat-start="pt in priceTypes track by pt.code")
-                  | {{ item.prices[pt.code].current | number }}
+                td.num {{ item.weight }}
+                //- Per price-type: /kg lama | /kg baru (input) | /lbr
+                td.num(ng-repeat-start="pt in priceTypes track by pt.code")
+                  span.price-value {{ item.prices[pt.code].current | number }}
                 td.td-new(ng-class="{'td-has-new': item.new[pt.code] != null}")
                   input.price-input(
                     type="text"
@@ -250,7 +250,7 @@ block content
                     ng-change="onPriceInputChange(item, pt)"
                     placeholder="—"
                   )
-                td.mono.text-right.price-lbr(ng-repeat-end)
+                td.price-lbr(ng-repeat-end)
                   span(ng-if="item.new_unit[pt.code] != null") {{ item.new_unit[pt.code] | number:0 }}
                   span.price-unit-empty(ng-if="item.new_unit[pt.code] == null") —
 
