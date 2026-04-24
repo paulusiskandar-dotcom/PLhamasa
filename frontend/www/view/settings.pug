@@ -1,0 +1,84 @@
+extends master
+
+block content
+  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="settingsController")
+
+    //- ── Sidebar ──────────────────────────────────────────────────────────────
+    nav.sidebar
+      div.sidebar-brand
+        span.brand-icon ⬡
+        span Price List Manager
+      ul.sidebar-nav
+        li
+          a(href="/price-list")
+            i.bi.bi-table
+            span  Price List
+        li.active
+          a(href="/settings")
+            i.bi.bi-gear
+            span  Settings
+        li
+          a(href="/logout")
+            i.bi.bi-box-arrow-left
+            span  Logout
+
+    //- ── Main Content ─────────────────────────────────────────────────────────
+    main.main-content
+
+      button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
+        i.bi.bi-list
+
+      div.page-header
+        div
+          h2.page-title Settings
+          p.page-sub Konfigurasi aplikasi
+
+      //- ── Section: Extended Categories ─────────────────────────────────────
+      div.settings-card
+
+        div.settings-section-header
+          h3.settings-section-title
+            i.bi.bi-tags
+            |  Kategori dengan Harga Pabrik
+          p.settings-section-desc
+            | Kategori di bawah ini akan tampil dengan kolom tambahan:
+            strong  Cash Pabrik
+            |  &amp;
+            strong  Kredit Pabrik
+            | .
+            br
+            | Kategori lain hanya menampilkan Cash Gudang &amp; Kredit Gudang.
+
+        //- Loading state
+        div.loading-state(ng-if="loading")
+          i.bi.bi-arrow-repeat.spin
+          span  Memuat kategori...
+
+        //- Category checklist
+        div.settings-cat-grid(ng-if="!loading")
+          label.settings-cat-item(ng-repeat="cat in categories")
+            input(
+              type="checkbox"
+              ng-model="cat.checked"
+              ng-change="onCheck()"
+            )
+            span.cat-name {{ cat.name }}
+            span.cat-id {{ cat.id }}
+
+        //- Action buttons
+        div.settings-actions(ng-if="!loading")
+          span.dirty-hint(ng-if="isDirty") Ada perubahan belum disimpan
+          button.btn-outline(ng-click="reset()" ng-disabled="!isDirty || saving") Batal
+          button.btn-primary(
+            ng-click="save()"
+            ng-disabled="!isDirty || saving"
+          )
+            i.bi(ng-class="{'bi-save': !saving, 'bi-hourglass-split': saving}")
+            span(ng-if="!saving")  Simpan
+            span(ng-if="saving")  Menyimpan...
+
+      //- Toast
+      div.toast-container(ng-if="toast.show")
+        div.toast-msg(ng-class="'toast-' + toast.type")
+          i.bi(ng-class="{'bi-check-circle': toast.type==='success', 'bi-exclamation-circle': toast.type==='danger', 'bi-info-circle': toast.type==='info'}")
+          |  {{ toast.message }}
