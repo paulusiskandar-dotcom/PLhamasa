@@ -12,7 +12,8 @@ module.exports = function (app) {
 
     // ─── Price ─────────────────────────────────────────────────────────────────
     app.get("/price/types",         auth.verifyToken, require("./controllers/price")._getPriceTypes);
-    app.post("/price/info",         auth.verifyToken, require("./controllers/price")._getPricesInfo);
+    app.get("/price/info",          auth.verifyToken, require("./controllers/price")._getPricesInfoGet);
+    app.post("/price/info",         auth.verifyToken, require("./controllers/price")._getPricesInfo);    // legacy
     app.get("/price/category-info", auth.verifyToken, require("./controllers/price")._getCategoryInfo);
     app.post("/price/autosave",     auth.verifyToken, require("./controllers/price")._autosave);
     app.post("/price/save",         auth.verifyToken, require("./controllers/price")._saveBatch);

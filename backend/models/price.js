@@ -37,6 +37,20 @@ module.exports.getPlmPrices = async function (ig_ids) {
 };
 
 /*
+ * Get PLM prices for multiple pr_ids.
+ * Returns raw rows: [{ ig_id, pr_id, i_price }]
+ */
+module.exports.getPlmPricesMulti = function (ig_ids, pr_ids) {
+    return dbPLM.any(`
+        SELECT ig_id, pr_id, i_price,
+               COALESCE(updated_at, created_at) AS last_update
+        FROM item_price
+        WHERE ig_id = ANY($1::int[])
+          AND pr_id = ANY($2::int[])
+    `, [ig_ids, pr_ids]);
+};
+
+/*
  * Upsert a single price (auto-save, no price_log).
  */
 module.exports.upsertPlmPrice = function (ig_id, pr_id, price, user_id) {
