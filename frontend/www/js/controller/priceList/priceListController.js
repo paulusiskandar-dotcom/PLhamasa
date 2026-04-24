@@ -92,20 +92,6 @@ plmApp.controller("priceListController", function (
         $timeout(function () { $scope.toast.show = false; }, 3500);
     }
 
-    // ── Filters for view ──────────────────────────────────────────────────────
-    plmApp.filter("plmDate", function () {
-        return function (val) {
-            if (!val) return "-";
-            return moment(val).format("DD MMM YY");
-        };
-    });
-    plmApp.filter("plmDateTime", function () {
-        return function (val) {
-            if (!val) return "-";
-            return moment(val).format("DD MMM YY HH:mm");
-        };
-    });
-
     // ── Sync icons / labels ───────────────────────────────────────────────────
     $scope.syncIcon = function (status) {
         return { synced: "🟢", pending: "🟡", draft: "🔘", untouched: "—" }[status] || "—";

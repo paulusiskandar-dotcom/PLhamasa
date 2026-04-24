@@ -125,7 +125,7 @@ block content
             span(ng-if="saveState !== 'saving'")  Simpan Semua
             span(ng-if="saveState === 'saving'")  Menyimpan...
 
-          div.export-actions(ng-if="saveState === 'saved'")
+          div.export-actions
             button.btn-secondary(ng-click="doExportERP()")
               i.bi.bi-file-earmark-excel
               |  Export ERP
@@ -142,7 +142,7 @@ block content
         //- Category Banner
         div.category-banner(ng-if="categoryInfo && items.length > 0")
           div.banner-left
-            span.banner-cat {{ categoryInfo.cat_name || filter.category.name }}
+            span.banner-cat {{ categoryInfo.cat_name }}
             span.banner-erp-date(ng-if="categoryInfo.erp_last_update")
               i.bi.bi-calendar3
               |  ERP: {{ categoryInfo.erp_last_update | plmDate }}

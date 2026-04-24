@@ -17,6 +17,20 @@ plmApp.config(function ($httpProvider) {
     });
 });
 
+plmApp.filter("plmDate", function () {
+    return function (val) {
+        if (!val) return "-";
+        return moment(val).format("DD MMM YY");
+    };
+});
+
+plmApp.filter("plmDateTime", function () {
+    return function (val) {
+        if (!val) return "-";
+        return moment(val).format("DD MMM YY HH:mm");
+    };
+});
+
 plmApp.filter("number", function () {
     return function (input, decimals) {
         if (input === null || input === undefined || input === "") return "-";
