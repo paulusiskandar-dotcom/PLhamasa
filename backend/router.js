@@ -15,8 +15,19 @@ module.exports = function (app) {
     app.post("/price/info",          auth.verifyToken, require("./controllers/price")._getPricesInfo);
     app.post("/price/save",          auth.verifyToken, require("./controllers/price")._savePrices);
 
+    // ─── Draft workflow ────────────────────────────────────────────────────────
+    app.post("/price/draft/save",    auth.verifyToken, require("./controllers/price")._saveDraft);
+    app.post("/price/draft/commit",  auth.verifyToken, require("./controllers/price")._commitDrafts);
+    app.post("/price/draft/discard", auth.verifyToken, require("./controllers/price")._discardDrafts);
+    app.get("/price/draft/changes",  auth.verifyToken, require("./controllers/price")._getDraftChanges);
+
     // ─── Export ────────────────────────────────────────────────────────────────
     app.post("/export/erp",          auth.verifyToken, require("./controllers/exportPrice")._exportPriceListERP);
     app.post("/export/manual",       auth.verifyToken, require("./controllers/exportPrice")._exportPriceListManual);
+
+    // ─── Master Data (dropdown) ────────────────────────────────────────────────
+    app.get("/master/categories", auth.verifyToken, require("./controllers/master")._getCategories);
+    app.get("/master/brands",     auth.verifyToken, require("./controllers/master")._getBrands);
+    app.get("/master/grades",     auth.verifyToken, require("./controllers/master")._getGrades);
 
 };
