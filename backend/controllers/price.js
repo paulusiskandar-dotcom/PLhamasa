@@ -1,12 +1,14 @@
-const response = require("../utils/response");
+const response    = require("../utils/response");
+const $itemModel  = require("../models/item");
 const $priceModel = require("../models/price");
 
 /*
  * GET /price/types
+ * Baca dari DB ERP
  */
 module.exports._getPriceTypes = async function (req, res) {
     try {
-        const result = await $priceModel.getPriceTypes();
+        const result = await $itemModel.getPriceTypes();
         return response.success(res, result);
     } catch (err) {
         return response.error(res, null, err);
@@ -16,6 +18,7 @@ module.exports._getPriceTypes = async function (req, res) {
 /*
  * POST /price/info
  * Body: { ig_ids: [1,2,3] }
+ * Baca harga per kg dari DB PLhamasa
  */
 module.exports._getPricesInfo = async function (req, res) {
     try {
@@ -35,6 +38,7 @@ module.exports._getPricesInfo = async function (req, res) {
 /*
  * POST /price/save
  * Body: { item_prices: [{ ig_id, pr_id, old_price, new_price }] }
+ * Simpan ke DB PLhamasa
  */
 module.exports._savePrices = async function (req, res) {
     try {

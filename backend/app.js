@@ -12,9 +12,10 @@ global.$rootPath = __dirname;
 global.moment = moment;
 global.moment.tz.setDefault("Asia/Jakarta");
 
-// ─── Database ─────────────────────────────────────────────────────────────────
-const { db } = require("./configs/database");
-global.db = db;
+// ─── Database (dual connection) ───────────────────────────────────────────────
+const { dbERP, dbPLM } = require("./configs/database");
+global.dbERP = dbERP;  // DB ERP (read-only: item, category, brand, price lama)
+global.dbPLM = dbPLM;  // DB PLhamasa (read+write: item_price per kg, price_log)
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors());
@@ -27,7 +28,9 @@ require("./router")(app);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 app.listen(port, () => {
-    console.log(`[Price List Manager] Backend running on port ${port}`);
+    console.log(`[PLhamasa Backend] Running on port ${port}`);
+    console.log(`  → DB ERP : ${process.env.ERP_DB_NAME || "erp_db"}@${process.env.ERP_DB_HOST || "localhost"}`);
+    console.log(`  → DB PLM : ${process.env.PLM_DB_NAME || "plhamasa_db"}@${process.env.PLM_DB_HOST || "localhost"}`);
 });
 
 module.exports = app;

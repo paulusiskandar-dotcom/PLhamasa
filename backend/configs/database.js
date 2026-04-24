@@ -1,13 +1,24 @@
 const pgp = require("pg-promise")();
 
-const config = {
-    host:     process.env.DB_HOST     || "localhost",
-    port:     process.env.DB_PORT     || 5432,
-    database: process.env.DB_NAME     || "price_list_manager",
-    user:     process.env.DB_USER     || "postgres",
-    password: process.env.DB_PASS     || "postgres",
+// ─── DB 1: ERP (READ ONLY — master data item, kategori, merek, harga lama) ────
+const configERP = {
+    host:     process.env.ERP_DB_HOST     || "localhost",
+    port:     process.env.ERP_DB_PORT     || 5432,
+    database: process.env.ERP_DB_NAME     || "erp_db",
+    user:     process.env.ERP_DB_USER     || "postgres",
+    password: process.env.ERP_DB_PASS     || "",
 };
 
-const db = pgp(config);
+// ─── DB 2: PLhamasa (READ + WRITE — harga per kg & price log) ─────────────────
+const configPLM = {
+    host:     process.env.PLM_DB_HOST     || "localhost",
+    port:     process.env.PLM_DB_PORT     || 5432,
+    database: process.env.PLM_DB_NAME     || "plhamasa_db",
+    user:     process.env.PLM_DB_USER     || "postgres",
+    password: process.env.PLM_DB_PASS     || "",
+};
 
-module.exports = { db, pgp };
+const dbERP = pgp(configERP);
+const dbPLM = pgp(configPLM);
+
+module.exports = { dbERP, dbPLM, pgp };

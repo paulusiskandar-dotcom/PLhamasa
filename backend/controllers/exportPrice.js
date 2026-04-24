@@ -2,12 +2,12 @@ const fs   = require("fs");
 const path = require("path");
 const mime = require("mime");
 
-const response   = require("../utils/response");
-const $excel     = require("../utils/excel");
-const $itemModel = require("../models/item");
+const response    = require("../utils/response");
+const $excel      = require("../utils/excel");
+const $itemModel  = require("../models/item");
 const $priceModel = require("../models/price");
 
-// ─── Helper: stream file to client ───────────────────────────────────────────
+// ─── Helper: stream file ke client ───────────────────────────────────────────
 function streamFile(res, filePath, filename) {
     const mimetype = mime.lookup(filePath);
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
@@ -15,10 +15,26 @@ function streamFile(res, filePath, filename) {
     fs.createReadStream(filePath).pipe(res);
 }
 
+// ─── Helper: round harga ke ratusan (dari existing program) ──────────────────
+function roundPrice(raw) {
+    if (raw % 100 <= 10) {
+        return Math.floor(raw / 100) * 100;
+    }
+    return Math.ceil(raw / 100) * 100;
+}
+
 /*
  * POST /export/erp
  * Export Price List ke format template ERP (PLETL)
+ *
  * Body: { item_prices: [{ ig_id, pr_id, new_price }] }
+ *
+ * Alur:
+ *   1. Ambil master data item dari DB ERP
+ *   2. Ambil price types dari DB ERP
+ *   3. Ambil harga existing dari DB ERP (harga per unit)
+ *   4. Untuk item yang diubah: harga_per_kg × berat → round → replace
+ *   5. Export ke Excel format ETL/PLETL
  */
 module.exports._exportPriceListERP = async function (req, res) {
     try {
@@ -30,34 +46,47 @@ module.exports._exportPriceListERP = async function (req, res) {
 
         const ig_ids = [...new Set(item_prices.map(i => i.ig_id))];
 
-        // Ambil data item
+        // 1. Master item dari DB ERP
         const itemRows = await $itemModel.getItemById(ig_ids);
         const items = {};
         itemRows.forEach(it => {
-            if (!items[it.ig_id]) items[it.ig_id] = it;
+            items[it.ig_id] = {
+                ig_id:  it.ig_id,
+                id:     it.i_id,
+                serial: it.serial_id,
+                name:   it.i_name,
+                grade:  it.grade,
+                brand:  it.i_brand,
+                group:  it.i_group,
+                unit:   it.unit,
+                weight: parseFloat(it.i_weight) || 0,
+            };
         });
 
-        // Ambil price types dari DB
-        const priceTypes = await $priceModel.getPriceTypes();
+        // 2. Price types dari DB ERP
+        const priceTypes = await $itemModel.getPriceTypes();
 
-        // Ambil harga existing
-        const existingPrices = await $priceModel.getPricesInfo(ig_ids);
-        const priceMap = {};
-        existingPrices.forEach(p => { priceMap[p.ig_id] = p; });
+        // 3. Harga FINAL existing dari DB ERP (per unit)
+        const existingPrices = await $itemModel.getItemPriceERP(ig_ids);
+        existingPrices.forEach(({ ig_id, pr_id, i_price }) => {
+            const pt = priceTypes.find(p => p.pr_id === pr_id);
+            if (pt && items[ig_id]) {
+                items[ig_id][pt.pr_code] = parseFloat(i_price);
+            }
+        });
 
-        // Terapkan harga baru
+        // 4. Terapkan harga baru (harga_per_kg × berat → round)
         const prCodeMap = { 2: "cash_gudang", 4: "kredit_gudang" };
         item_prices.forEach(({ ig_id, pr_id, new_price }) => {
-            const pr_code = prCodeMap[pr_id] || `price_${pr_id}`;
-            const weight  = parseFloat(items[ig_id]?.weight || 0);
-            const raw     = parseFloat(new_price) * weight;
-            if (!priceMap[ig_id]) priceMap[ig_id] = {};
-            priceMap[ig_id][pr_code] = raw % 100 <= 10
-                ? Math.floor(raw / 100) * 100
-                : Math.ceil(raw / 100) * 100;
+            const pr_code = prCodeMap[pr_id];
+            if (!items[ig_id] || !pr_code) return;
+
+            const weight = items[ig_id].weight;
+            const raw    = parseFloat(new_price) * weight;
+            items[ig_id][pr_code] = roundPrice(raw);
         });
 
-        // Susun kolom ERP
+        // 5. Susun kolom ERP
         const cols = [
             { name: "ID BARANG",   key: "ig_id",  width: 10 },
             { name: "KODE BARANG", key: "id",     width: 20 },
@@ -73,22 +102,16 @@ module.exports._exportPriceListERP = async function (req, res) {
             cols.push({ name: pt.pr_name, key: pt.pr_code, width: 15 });
         });
 
-        // Susun rows
+        // Sanitize rows
         const rows = ig_ids.map(ig_id => {
-            const it = items[ig_id] || {};
-            const pr = priceMap[ig_id] || {};
-            const row = {
-                ig_id:  it.ig_id,
-                id:     it.id,
-                serial: it.serial,
-                name:   it.name,
-                grade:  it.grade,
-                brand:  it.brand,
-                group:  it.group,
-                unit:   it.unit,
-                weight: it.weight,
-            };
-            priceTypes.forEach(pt => { row[pt.pr_code] = pr[pt.pr_code] || 0; });
+            const row = items[ig_id] || {};
+            for (const k in row) {
+                if (typeof row[k] === "string") {
+                    row[k] = row[k].replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, "");
+                } else if (typeof row[k] === "number" && isNaN(row[k])) {
+                    row[k] = 0;
+                }
+            }
             return row;
         });
 
@@ -102,7 +125,8 @@ module.exports._exportPriceListERP = async function (req, res) {
 
 /*
  * POST /export/manual
- * Export Price List ke format PL Manual (lebih ringkas, per unit)
+ * Export Price List ke format PL Manual
+ *
  * Body: { item_prices: [{ ig_id, pr_id, new_price }], company_name, date }
  */
 module.exports._exportPriceListManual = async function (req, res) {
@@ -115,32 +139,40 @@ module.exports._exportPriceListManual = async function (req, res) {
 
         const ig_ids = [...new Set(item_prices.map(i => i.ig_id))];
 
-        // Ambil data item
+        // Master item dari DB ERP
         const itemRows = await $itemModel.getItemById(ig_ids);
         const items = {};
         itemRows.forEach(it => {
-            if (!items[it.ig_id]) items[it.ig_id] = it;
+            items[it.ig_id] = {
+                ig_id:  it.ig_id,
+                id:     it.i_id,
+                name:   it.i_name,
+                unit:   it.unit,
+                weight: parseFloat(it.i_weight) || 0,
+            };
         });
 
-        // Ambil harga existing
-        const existingPrices = await $priceModel.getPricesInfo(ig_ids);
-        const priceMap = {};
-        existingPrices.forEach(p => { priceMap[p.ig_id] = p; });
+        // Harga existing dari DB ERP
+        const priceTypes = await $itemModel.getPriceTypes();
+        const existingPrices = await $itemModel.getItemPriceERP(ig_ids);
+        existingPrices.forEach(({ ig_id, pr_id, i_price }) => {
+            const pt = priceTypes.find(p => p.pr_id === pr_id);
+            if (pt && items[ig_id]) {
+                items[ig_id][pt.pr_code] = parseFloat(i_price);
+            }
+        });
 
-        // Terapkan harga baru (per kg → per unit)
+        // Terapkan harga baru
         const prCodeMap = { 2: "cash_gudang", 4: "kredit_gudang" };
         item_prices.forEach(({ ig_id, pr_id, new_price }) => {
-            const pr_code = prCodeMap[pr_id] || `price_${pr_id}`;
-            const weight  = parseFloat(items[ig_id]?.weight || 0);
-            const raw     = parseFloat(new_price) * weight;
-            if (!priceMap[ig_id]) priceMap[ig_id] = {};
-            priceMap[ig_id][pr_code] = raw % 100 <= 10
-                ? Math.floor(raw / 100) * 100
-                : Math.ceil(raw / 100) * 100;
+            const pr_code = prCodeMap[pr_id];
+            if (!items[ig_id] || !pr_code) return;
+            const weight = items[ig_id].weight;
+            items[ig_id][pr_code] = roundPrice(parseFloat(new_price) * weight);
         });
 
         const header = {
-            company: company_name || "PT. PRICE LIST MANAGER",
+            company: company_name || "PT. HAMASA",
             title:   "DAFTAR HARGA",
             date:    date || moment().format("DD MMMM YYYY"),
         };
@@ -157,15 +189,14 @@ module.exports._exportPriceListManual = async function (req, res) {
 
         const rows = ig_ids.map((ig_id, idx) => {
             const it = items[ig_id] || {};
-            const pr = priceMap[ig_id] || {};
             return {
                 no:            idx + 1,
                 id:            it.id,
                 name:          it.name,
                 unit:          it.unit,
                 weight:        it.weight,
-                cash_gudang:   pr.cash_gudang   || 0,
-                kredit_gudang: pr.kredit_gudang || 0,
+                cash_gudang:   it.cash_gudang   || 0,
+                kredit_gudang: it.kredit_gudang || 0,
             };
         });
 
