@@ -109,11 +109,38 @@ module.exports.getPriceTypes = function () {
  */
 module.exports.getItemPriceERP = function (ig_ids) {
     const ids = Array.isArray(ig_ids) ? ig_ids : [ig_ids];
+    return dbERP.any("SELECT ig_id, pr_id, i_price FROM item_price WHERE ig_id = ANY($1::int[])", [ids]);
+};
 
-    const query = `
-        SELECT ig_id, pr_id, i_price
-        FROM item_price
-        WHERE ig_id = ANY($1::int[])
-    `;
-    return dbERP.any(query, [ids]);
+/*
+ * Get item updated_at dari ERP untuk sync detection
+ * Returns: { ig_id, updated_at }
+ */
+module.exports.getErpUpdatedAt = function (ig_ids) {
+    const ids = Array.isArray(ig_ids) ? ig_ids : [ig_ids];
+    return dbERP.any(
+        "SELECT ig_id, updated_at FROM item WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL",
+        [ids]
+    );
+};
+
+/*
+ * Get MAX(item.updated_at) untuk semua item dalam satu kategori.
+ * Dipakai untuk deteksi ⚠️ (spot update vs mass update).
+ */
+module.exports.getCategoryMaxUpdatedAt = function (cat_id) {
+    return dbERP.oneOrNone(
+        "SELECT MAX(updated_at) AS max_updated_at, cat_name FROM item LEFT JOIN item_category USING(cat_id) WHERE item.cat_id = $1 AND deleted_at IS NULL GROUP BY cat_name LIMIT 1",
+        [cat_id]
+    );
+};
+
+/*
+ * Get ig_ids untuk semua item dalam satu kategori (untuk sync summary).
+ */
+module.exports.getCategoryItemIds = function (cat_id) {
+    return dbERP.any(
+        "SELECT ig_id FROM item WHERE cat_id = $1 AND deleted_at IS NULL",
+        [cat_id]
+    );
 };
