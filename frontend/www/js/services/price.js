@@ -1,28 +1,22 @@
 plmApp.factory("$priceService", function ($http) {
     return {
-        getPricesInfo: function (ig_ids) {
-            return $http.post(api.url + "price/info", { ig_ids: ig_ids })
+        getPricesInfo: function (ig_ids, cat_id) {
+            return $http.post(api.url + "price/info", { ig_ids: ig_ids, cat_id: cat_id || null })
                 .then(function (r) { return r.data; });
         },
 
-        saveDraft: function (ig_id, pr_id, price) {
-            return $http.post(api.url + "price/draft/save", { ig_id: ig_id, pr_id: pr_id, price: price })
+        getCategoryInfo: function (cat_id) {
+            return $http.get(api.url + "price/category-info", { params: { cat_id: cat_id } })
                 .then(function (r) { return r.data; });
         },
 
-        commitDrafts: function () {
-            return $http.post(api.url + "price/draft/commit")
+        autosave: function (ig_id, pr_id, price) {
+            return $http.post(api.url + "price/autosave", { ig_id: ig_id, pr_id: pr_id, price: price })
                 .then(function (r) { return r.data; });
         },
 
-        getDraftChanges: function (since) {
-            return $http.get(api.url + "price/draft/changes", { params: { since: since } })
-                .then(function (r) { return r.data; });
-        },
-
-        // legacy
-        savePrices: function (item_prices) {
-            return $http.post(api.url + "price/save", { item_prices: item_prices })
+        saveBatch: function (items) {
+            return $http.post(api.url + "price/save", { items: items })
                 .then(function (r) { return r.data; });
         }
     };
