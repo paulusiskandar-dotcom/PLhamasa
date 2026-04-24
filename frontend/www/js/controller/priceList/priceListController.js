@@ -11,9 +11,9 @@ plmApp.controller("priceListController", function (
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-    function round100(raw) {   // for price generation
+    function roundSpecial(raw) {   // per-unit rounding: 0-49 → floor, 50-99 → ceil
         var r = raw % 100;
-        return r <= 10 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
+        return r <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
     }
 
     function calcNewKg(oldKg, modType, modValue) {
@@ -26,6 +26,17 @@ plmApp.controller("priceListController", function (
             case "minus_percent": return Math.max(0, Math.round(old - mod / 100 * old));
             default: return old;
         }
+    }
+
+    // Upsert into pendingChanges (dedup by ig_id+pr_id, keep original old_price)
+    function upsertPending(ig_id, pr_id, old_price, new_price) {
+        for (var i = 0; i < $scope.pendingChanges.length; i++) {
+            if ($scope.pendingChanges[i].ig_id === ig_id && $scope.pendingChanges[i].pr_id === pr_id) {
+                $scope.pendingChanges[i].new_price = new_price;
+                return;
+            }
+        }
+        $scope.pendingChanges.push({ ig_id: ig_id, pr_id: pr_id, old_price: old_price || 0, new_price: new_price });
     }
 
     // ── Init ──────────────────────────────────────────────────────────────────
@@ -66,9 +77,11 @@ plmApp.controller("priceListController", function (
         $scope.sortField     = "weight";
         $scope.sortDir       = "asc";
 
-        $scope.hasGenerated  = false;
-        $scope.saveState     = "idle";
-        $scope.syncState     = "idle";
+        $scope.hasGenerated   = false;
+        $scope.saveState      = "idle";
+        $scope.syncState      = "idle";
+        $scope.pendingChanges = [];
+        $scope.autoSaveError  = false;
 
         $scope.toast              = { show: false, message: "", type: "" };
         $scope.isExportingTemplate = false;
@@ -175,12 +188,14 @@ plmApp.controller("priceListController", function (
 
     // ── Search ────────────────────────────────────────────────────────────────
     $scope.search = function () {
-        $scope.hasGenerated  = false;
-        $scope.saveState     = "idle";
-        $scope.syncState     = "idle";
-        $scope.selectAll     = false;
-        $scope.sortField     = "weight";
-        $scope.sortDir       = "asc";
+        $scope.hasGenerated   = false;
+        $scope.saveState      = "idle";
+        $scope.syncState      = "idle";
+        $scope.pendingChanges = [];
+        $scope.autoSaveError  = false;
+        $scope.selectAll      = false;
+        $scope.sortField      = "weight";
+        $scope.sortDir        = "asc";
 
         if (!$scope.filter.category && !$scope.filter.item_search_name) {
             showToast("Pilih Kategori atau isi Nama Barang terlebih dahulu", "warning");
@@ -258,9 +273,9 @@ plmApp.controller("priceListController", function (
                item.erp_updated_at !== $scope.catMaxUpdatedAt;
     };
 
-    // ── Generate Harga Baru ───────────────────────────────────────────────────
+    // ── Generate Harga Baru (accumulative) ───────────────────────────────────
     $scope.generatePrices = function () {
-        if (!$scope.modifier.value && $scope.modifier.value !== 0) {
+        if ($scope.modifier.value == null || $scope.modifier.value === "") {
             showToast("Masukkan nilai pengubah terlebih dahulu", "warning");
             return;
         }
@@ -269,10 +284,10 @@ plmApp.controller("priceListController", function (
             showToast("Pilih minimal satu barang terlebih dahulu", "warning");
             return;
         }
-        var anyTarget = ($scope.priceTypes || []).some(function (pt) {
+        var targetList = ($scope.priceTypes || []).filter(function (pt) {
             return $scope.modifier.targets[pt.code];
         });
-        if (!anyTarget) {
+        if (!targetList.length) {
             showToast("Pilih minimal satu target harga", "warning");
             return;
         }
@@ -282,74 +297,103 @@ plmApp.controller("priceListController", function (
 
         ($scope.items || []).forEach(function (item) {
             if (!item.checked) return;
-            ($scope.priceTypes || []).forEach(function (pt) {
-                if (!$scope.modifier.targets[pt.code]) return;
-                var oldKg = item.prices[pt.code] ? item.prices[pt.code].current : null;
-                item.new[pt.code]      = calcNewKg(oldKg, modType, modValue);
-                item.new_unit[pt.code] = item.weight > 0
-                    ? round100(item.new[pt.code] * item.weight)
-                    : 0;
+            targetList.forEach(function (pt) {
+                var oldKg = item.prices[pt.code] ? (item.prices[pt.code].current || 0) : 0;
+                var newKg = calcNewKg(oldKg, modType, modValue);
+                var newUnit = item.weight > 0 ? roundSpecial(newKg * item.weight) : 0;
+
+                // Accumulative: write only targeted columns, leave others untouched
+                item.new[pt.code]      = newKg;
+                item.new_unit[pt.code] = newUnit;
+
+                // Fire-and-forget auto-save
+                fireAutoSave(item.ig_id, pt.pr_id, newKg);
+
+                // Track for explicit save
+                upsertPending(item.ig_id, pt.pr_id, oldKg, newKg);
             });
         });
 
+        $scope.hasGenerated   = true;
+        $scope.modifier.value = null;   // reset value, keep targets
+
+        var labels = targetList.map(function (pt) { return pt.group + " " + pt.label; }).join(", ");
+        showToast("Generate " + labels + " selesai", "success");
+    };
+
+    // ── Manual override on blur ───────────────────────────────────────────────
+    $scope.onManualOverride = function (item, pt) {
+        var kg = parseFloat(item.new[pt.code]);
+        if (isNaN(kg) || kg < 0) return;
+        item.new_unit[pt.code] = item.weight > 0 ? roundSpecial(kg * item.weight) : 0;
+
+        fireAutoSave(item.ig_id, pt.pr_id, kg);
+        upsertPending(
+            item.ig_id, pt.pr_id,
+            item.prices[pt.code] ? (item.prices[pt.code].current || 0) : 0,
+            kg
+        );
         $scope.hasGenerated = true;
-        $scope.saveState    = "idle";
-        showToast("Harga baru berhasil digenerate", "success");
     };
 
-    // ── Recalc /lbr on manual input ──────────────────────────────────────────
-    $scope.recalcLbr = function (item, pt) {
-        var kg = parseFloat(item.new[pt.code]) || 0;
-        item.new_unit[pt.code] = kg && item.weight ? round100(kg * item.weight) : null;
-        // auto-save
-        if (kg) {
-            var key = item.ig_id + "_" + pt.pr_id;
-            $scope.syncState = "saving";
-            debounceAutosave(key, function () {
-                $priceService.autosave(item.ig_id, pt.pr_id, kg)
-                    .then(function () {
-                        $scope.$apply(function () { $scope.syncState = "saved"; });
-                        $timeout(function () { $scope.syncState = "idle"; }, 2000);
-                    })
-                    .catch(angular.noop);
-            });
-        }
-    };
+    // ── Auto-save (fire-and-forget) ───────────────────────────────────────────
+    function fireAutoSave(igId, prId, kg) {
+        var key = igId + "_" + prId;
+        $scope.syncState = "saving";
+        debounceAutosave(key, function () {
+            $priceService.autoSave(igId, prId, kg)
+                .then(function () {
+                    $scope.$apply(function () { $scope.syncState = "saved"; });
+                    $timeout(function () { $scope.syncState = "idle"; }, 2000);
+                })
+                .catch(function () {
+                    if (!$scope.autoSaveError) {
+                        $scope.$apply(function () {
+                            $scope.autoSaveError = true;
+                            showToast("Auto-save gagal (koneksi?)", "warning");
+                        });
+                    }
+                });
+        });
+    }
 
-    // ── hasDrafts ─────────────────────────────────────────────────────────────
+    // ── hasChanges / hasDrafts ────────────────────────────────────────────────
+    $scope.hasChanges = function () { return $scope.pendingChanges.length > 0; };
+
     $scope.hasDrafts = function () {
         return ($scope.items || []).some(function (i) {
-            return Object.keys(i.new || {}).length > 0;
+            return Object.keys(i.new || {}).some(function (k) { return i.new[k] != null; });
         });
     };
 
-    // ── Batch Save ────────────────────────────────────────────────────────────
+    // ── Explicit Save → price_log ─────────────────────────────────────────────
     $scope.saveAll = function () {
-        if ($scope.saveState === "saving") return;
-        var payload = [];
-        ($scope.items || []).forEach(function (item) {
-            ($scope.priceTypes || []).forEach(function (pt) {
-                if (item.new[pt.code] != null) {
-                    payload.push({
-                        ig_id:     item.ig_id,
-                        pr_id:     pt.pr_id,
-                        old_price: item.prices[pt.code] ? (item.prices[pt.code].current || 0) : 0,
-                        new_price: item.new[pt.code],
-                    });
-                }
-            });
-        });
-        if (!payload.length) { showToast("Tidak ada perubahan untuk disimpan", "info"); return; }
-
+        if ($scope.saveState === "saving" || !$scope.pendingChanges.length) return;
         $scope.saveState = "saving";
         showToast("Menyimpan harga...", "info");
 
-        $priceService.saveBatch(payload).then(function () {
-            $scope.saveState = "saved";
-            showToast("Harga berhasil disimpan!", "success");
+        $priceService.saveAll($scope.pendingChanges).then(function (res) {
+            $scope.saveState      = "saved";
+            $scope.autoSaveError  = false;
+            showToast("Berhasil disimpan (" + res.result.saved_count + " harga)", "success");
+
+            // Update item.prices to reflect committed values & clear new columns
+            var prMap = {};
+            ($scope.priceTypes || []).forEach(function (pt) { prMap[pt.pr_id] = pt.code; });
+            ($scope.items || []).forEach(function (item) {
+                ($scope.priceTypes || []).forEach(function (pt) {
+                    if (item.new[pt.code] != null) {
+                        item.prices[pt.code] = { current: item.new[pt.code], source: "plm" };
+                    }
+                });
+                item.new      = {};
+                item.new_unit = {};
+            });
+            $scope.pendingChanges = [];
+            $scope.hasGenerated   = false;
         }).catch(function () {
             $scope.saveState = "idle";
-            showToast("Gagal menyimpan harga", "danger");
+            showToast("Gagal menyimpan — coba lagi", "danger");
         });
     };
 
