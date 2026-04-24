@@ -33,4 +33,5 @@ html(lang="id")
     if page.data
       each svc in page.data.services
         script(src=svc)
-      script(src=page.data.controller)
+      if page.data.controller
+        script(src=page.data.controller)

@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
@@ -26,11 +27,33 @@ app.use(express.static(path.join(__dirname, "public")));
 // ─── Routes ───────────────────────────────────────────────────────────────────
 require("./router")(app);
 
+// ─── DB Health Check ──────────────────────────────────────────────────────────
+async function checkDatabases() {
+    const checks = [
+        { label: "DB ERP", db: dbERP, name: `${process.env.ERP_DB_NAME}@${process.env.ERP_DB_HOST}` },
+        { label: "DB PLM", db: dbPLM, name: `${process.env.PLM_DB_NAME}@${process.env.PLM_DB_HOST}` },
+    ];
+    let allOk = true;
+    for (const { label, db, name } of checks) {
+        try {
+            await db.connect();
+            console.log(`  [OK] ${label} : ${name}`);
+        } catch (err) {
+            console.error(`  [FAIL] ${label} : ${name} — ${err.message}`);
+            allOk = false;
+        }
+    }
+    if (!allOk) {
+        console.error("[PLhamasa Backend] Satu atau lebih DB gagal terhubung. Cek .env");
+        process.exit(1);
+    }
+}
+
 // ─── Start ────────────────────────────────────────────────────────────────────
-app.listen(port, () => {
-    console.log(`[PLhamasa Backend] Running on port ${port}`);
-    console.log(`  → DB ERP : ${process.env.ERP_DB_NAME || "erp_db"}@${process.env.ERP_DB_HOST || "localhost"}`);
-    console.log(`  → DB PLM : ${process.env.PLM_DB_NAME || "plhamasa_db"}@${process.env.PLM_DB_HOST || "localhost"}`);
+checkDatabases().then(() => {
+    app.listen(port, () => {
+        console.log(`[PLhamasa Backend] Running on port ${port}`);
+    });
 });
 
 module.exports = app;

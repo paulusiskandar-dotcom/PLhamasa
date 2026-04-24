@@ -2,7 +2,7 @@ var plmApp = angular.module("plmApp", []);
 
 plmApp.config(function ($httpProvider) {
     // Attach accessToken ke semua request
-    $httpProvider.interceptors.push(function ($cookies) {
+    $httpProvider.interceptors.push(function () {
         return {
             request: function (config) {
                 // accessToken disimpan di cookie atau localStorage

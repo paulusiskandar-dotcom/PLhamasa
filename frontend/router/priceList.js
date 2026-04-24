@@ -10,6 +10,7 @@ module.exports = function (req, res) {
                     "/js/services/item.js",
                     "/js/services/price.js",
                     "/js/services/exportPrice.js",
+                    "/js/services/master.js",
                 ]
             }
         }

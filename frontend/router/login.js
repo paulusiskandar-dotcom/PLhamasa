@@ -3,6 +3,12 @@ module.exports = function (req, res) {
         return res.redirect("/price-list");
     }
     res.render("login", {
-        page: { title: "Login — Price List Manager" }
+        page: {
+            title: "Login — Price List Manager",
+            data: {
+                services:   ["/js/services/auth.js"],
+                controller: null,
+            }
+        }
     });
 };
