@@ -247,13 +247,16 @@ module.exports._autosave = async function (req, res) {
     }
 };
 
-/* POST /price/save */
+/* POST /price/save
+ * Body: { changes: [{ ig_id, pr_id, old_price, new_price }] }
+ * Accepts legacy key "items" as fallback.
+ */
 module.exports._saveBatch = async function (req, res) {
     try {
-        const { items } = req.body;
-        if (!items || !Array.isArray(items) || !items.length) return response.error(res, "miss_param", null, 400);
-        const result = await $priceModel.saveBatch(items, res.locals.user.id);
-        return response.success(res, result, "Harga berhasil disimpan");
+        const rows = req.body.changes || req.body.items;
+        if (!rows || !Array.isArray(rows) || !rows.length) return response.error(res, "miss_param", null, 400);
+        const result = await $priceModel.saveBatch(rows, res.locals.user.id);
+        return response.success(res, { success: true, saved_count: result.changed_count }, "Harga berhasil disimpan");
     } catch (err) {
         return response.error(res, null, err);
     }
