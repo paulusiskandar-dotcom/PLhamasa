@@ -1,7 +1,7 @@
 extends master
 
 block content
-  div.plm-wrapper(ng-controller="priceListController")
+  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="priceListController")
 
     //- ── Sidebar ──────────────────────────────────────────────────────────────
     nav.sidebar
@@ -20,6 +20,9 @@ block content
 
     //- ── Main Content ─────────────────────────────────────────────────────────
     main.main-content
+
+      button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
+        i.bi.bi-list
 
       //- Header
       div.page-header

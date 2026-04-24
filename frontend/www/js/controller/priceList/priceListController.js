@@ -67,7 +67,13 @@ plmApp.controller("priceListController", function (
         $scope.saveState          = "idle"; // idle | saving | saved
         $scope.toast              = { show: false, message: "", type: "" };
         $scope.isExportingTemplate = false;
+        $scope.sidebarHidden = localStorage.getItem("plm.sidebarHidden") === "true";
     }
+
+    $scope.toggleSidebar = function () {
+        $scope.sidebarHidden = !$scope.sidebarHidden;
+        localStorage.setItem("plm.sidebarHidden", $scope.sidebarHidden);
+    };
 
     init();
     startPolling();

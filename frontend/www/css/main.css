@@ -151,6 +151,7 @@ body {
   top: 0;
   left: 0;
   bottom: 0;
+  transition: transform 0.25s ease;
 }
 
 .sidebar-brand {
@@ -199,6 +200,8 @@ body {
   flex: 1;
   padding: 28px 32px;
   min-height: 100vh;
+  transition: margin-left 0.25s ease;
+  position: relative;
 }
 
 /* ─── Page Header ────────────────────────────────────────────── */
@@ -637,3 +640,28 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .export-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn-pdf { color: rgba(255,255,255,.5); border-color: rgba(255,255,255,.2); }
 .btn-pdf:hover { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.05); }
+
+/* ─── Sidebar Toggle ─────────────────────────────────────────── */
+.sidebar-toggle {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: var(--navy);
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+  z-index: 10;
+  line-height: 1;
+}
+.sidebar-toggle:hover { background: rgba(30,58,95,.08); }
+
+/* shift page-header right so it doesn't overlap the toggle button */
+.main-content .page-header { padding-left: 48px; }
+
+/* ─── Sidebar hidden state ───────────────────────────────────── */
+.plm-wrapper.sidebar-hidden .sidebar    { transform: translateX(-100%); }
+.plm-wrapper.sidebar-hidden .main-content { margin-left: 0; }
