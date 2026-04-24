@@ -29,21 +29,36 @@ block content
         div.header-actions
           button.btn-outline(ng-click="exportTemplatePerKilo()" ng-disabled="isExportingTemplate")
             i.bi.bi-download
-            |  Download Template Per Kilo
+            |  Template Per Kilo
           label.btn-outline(for="import-file")
             i.bi.bi-upload
             |  Import Template
-          input#import-file(type="file" accept=".xlsx" ng-change="handleFileSelect($event.target.files)" style="display:none")
+          input#import-file(type="file" accept=".xlsx" onchange="angular.element(this).scope().handleFileSelect(this.files); angular.element(this).scope().$apply()" style="display:none")
 
       //- ── Filter Panel ───────────────────────────────────────────────────────
       div.filter-panel
         div.filter-row
           div.filter-group
             label Kategori
-            input.form-control(type="text" ng-model="filter.category_name" placeholder="Semua kategori")
+            select.form-control(
+              ng-model="filter.category"
+              ng-options="c.name for c in categories track by c.id"
+            )
+              option(value="") Semua Kategori
           div.filter-group
             label Merek
-            input.form-control(type="text" ng-model="filter.brand_name" placeholder="Semua merek")
+            select.form-control(
+              ng-model="filter.brand"
+              ng-options="b.name for b in brands track by b.id"
+            )
+              option(value="") Semua Merek
+          div.filter-group
+            label Grade
+            select.form-control(
+              ng-model="filter.grade"
+              ng-options="g.name for g in grades track by g.id"
+            )
+              option(value="") Semua Grade
           div.filter-group
             label Golongan
             select.form-control(ng-model="filter.group" ng-options="g.label for g in groupOptions track by g.id")
@@ -51,101 +66,127 @@ block content
             label Nama Barang
             input.form-control(type="text" ng-model="filter.item_search_name" placeholder="Cari nama barang...")
           div.filter-group.filter-action
-            button.btn-primary(ng-click="search()") 
+            button.btn-primary(ng-click="search()")
               i.bi.bi-search
               |  Cari
-
-      //- ── Modifier ───────────────────────────────────────────────────────────
-      div.modifier-panel(ng-if="items && items.length > 0")
-        div.modifier-row
-          label.modifier-label Pengubah Harga:
-          select.form-control.modifier-select(ng-model="modifier.selected" ng-options="m.label for m in modifierOptions track by m.id")
-          input.form-control.modifier-input(
-            type="number"
-            ng-model="modifier.value"
-            placeholder="0"
-            min="0"
-          )
-          button.btn-secondary(ng-click="generateNewPrice()")
-            i.bi.bi-lightning-charge
-            |  Generate Harga Baru
 
       //- ── Table ──────────────────────────────────────────────────────────────
       div.table-wrapper(ng-if="items !== null")
 
         div.table-info(ng-if="items.length > 0")
           span {{ items.length }} barang ditemukan
-          div.table-actions(ng-if="hasChanges()")
-            button.btn-secondary(ng-click="exportOnly()")
-              i.bi.bi-file-earmark-excel
-              |  Export ERP
-            button.btn-secondary(ng-click="exportManual()")
-              i.bi.bi-file-earmark-text
-              |  Export Manual
-            button.btn-primary(ng-click="saveAndExport()")
-              i.bi.bi-save
-              |  Simpan & Export ERP
+          span.draft-badge(ng-if="hasDrafts()")  · {{ draftCount() }} draft belum disimpan
 
         div.empty-state(ng-if="items.length === 0")
           i.bi.bi-inbox
           p Tidak ada barang ditemukan
 
-        table.data-table(ng-if="items.length > 0")
-          thead
-            tr
-              th
-                input(type="checkbox" ng-model="headerChecked.all" ng-change="toggleAll('all')")
-              th No
-              th Kode Barang
-              th Nama Barang
-              th Berat (kg)
-              th.col-price
-                div Harga Cash (per kg)
-                div.col-sub
-                  input(type="checkbox" ng-model="headerChecked.cash" ng-change="toggleAll('cash')")
-                  span  Pilih Semua
-              th.col-price
-                div Harga Kredit (per kg)
-                div.col-sub
-                  input(type="checkbox" ng-model="headerChecked.credit" ng-change="toggleAll('credit')")
-                  span  Pilih Semua
-              th Update Terakhir
-          tbody
-            tr(ng-repeat="item in items" ng-class="{'row-changed': item.hargaCashSesudah || item.hargaCreditSesudah}")
-              td
-                input(type="checkbox" ng-model="item.checkedAll" ng-change="toggleItem(item)")
-              td {{ $index + 1 }}
-              td.mono {{ item.id }}
-              td {{ item.name }}
-              td.mono {{ item.weight }}
-              td.price-cell
-                div.price-before {{ item.hargaCashSebelum | number }}
-                div.price-arrow(ng-if="item.checkedCash") →
-                div.price-group(ng-if="item.checkedCash")
+        div.table-scroll(ng-if="items.length > 0")
+          table.data-table
+            thead
+              tr
+                th(style="width:36px")
+                  input(type="checkbox" ng-model="headerChecked" ng-change="toggleAll()")
+                th(style="width:36px") No
+                th Nama Barang
+                th.text-right Berat (kg)
+                th.col-price Cash/kg
+                th.col-price-new(ng-if="hasGenerated") Cash/kg Baru
+                th.col-price-lbr(ng-if="hasGenerated") Cash/Lbr
+                th.col-price Kredit/kg
+                th.col-price-new(ng-if="hasGenerated") Kredit/kg Baru
+                th.col-price-lbr(ng-if="hasGenerated") Kredit/Lbr
+                th Update
+            tbody
+              tr(
+                ng-repeat="item in items"
+                ng-class="{'row-changed': item.cashKgBaru || item.kreditKgBaru, 'row-just-edited': item.justEdited}"
+              )
+                td
+                  input(type="checkbox" ng-model="item.checked" ng-change="updateHeaderCheckbox()")
+                td.text-muted {{ $index + 1 }}
+                td {{ item.name }}
+                td.mono.text-right {{ item.weight }}
+                td.mono.text-right {{ item.cashKgLama | number }}
+                td.price-new(ng-if="hasGenerated")
                   input.price-input(
                     type="number"
-                    ng-model="item.hargaCashSesudah"
-                    placeholder="Harga baru /kg"
+                    ng-model="item.cashKgBaru"
+                    ng-change="recalcAndSave(item, 'cash')"
+                    placeholder="-"
                     min="0"
                   )
-                  span.price-result(ng-if="item.hargaCashSesudah && item.weight") = {{ (item.hargaCashSesudah * item.weight) | number:0 }}
-                input.check-price(type="checkbox" ng-model="item.checkedCash" ng-change="updateItemAllCheckbox(item)")
-              td.price-cell
-                div.price-before {{ item.hargaCreditSebelum | number }}
-                div.price-arrow(ng-if="item.checkedCredit") →
-                div.price-group(ng-if="item.checkedCredit")
+                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.cashLbr | number:0 }}
+                td.mono.text-right {{ item.kreditKgLama | number }}
+                td.price-new(ng-if="hasGenerated")
                   input.price-input(
                     type="number"
-                    ng-model="item.hargaCreditSesudah"
-                    placeholder="Harga baru /kg"
+                    ng-model="item.kreditKgBaru"
+                    ng-change="recalcAndSave(item, 'credit')"
+                    placeholder="-"
                     min="0"
                   )
-                  span.price-result(ng-if="item.hargaCreditSesudah && item.weight") = {{ (item.hargaCreditSesudah * item.weight) | number:0 }}
-                input.check-price(type="checkbox" ng-model="item.checkedCredit" ng-change="updateItemAllCheckbox(item)")
-              td.mono.date-cell {{ item.lastUpdate }}
+                td.mono.text-right.price-lbr(ng-if="hasGenerated") {{ item.kreditLbr | number:0 }}
+                td.mono.date-cell {{ item.lastUpdate }}
+
+      //- ── Modifier Section (bawah tabel) ─────────────────────────────────────
+      div.modifier-section(ng-if="items && items.length > 0")
+        div.modifier-header
+          span.modifier-title
+            i.bi.bi-lightning-charge
+            |  Pengubah Harga
+        div.modifier-body
+          div.modifier-field
+            label Target
+            div.radio-group
+              label.radio-label
+                input(type="radio" ng-model="modifier.target" value="cash")
+                span Cash
+              label.radio-label
+                input(type="radio" ng-model="modifier.target" value="credit")
+                span Kredit
+              label.radio-label
+                input(type="radio" ng-model="modifier.target" value="both")
+                span Keduanya
+          div.modifier-field
+            label Modifier
+            select.form-control.modifier-select(ng-model="modifier.selected" ng-options="m.label for m in modifierOptions track by m.id")
+          div.modifier-field
+            label Nilai
+            input.form-control.modifier-input(
+              type="number"
+              ng-model="modifier.value"
+              placeholder="0"
+              min="0"
+            )
+          div.modifier-field.modifier-action
+            button.btn-generate(
+              ng-click="generatePrices()"
+              ng-disabled="!items || !items.length"
+            )
+              i.bi.bi-lightning-charge
+              |  Generate Harga Baru
+
+        //- Save & Export row
+        div.save-section(ng-if="hasDrafts()")
+          button.btn-save(
+            ng-click="commitSave()"
+            ng-disabled="saveState === 'saving'"
+          )
+            i.bi(ng-class="{'bi-save': saveState !== 'saving', 'bi-hourglass-split': saveState === 'saving'}")
+            span(ng-if="saveState !== 'saving'")  Simpan
+            span(ng-if="saveState === 'saving'")  Menyimpan...
+
+          div.export-actions(ng-if="saveState === 'saved'")
+            button.btn-secondary(ng-click="exportERP()")
+              i.bi.bi-file-earmark-excel
+              |  Export ERP
+            button.btn-outline.btn-pdf(disabled title="Fitur segera hadir")
+              i.bi.bi-printer
+              |  Print PDF
 
       //- Toast
       div.toast-container(ng-if="toast.show")
-        div.toast-msg(ng-class="'toast-' + toast.type") 
+        div.toast-msg(ng-class="'toast-' + toast.type")
           i.bi(ng-class="{'bi-check-circle': toast.type==='success', 'bi-exclamation-circle': toast.type==='danger', 'bi-info-circle': toast.type==='info', 'bi-exclamation-triangle': toast.type==='warning'}")
           |  {{ toast.message }}

@@ -494,3 +494,146 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--steel); border-radius: 3px; }
+
+/* ─── Table horizontal scroll ───────────────────────────────── */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* ─── Generated-column header variants ──────────────────────── */
+.col-price-new {
+  background: rgba(212,168,67,.22);
+  min-width: 120px;
+  white-space: nowrap;
+}
+.col-price-lbr {
+  background: rgba(212,168,67,.10);
+  min-width: 100px;
+  white-space: nowrap;
+}
+
+/* ─── Price cells ────────────────────────────────────────────── */
+.price-new { padding: 4px 10px; }
+.price-lbr { color: var(--gold); font-weight: 600; }
+.text-right { text-align: right; }
+.text-muted { color: var(--text-muted); }
+
+/* ─── Row highlight (collaboration) ─────────────────────────── */
+@keyframes fadeHighlight {
+  0%   { background-color: #FFF8C5; }
+  70%  { background-color: #FFF8C5; }
+  100% { background-color: transparent; }
+}
+.row-just-edited { animation: fadeHighlight 3s ease forwards; }
+
+/* ─── Draft badge ────────────────────────────────────────────── */
+.draft-badge {
+  color: var(--gold);
+  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
+/* ─── Modifier Section (redesign) ───────────────────────────── */
+.modifier-section {
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-top: 16px;
+  box-shadow: var(--shadow);
+}
+.modifier-header {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+}
+.modifier-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: rgba(255,255,255,.75);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.modifier-body {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.modifier-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.modifier-field > label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: rgba(255,255,255,.55);
+}
+.radio-group {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  height: 36px;
+}
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  color: rgba(255,255,255,.9);
+  user-select: none;
+}
+.modifier-action { justify-content: flex-end; }
+.btn-generate {
+  padding: 9px 22px;
+  background: var(--gold);
+  color: var(--navy);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: .02em;
+  transition: background .15s;
+}
+.btn-generate:hover { background: var(--gold-light); }
+.btn-generate:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ─── Save Section ───────────────────────────────────────────── */
+.save-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.12);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn-save {
+  padding: 10px 26px;
+  background: #fff;
+  color: var(--navy);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s;
+}
+.btn-save:hover { background: #f0f0f0; }
+.btn-save:disabled { opacity: .45; cursor: not-allowed; }
+.export-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-pdf { color: rgba(255,255,255,.5); border-color: rgba(255,255,255,.2); }
+.btn-pdf:hover { border-color: rgba(255,255,255,.3); background: rgba(255,255,255,.05); }
