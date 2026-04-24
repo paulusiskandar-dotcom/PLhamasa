@@ -54,7 +54,7 @@ plmApp.controller("priceListController", function (
         ];
 
         $scope.modifier = {
-            selected: $scope.modifierOptions[2],
+            selected: $scope.modifierOptions[0],
             targets:  {},
             value:    null,
         };
