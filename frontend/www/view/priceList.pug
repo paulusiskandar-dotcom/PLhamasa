@@ -1,9 +1,9 @@
 extends master
 
 block content
-  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="priceListController")
+  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="priceListListController")
 
-    //- ── Sidebar ──────────────────────────────────────────────────────────────
+    //- Sidebar
     nav.sidebar
       div.sidebar-brand
         span.brand-icon ⬡
@@ -22,317 +22,152 @@ block content
             i.bi.bi-box-arrow-left
             span  Logout
 
-    //- ── Main Content ─────────────────────────────────────────────────────────
+    //- Main
     main.main-content
 
       button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
         i.bi.bi-list
 
-      //- Header
       div.page-header
         div
           h2.page-title Price List
-          p.page-sub Kelola dan export harga barang besi
-        div.header-actions
-          button.btn-outline(ng-click="exportTemplatePerKilo()" ng-disabled="isExportingTemplate")
-            i.bi.bi-download
-            |  Template Per Kilo
-          label.btn-outline(for="import-file")
-            i.bi.bi-upload
-            |  Import Template
-          input#import-file(type="file" accept=".xlsx" onchange="angular.element(this).scope().handleFileSelect(this.files); angular.element(this).scope().$apply()" style="display:none")
+          p.page-sub Riwayat semua price list per kategori
 
-      //- ── Filter Panel ───────────────────────────────────────────────────────
-      div.filter-panel
-        div.filter-row
-          div.filter-group
-            label Kategori
-            select.form-control(
-              ng-model="filter.category"
-              ng-options="c.name for c in categories track by c.id"
-            )
-              option(value="") Semua Kategori
-          div.filter-group
-            label Merek
-            select.form-control(
-              ng-model="filter.brand"
-              ng-options="b.name for b in brands track by b.id"
-            )
-              option(value="") Semua Merek
-          div.filter-group
-            label Grade
-            select.form-control(
-              ng-model="filter.grade"
-              ng-options="g.name for g in grades track by g.id"
-            )
-              option(value="") Semua Grade
-          div.filter-group
-            label Golongan
-            select.form-control(ng-model="filter.group" ng-options="g.label for g in groupOptions track by g.id")
-          div.filter-group
-            label Nama Barang
-            input.form-control(type="text" ng-model="filter.item_search_name" placeholder="Cari nama barang...")
-          div.filter-group.filter-action
-            button.btn-primary(ng-click="search()")
-              i.bi.bi-search
-              |  Cari
+      //- Filter
+      div.filter-bar
+        div.filter-group
+          label Kategori
+          select.form-control(ng-model="filterCatId" ng-change="loadList()" ng-options="c.id as c.name for c in categories")
+            option(value="") Semua Kategori
 
-      //- ── Modifier Section (DI ATAS tabel) ───────────────────────────────────
-      div.modifier-section(ng-if="items && items.length > 0")
-        div.modifier-header
-          span.modifier-title
-            i.bi.bi-lightning-charge
-            |  Pengubah Harga
-        div.modifier-body
-          //- Target checkboxes (dynamic per priceTypes)
-          div.modifier-field
-            label Target
-            div.target-checks
-              label.target-check-label(ng-repeat="pt in priceTypes")
-                input(type="checkbox" ng-model="modifier.targets[pt.code]")
-                span {{ pt.label }}
-                span.target-group-tag(ng-if="isExtended")  {{ pt.group }}
-          //- Quick-select (show group buttons only if extended)
-          div.modifier-field
-            label &nbsp;
-            div.quick-select
-              button.btn-qs(ng-click="selectAllTargets()") Semua
-              button.btn-qs(ng-if="isExtended" ng-repeat="g in priceGroups" ng-click="selectGroupTargets(g)") {{ g }}
-          div.modifier-field
-            label Modifier
-            select.form-control.modifier-select(ng-model="modifier.selected" ng-options="m.label for m in modifierOptions track by m.id")
-          div.modifier-field
-            label Nilai
-            input.form-control.modifier-input(
-              type="number"
-              ng-model="modifier.value"
-              placeholder="{{ getNilaiPlaceholder() }}"
-              min="0"
-            )
-          div.modifier-field.modifier-action
-            button.btn-generate(ng-click="generatePrices()")
-              i.bi.bi-lightning-charge
-              |  Generate Harga Baru
+      //- Loading
+      div.loading-state(ng-if="loading")
+        i.bi.bi-arrow-repeat.spin
+        span  Memuat...
 
-        //- Save & Export
-        //- auto-save status indicator only
-        div.sync-row(ng-if="syncState !== 'idle'")
-          div.sync-indicator(ng-if="syncState === 'saving'")
-            i.bi.bi-arrow-repeat.spin
-            span  Auto-saving...
-          div.sync-indicator.sync-ok(ng-if="syncState === 'saved'")
-            i.bi.bi-check-circle
-            span  Auto-saved
+      //- Empty state global
+      div.empty-state(ng-if="!loading && groupedLists.length === 0")
+        i.bi.bi-clipboard
+        p Belum ada Price List
+        button.btn-primary(ng-click="showStartModal()")
+          i.bi.bi-plus
+          |  Mulai Price List Baru
 
-      //- ── Table ──────────────────────────────────────────────────────────────
-      div.table-wrapper(ng-if="items !== null")
+      //- Grouped by category
+      div.category-group(ng-repeat="group in groupedLists")
+        div.category-header
+          h3 {{ group.cat_name }}
+          button.btn-secondary.btn-sm(ng-if="!group.has_open" ng-click="startNew(group.cat_id, group.cat_name)")
+            i.bi.bi-plus
+            |  Mulai Baru
 
-        //- Category Banner
-        div.category-banner(ng-if="categoryInfo && items.length > 0")
-          div.banner-left
-            span.banner-cat {{ categoryInfo.cat_name }}
-            span.banner-erp-date(ng-if="categoryInfo.erp_last_update")
-              i.bi.bi-calendar3
-              |  ERP: {{ categoryInfo.erp_last_update | plmDate }}
-            span.banner-sync {{ syncSummary() }}
-          div.banner-right
-            div.banner-export(ng-if="categoryInfo.last_export")
-              span Last Export: {{ categoryInfo.last_export.exported_at | plmDate }}
-              span  · {{ categoryInfo.last_export.exporter_name }}
-              span  · {{ categoryInfo.last_export.item_count }} items
-            div.banner-export(ng-if="!categoryInfo.last_export")
-              span.text-muted Belum pernah di-export
-            button.btn-outline.btn-sm(ng-click="openHistoryModal()")
+        div.pl-card(ng-repeat="pl in group.records" ng-class="'pl-' + pl.status.toLowerCase()")
+          div.pl-header
+            span.pl-revision \#{{ pl.revision_no | padNumber:3 }}
+            span.pl-status(ng-class="'status-' + pl.status.toLowerCase()") {{ pl.status }}
+            span.pl-timestamp {{ pl.created_at | dateFormat }}
+            span.lock-badge.lock-mine(ng-if="pl.locked_status === 'mine'")  🟢 Sedang Anda edit
+            span.lock-badge.lock-other(ng-if="pl.locked_status === 'other_active'")  🟡 Diedit {{ pl.locked_by_name }}
+            span.lock-badge.lock-stale(ng-if="pl.locked_status === 'other_idle'")  🟠 Idle ({{ pl.locked_by_name }})
+
+          div.pl-body
+            span(ng-if="pl.status === 'OPEN'")
+              | {{ pl.item_count }} items
+              span(ng-if="pl.last_log_at")  · edit terakhir {{ pl.last_log_at | timeAgo }}
+            span(ng-if="pl.status === 'PUBLISHED'")
+              | Posted oleh {{ pl.posted_by_name }} · {{ pl.posted_at | dateFormat }} · {{ pl.item_count }} items
+
+          div.pl-actions
+            button.btn-primary.btn-sm(ng-if="pl.status === 'OPEN' && pl.locked_status !== 'other_active'" ng-click="continueEdit(pl)")
+              i.bi.bi-pencil
+              |  {{ pl.locked_status === 'other_idle' ? 'Take Over & Edit' : 'Continue Edit' }}
+            button.btn-secondary.btn-sm(ng-if="pl.status === 'PUBLISHED'" ng-click="showDetail(pl)")
+              i.bi.bi-eye
+              |  Lihat Detail
+            button.btn-ghost.btn-sm(ng-click="showLog(pl)")
               i.bi.bi-clock-history
-              |  Riwayat Export
+              |  Log
+            button.btn-ghost.btn-sm(ng-click="exportPdf(pl)")
+              i.bi.bi-file-pdf
+              |  PDF
+            button.btn-ghost.btn-sm(ng-click="exportExcel(pl)")
+              i.bi.bi-file-earmark-excel
+              |  Excel
 
-        div.table-info(ng-if="items.length > 0")
-          span {{ items.length }} barang ditemukan
+      //- Modal Start New
+      div.modal-overlay(ng-if="modalStart")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          h3 Mulai Price List Baru
+          p Pilih kategori ERP:
+          select.form-control(ng-model="modalStart.catId" ng-options="c.id as c.name for c in categoriesAvailable")
+            option(value="") Pilih kategori...
+          div.modal-actions
+            button.btn-ghost(ng-click="modalStart = null") Batal
+            button.btn-primary(ng-click="confirmStartNew()" ng-disabled="!modalStart.catId")
+              i.bi.bi-check2
+              |  Mulai
 
-        div.empty-state(ng-if="items.length === 0")
-          i.bi.bi-inbox
-          p Tidak ada barang ditemukan
+      //- Modal Detail (PUBLISHED)
+      div.modal-overlay(ng-if="modalDetail" ng-click="modalDetail = null")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            div
+              h3 {{ modalDetail.cat_name }} — \#{{ modalDetail.revision_no | padNumber:3 }}
+              span.pl-status.status-published PUBLISHED
+            button.modal-close(ng-click="modalDetail = null") ×
+          div.modal-body
+            p.detail-meta
+              | Posted by {{ modalDetail.posted_by_name }} pada {{ modalDetail.posted_at | dateTimeFormat }}
+            table.detail-table(ng-if="modalDetail.items && modalDetail.items.length > 0")
+              thead
+                tr
+                  th ig_id
+                  th pr_id
+                  th Harga/kg
+              tbody
+                tr(ng-repeat="item in modalDetail.items")
+                  td.mono {{ item.ig_id }}
+                  td.mono {{ item.pr_id }}
+                  td.mono.text-right {{ item.i_price | number:0 }}
+          div.modal-actions
+            button.btn-ghost(ng-click="exportPdf(modalDetail)") Export PDF
+            button.btn-ghost(ng-click="exportExcel(modalDetail)") Export Excel
+            button.btn-primary(ng-click="modalDetail = null") Tutup
 
-        div.table-scroll(ng-if="items.length > 0")
-          table.data-table
-
-            //- ─ STANDARD header (2 price types: Cash, Kredit) ─
-            thead(ng-if="!isExtended")
-              tr
-                th.th-check(rowspan="2")
-                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
-                th(rowspan="2" style="width:38px") No
-                th.th-sortable(rowspan="2" ng-click="sortBy('name')")
-                  | Nama Barang
-                  i.bi.sort-icon(ng-class="sortIcon('name')" ng-class-active="sortActive('name')")
-                th.th-sortable.text-right(rowspan="2" ng-click="sortBy('weight')")
-                  | Berat
-                  i.bi.sort-icon(ng-class="sortIcon('weight')" ng-class-active="sortActive('weight')")
-                th.th-group(colspan="3") CASH
-                th.th-group.th-group-alt(colspan="3") KREDIT
-              tr
-                th.th-sortable.text-right(ng-click="sortBy('cash_gudang')")
-                  | /kg
-                  i.bi.sort-icon(ng-class="sortIcon('cash_gudang')")
-                th.th-new /kg Baru
-                th.th-lbr /lbr
-                th.th-sortable.text-right(ng-click="sortBy('kredit_gudang')")
-                  | /kg
-                  i.bi.sort-icon(ng-class="sortIcon('kredit_gudang')")
-                th.th-new /kg Baru
-                th.th-lbr /lbr
-
-            //- ─ EXTENDED header (4 price types: Gudang & Pabrik) ─
-            thead(ng-if="isExtended")
-              tr
-                th.th-check(rowspan="3")
-                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
-                th(rowspan="3" style="width:38px") No
-                th.th-sortable(rowspan="3" ng-click="sortBy('name')")
-                  | Nama Barang
-                  i.bi.sort-icon(ng-class="sortIcon('name')")
-                th.th-sortable.text-right(rowspan="3" ng-click="sortBy('weight')")
-                  | Berat
-                  i.bi.sort-icon(ng-class="sortIcon('weight')")
-                th.th-group(colspan="6") GUDANG
-                th.th-group.th-group-alt(colspan="6") PABRIK
-              tr
-                th.th-group-sub(colspan="3") Cash
-                th.th-group-sub(colspan="3") Kredit
-                th.th-group-sub(colspan="3") Cash
-                th.th-group-sub(colspan="3") Kredit
-              tr
-                th.th-sortable.text-right(ng-click="sortBy('cash_gudang')")
-                  | /kg
-                  i.bi.sort-icon(ng-class="sortIcon('cash_gudang')")
-                th.th-new /kg Baru
-                th.th-lbr /lbr
-                th.th-sortable.text-right(ng-click="sortBy('kredit_gudang')")
-                  | /kg
-                  i.bi.sort-icon(ng-class="sortIcon('kredit_gudang')")
-                th.th-new /kg Baru
-                th.th-lbr /lbr
-                th.th-sortable.text-right(ng-click="sortBy('cash_pabrik')")
-                  | /kg
-                  i.bi.sort-icon(ng-class="sortIcon('cash_pabrik')")
-                th.th-new /kg Baru
-                th.th-lbr /lbr
-                th.th-sortable.text-right(ng-click="sortBy('kredit_pabrik')")
-                  | /kg
-                  i.bi.sort-icon(ng-class="sortIcon('kredit_pabrik')")
-                th.th-new /kg Baru
-                th.th-lbr /lbr
-
-            //- ─ TBODY (dynamic columns via ng-repeat-start/end) ─
-            tbody
-              tr(
-                ng-repeat="item in items"
-                ng-class="{'row-has-new': hasDrafts() && item.new && (item.new | json) !== '{}', 'row-just-edited': item.justEdited}"
-              )
-                td.td-check
-                  input(type="checkbox" ng-model="item.checked" ng-change="onItemCheck()")
-                td.num.text-muted {{ $index + 1 }}
-                td
-                  | {{ item.name }}
-                  span.warn-badge(
-                    ng-if="isSpotUpdate(item)"
-                    title="Item ini update terakhir {{ item.erp_updated_at | plmDate }}, berbeda dari update massal kategori {{ catMaxUpdatedAt | plmDate }}"
-                  ) ⚠
-                td.num {{ item.weight }}
-                //- Per price-type: /kg lama | /kg baru (input) | /lbr
-                td.num(ng-repeat-start="pt in priceTypes track by pt.code")
-                  span.price-value {{ item.prices[pt.code].current | number }}
-                td.td-new(ng-class="{'td-has-new': item.new[pt.code] != null}")
-                  input.price-input(
-                    type="text"
-                    inputmode="numeric"
-                    ng-model="item.new_display[pt.code]"
-                    ng-change="onPriceInputChange(item, pt)"
-                    placeholder="—"
-                  )
-                td.price-lbr(ng-repeat-end)
-                  span(ng-if="item.new_unit[pt.code] != null") {{ item.new_unit[pt.code] | number:0 }}
-                  span.price-unit-empty(ng-if="item.new_unit[pt.code] == null") —
-
-      //- ── Action Bar ───────────────────────────────────────────────────────
-      div.action-bar(ng-if="items && items.length > 0")
-        div.action-bar-left
-          div.sync-row(ng-if="syncState !== 'idle'")
-            span.sync-indicator(ng-if="syncState === 'saving'")
+      //- Modal Log
+      div.modal-overlay(ng-if="modalLog" ng-click="closeLog()")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Log — {{ modalLog.cat_name }} \#{{ modalLog.revision_no | padNumber:3 }}
+            button.modal-close(ng-click="closeLog()") ×
+          div.modal-body
+            div.loading-state(ng-if="modalLog.loading")
               i.bi.bi-arrow-repeat.spin
-              |  Auto-saving...
-            span.sync-indicator.sync-ok(ng-if="syncState === 'saved'")
-              i.bi.bi-check-circle
-              |  Auto-saved
-        div.action-bar-right
-          button.btn-action-save(
-            ng-click="saveAll()"
-            ng-disabled="!hasChanges() || saveState === 'saving'"
-            ng-if="hasChanges() || saveState === 'saving'"
-          )
-            i.bi(ng-class="{'bi-save': saveState !== 'saving', 'bi-hourglass-split': saveState === 'saving'}")
-            span(ng-if="saveState !== 'saving'")  Simpan ({{ pendingChanges.length }})
-            span(ng-if="saveState === 'saving'")  Menyimpan...
-          button.btn-action-export(
-            ng-click="doExportERP()"
-            ng-disabled="hasChanges()"
-            title="{{ hasChanges() ? 'Simpan dulu sebelum export' : 'Export ke format ERP' }}"
-          )
-            i.bi.bi-file-earmark-excel
-            |  Export ERP
-          button.btn-action-export(
-            ng-click="doExportManual()"
-            ng-disabled="hasChanges()"
-            title="{{ hasChanges() ? 'Simpan dulu sebelum export' : 'Export manual' }}"
-          )
-            i.bi.bi-file-earmark-text
-            |  Export Manual
-          button.btn-action-print(disabled title="Fitur segera hadir")
-            i.bi.bi-printer
-            |  Print PDF
-
-      //- ── History Modal ────────────────────────────────────────────────────
-      div.modal-backdrop(ng-if="showHistoryModal" ng-click="closeHistoryModal()")
-      div.modal-box(ng-if="showHistoryModal")
-        div.modal-head
-          span.modal-title
-            i.bi.bi-clock-history
-            |  Riwayat Export
-          button.modal-close(ng-click="closeHistoryModal()") ×
-        div.modal-body
-          div.loading-state(ng-if="historyLoading")
-            i.bi.bi-arrow-repeat.spin
-            span  Memuat...
-          table.data-table(ng-if="!historyLoading && exportHistory.length > 0")
-            thead
-              tr
-                th Tanggal
-                th Tipe
-                th Jumlah
-                th File
-                th
-            tbody
-              tr(ng-repeat="h in exportHistory")
-                td.mono {{ h.exported_at | plmDateTime }}
-                td
-                  span.badge-type(ng-class="'badge-' + h.export_type") {{ h.export_type | uppercase }}
-                td {{ h.item_count }}
-                td.mono.text-muted {{ h.file_name }}
-                td
-                  button.btn-outline.btn-sm(ng-click="downloadHistory(h.id)" ng-if="h.file_name")
-                    i.bi.bi-download
-          div.empty-state(ng-if="!historyLoading && exportHistory.length === 0")
-            i.bi.bi-inbox
-            p Belum ada history export
-          div.modal-pagination(ng-if="exportHistory.length > 0")
-            button.btn-outline.btn-sm(ng-click="historyPrev()" ng-disabled="historyOffset === 0")
-              i.bi.bi-chevron-left
-            span  Hal {{ historyPage() }}
-            button.btn-outline.btn-sm(ng-click="historyNext()" ng-disabled="exportHistory.length < 20")
-              i.bi.bi-chevron-right
+              span  Memuat...
+            div.empty-state(ng-if="!modalLog.loading && modalLog.entries.length === 0")
+              i.bi.bi-inbox
+              p Belum ada perubahan dicatat
+            table.log-table(ng-if="!modalLog.loading && modalLog.entries.length > 0")
+              thead
+                tr
+                  th Waktu
+                  th User
+                  th ig_id
+                  th pr_id
+                  th Lama
+                  th Baru
+              tbody
+                tr(ng-repeat="entry in modalLog.entries")
+                  td.mono {{ entry.logged_at | dateTimeFormat }}
+                  td {{ entry.user_name }}
+                  td.mono {{ entry.ig_id }}
+                  td.mono {{ entry.pr_id }}
+                  td.mono.text-right {{ entry.old_price | number:0 }}
+                  td.mono.text-right {{ entry.new_price | number:0 }}
+          div.modal-actions
+            button.btn-primary(ng-click="closeLog()") Tutup
 
       //- Toast
       div.toast-container(ng-if="toast.show")
         div.toast-msg(ng-class="'toast-' + toast.type")
-          i.bi(ng-class="{'bi-check-circle': toast.type==='success', 'bi-exclamation-circle': toast.type==='danger', 'bi-info-circle': toast.type==='info', 'bi-exclamation-triangle': toast.type==='warning'}")
-          |  {{ toast.message }}
+          | {{ toast.message }}
