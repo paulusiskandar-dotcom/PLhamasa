@@ -7,6 +7,7 @@ const response        = require('../utils/response');
 const $model          = require('../models/priceList');
 const $itemModel      = require('../models/item');
 const $erpTargetModel = require('../models/erpTarget');
+const $settingsModel  = require('../models/settings');
 
 // Round ERP baseline per-kg price (same as existing roundERP in price.js)
 function roundERP(raw) {
@@ -33,13 +34,109 @@ module.exports._list = async function (req, res) {
 
 module.exports._getById = async function (req, res) {
     try {
-        const id = parseInt(req.params.id, 10);
-        if (isNaN(id)) return response.error(res, 'invalid_id', null, 400);
         const userId = res.locals.user.id;
-        const pl = await $model.getById(id, userId);
-        if (!pl) return response.error(res, 'not_found', null, 404);
-        return response.success(res, pl);
+        const plId = parseInt(req.params.id, 10);
+        if (isNaN(plId)) return response.error(res, 'invalid_id', null, 400);
+
+        const pl = await $model.getById(plId, userId);
+        if (!pl) return response.error(res, 'Not found', null, 404);
+
+        // Determine price types based on extended_categories setting
+        let extCats = [];
+        try {
+            const row = await global.dbPLM.oneOrNone(
+                "SELECT value FROM settings WHERE key = 'extended_categories'"
+            );
+            if (row && Array.isArray(row.value)) extCats = row.value;
+        } catch (e) {
+            // settings table may not exist — default to standard
+        }
+
+        const isExtended = extCats.some(c => String(c) === String(pl.cat_id));
+
+        const STANDARD_PRICE_TYPES = [
+            { pr_id: 2, code: 'cash_gudang',   label: 'Cash',   group: 'Gudang' },
+            { pr_id: 4, code: 'kredit_gudang', label: 'Kredit', group: 'Gudang' },
+        ];
+        const EXTENDED_PRICE_TYPES = [
+            { pr_id: 2, code: 'cash_gudang',   label: 'Cash',   group: 'Gudang' },
+            { pr_id: 4, code: 'kredit_gudang', label: 'Kredit', group: 'Gudang' },
+            { pr_id: 1, code: 'cash_pabrik',   label: 'Cash',   group: 'Pabrik' },
+            { pr_id: 3, code: 'kredit_pabrik', label: 'Kredit', group: 'Pabrik' },
+        ];
+
+        const priceTypes = isExtended ? EXTENDED_PRICE_TYPES : STANDARD_PRICE_TYPES;
+
+        // Build price map from price_list_item: { ig_id: { pr_id: price } }
+        const priceMap = {};
+        (pl.items || []).forEach(item => {
+            if (!priceMap[item.ig_id]) priceMap[item.ig_id] = {};
+            priceMap[item.ig_id][item.pr_id] = parseFloat(item.i_price);
+        });
+
+        const ig_ids = [...new Set((pl.items || []).map(i => i.ig_id))];
+
+        // Get item metadata from ERP
+        let erpItems = [];
+        if (ig_ids.length > 0) {
+            erpItems = await global.dbERP.any(
+                `SELECT ig_id, i_name, i_weight, i_brand, grade, i_group
+                 FROM item
+                 WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL`,
+                [ig_ids]
+            );
+        }
+
+        const erpMap = {};
+        erpItems.forEach(r => { erpMap[r.ig_id] = r; });
+
+        // Build formatted items
+        const items = ig_ids.map(ig_id => {
+            const erp = erpMap[ig_id] || {};
+            const itemPrices = priceMap[ig_id] || {};
+
+            const prices = {};
+            priceTypes.forEach(pt => {
+                prices[pt.code] = {
+                    current: itemPrices[pt.pr_id] != null ? itemPrices[pt.pr_id] : null
+                };
+            });
+
+            return {
+                ig_id,
+                name:   erp.i_name   || ('Item ' + ig_id),
+                weight: parseFloat(erp.i_weight) || 0,
+                brand:  erp.i_brand  || null,
+                grade:  erp.grade    || null,
+                group:  erp.i_group  || null,
+                prices,
+            };
+        });
+
+        // Lock info
+        const now = new Date();
+        let locked_status = pl.locked_status || null;
+        let lockInfo = null;
+        if (pl.locked_by != null) {
+            const diffMs = pl.locked_heartbeat ? now - new Date(pl.locked_heartbeat) : Infinity;
+            const diffMin = Math.round(diffMs / 60000);
+            lockInfo = {
+                locked_by: pl.locked_by,
+                locked_by_name: pl.locked_by_name || 'Unknown',
+                locked_at: pl.locked_at,
+                locked_minutes_ago: diffMin,
+            };
+        }
+
+        return response.success(res, {
+            ...pl,
+            items,
+            priceTypes,
+            lockInfo,
+            locked_status,
+        });
     } catch (err) {
+        console.error('_getById error:', err);
         return response.error(res, null, err);
     }
 };
