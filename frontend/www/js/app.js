@@ -51,3 +51,41 @@ plmApp.filter("number", function () {
         });
     };
 });
+
+plmApp.filter("padNumber", function () {
+    return function (val, len) {
+        if (val === null || val === undefined) return "";
+        var s = String(val);
+        var pad = len || 3;
+        while (s.length < pad) s = "0" + s;
+        return s;
+    };
+});
+
+plmApp.filter("dateFormat", function () {
+    return function (val) {
+        if (!val) return "-";
+        return moment(val).format("DD MMM YYYY");
+    };
+});
+
+plmApp.filter("timeFormat", function () {
+    return function (val) {
+        if (!val) return "-";
+        return moment(val).format("HH:mm");
+    };
+});
+
+plmApp.filter("dateTimeFormat", function () {
+    return function (val) {
+        if (!val) return "-";
+        return moment(val).format("DD MMM YYYY HH:mm");
+    };
+});
+
+plmApp.filter("timeAgo", function () {
+    return function (val) {
+        if (!val) return "-";
+        return moment(val).fromNow();
+    };
+});
