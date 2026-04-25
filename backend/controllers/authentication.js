@@ -1,28 +1,42 @@
-const jwt = require("jsonwebtoken");
+const jwt    = require("jsonwebtoken");
+const bcrypt = require("bcrypt");
 const response = require("../utils/response");
 
 const JWT_SECRET = process.env.JWT_SECRET || "price_list_secret";
 
-// Dummy users — ganti dengan query ke DB users
-const USERS = [
-    { id: 1, username: "admin", password: "admin123", role: "admin" },
-];
+module.exports._login = async function (req, res) {
+    try {
+        const { username, password } = req.body;
+        if (!username || !password) {
+            return response.error(res, "invalid_credentials", null, 401);
+        }
 
-module.exports._login = function (req, res) {
-    const { username, password } = req.body;
+        const user = await global.dbPLM.oneOrNone(
+            "SELECT id, username, password_hash, role FROM users WHERE username = $1 AND deleted_at IS NULL",
+            [username]
+        );
+        if (!user) {
+            return response.error(res, "invalid_credentials", null, 401);
+        }
 
-    const user = USERS.find(u => u.username === username && u.password === password);
-    if (!user) {
-        return response.error(res, "invalid_credentials", null, 401);
+        const match = await bcrypt.compare(password, user.password_hash);
+        if (!match) {
+            return response.error(res, "invalid_credentials", null, 401);
+        }
+
+        const token = jwt.sign(
+            { id: user.id, username: user.username, role: user.role },
+            JWT_SECRET,
+            { expiresIn: "8h" }
+        );
+
+        return response.success(res, {
+            accessToken: token,
+            user: { id: user.id, username: user.username, role: user.role },
+        });
+    } catch (err) {
+        return response.error(res, null, err);
     }
-
-    const token = jwt.sign(
-        { id: user.id, username: user.username, role: user.role },
-        JWT_SECRET,
-        { expiresIn: "8h" }
-    );
-
-    return response.success(res, { accessToken: token, user: { id: user.id, username: user.username, role: user.role } });
 };
 
 module.exports._logout = function (req, res) {
