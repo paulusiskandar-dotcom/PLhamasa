@@ -11,6 +11,10 @@ plmApp.factory("$masterService", function ($http) {
         getGrades: function () {
             return $http.get(api.url + "master/grades")
                 .then(function (r) { return r.data; });
-        }
+        },
+        getItems: function (catId) {
+            return $http.get(api.url + 'items', { params: { cat_id: catId } })
+                .then(function (r) { return r.data; });
+        },
     };
 });

@@ -12,7 +12,7 @@ module.exports._login = async function (req, res) {
         }
 
         const user = await global.dbPLM.oneOrNone(
-            "SELECT id, username, password_hash, role FROM users WHERE username = $1 AND deleted_at IS NULL",
+            "SELECT id, username, password_hash, role, full_name FROM users WHERE username = $1 AND deleted_at IS NULL",
             [username]
         );
         if (!user) {
@@ -27,12 +27,17 @@ module.exports._login = async function (req, res) {
         const token = jwt.sign(
             { id: user.id, username: user.username, role: user.role },
             JWT_SECRET,
-            { expiresIn: "8h" }
+            { expiresIn: "24h" }
         );
 
         return response.success(res, {
             accessToken: token,
-            user: { id: user.id, username: user.username, role: user.role },
+            user: {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                full_name: user.full_name || user.username,
+            },
         });
     } catch (err) {
         return response.error(res, null, err);

@@ -3,7 +3,6 @@ extends master
 block content
   div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="settingsController")
 
-    //- ── Sidebar ──────────────────────────────────────────────────────────────
     nav.sidebar
       div.sidebar-brand
         span.brand-icon ⬡
@@ -22,7 +21,6 @@ block content
             i.bi.bi-box-arrow-left
             span  Logout
 
-    //- ── Main Content ─────────────────────────────────────────────────────────
     main.main-content
 
       button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
@@ -33,52 +31,182 @@ block content
           h2.page-title Settings
           p.page-sub Konfigurasi aplikasi
 
-      //- ── Section: Extended Categories ─────────────────────────────────────
-      div.settings-card
+      div.toast-container(ng-if="toast.show")
+        div.toast-msg(ng-class="'toast-' + toast.type") {{ toast.message }}
 
-        div.settings-section-header
-          h3.settings-section-title
-            i.bi.bi-tags
-            |  Kategori dengan Harga Pabrik
-          p.settings-section-desc
+      //- Section 1: Extended Categories
+      div.settings-section
+        div.section-header
+          i.bi.bi-tags
+          h3 Kategori dengan Harga Pabrik
+        div.section-body
+          p.section-desc
             | Kategori di bawah ini akan tampil dengan kolom tambahan:
-            strong  Cash Pabrik
-            |  &amp;
-            strong  Kredit Pabrik
-            | .
+            |  #[strong Cash Pabrik] &amp; #[strong Kredit Pabrik].
             br
             | Kategori lain hanya menampilkan Cash Gudang &amp; Kredit Gudang.
+          div.checkbox-grid(ng-if="categories.length > 0")
+            label.checkbox-item(ng-repeat="cat in categories")
+              input(type="checkbox" ng-model="extendedSelection[cat.id]" ng-change="markExtendedDirty()")
+              span {{ cat.name }}
+          div.empty-mini(ng-if="categories.length === 0")
+            | Memuat kategori...
+        div.section-footer
+          button.btn-ghost(ng-click="resetExtended()" ng-disabled="!extendedDirty") Batal
+          button.btn-primary(ng-click="saveExtended()" ng-disabled="!extendedDirty")
+            i.bi.bi-save
+            |  Simpan
 
-        //- Loading state
-        div.loading-state(ng-if="loading")
-          i.bi.bi-arrow-repeat.spin
-          span  Memuat kategori...
+      //- Section 2: Subcategory
+      div.settings-section
+        div.section-header
+          i.bi.bi-collection
+          h3 Subkategori
+        div.section-body
+          p.section-desc
+            | Buat subkategori sebagai filter tambahan saat edit Price List.
+            | 1 item hanya bisa masuk ke 1 subkategori per kategori.
+          div.subcat-controls
+            label Pilih Kategori
+            select.form-control(ng-model="subcatFilter" ng-change="loadSubcategories()" ng-options="c.id as c.name for c in categories")
+              option(value="") Pilih kategori...
+          div(ng-if="subcatFilter")
+            div.subcat-empty(ng-if="subcategories.length === 0") Belum ada subkategori untuk kategori ini.
+            div.subcat-card(ng-repeat="sub in subcategories")
+              div.subcat-info
+                strong {{ sub.name }}
+                span.item-count {{ sub.item_count || 0 }} items
+              div.subcat-actions
+                button.btn-ghost.btn-sm(ng-click="manageSubcatItems(sub)")
+                  i.bi.bi-list-check
+                  |  Items
+                button.btn-ghost.btn-sm(ng-click="renameSubcat(sub)")
+                  i.bi.bi-pencil
+                button.btn-ghost.btn-sm.btn-danger(ng-click="deleteSubcat(sub)")
+                  i.bi.bi-trash
+            div.subcat-add
+              button.btn-secondary(ng-click="showAddSubcat()" ng-disabled="!subcatFilter")
+                i.bi.bi-plus-lg
+                |  Tambah Subkategori
 
-        //- Category checklist
-        div.settings-cat-grid(ng-if="!loading")
-          label.settings-cat-item(ng-repeat="cat in categories")
-            input(
-              type="checkbox"
-              ng-model="cat.checked"
-              ng-change="onCheck()"
-            )
-            span.cat-name {{ cat.name }}
-            span.cat-id {{ cat.id }}
+      //- Section 3: ERP Target (superadmin only)
+      div.settings-section(ng-if="isSuperadmin")
+        div.section-header
+          i.bi.bi-database
+          h3 Target Database ERP
+          span.role-badge Superadmin only
+        div.section-body
+          p.section-desc
+            | Konfigurasi database ERP target untuk Post to ERP.
+            | Hanya 1 target yang bisa aktif pada satu waktu.
+          div.erp-target-list
+            div.erp-empty(ng-if="erpTargets.length === 0") Belum ada ERP target.
+            div.erp-card(ng-repeat="erp in erpTargets" ng-class="{'erp-active': erp.is_active}")
+              div.erp-info
+                div.erp-name
+                  strong {{ erp.name }}
+                  span.active-badge(ng-if="erp.is_active") AKTIF
+                div.erp-host {{ erp.db_user }}@{{ erp.host }}:{{ erp.port }}/{{ erp.db_name }}
+                div.erp-note(ng-if="erp.note") {{ erp.note }}
+              div.erp-actions
+                button.btn-ghost.btn-sm(ng-if="!erp.is_active" ng-click="activateErp(erp)")
+                  i.bi.bi-toggle-on
+                  |  Aktifkan
+                button.btn-ghost.btn-sm(ng-click="testErp(erp)")
+                  i.bi.bi-plug
+                  |  Test
+                button.btn-ghost.btn-sm(ng-click="editErp(erp)")
+                  i.bi.bi-pencil
+                button.btn-ghost.btn-sm.btn-danger(ng-click="deleteErp(erp)" ng-disabled="erp.is_active")
+                  i.bi.bi-trash
+          div.erp-add
+            button.btn-secondary(ng-click="showAddErp()")
+              i.bi.bi-plus-lg
+              |  Tambah ERP Target
 
-        //- Action buttons
-        div.settings-actions(ng-if="!loading")
-          span.dirty-hint(ng-if="isDirty") Ada perubahan belum disimpan
-          button.btn-outline(ng-click="reset()" ng-disabled="!isDirty || saving") Batal
-          button.btn-primary(
-            ng-click="save()"
-            ng-disabled="!isDirty || saving"
-          )
-            i.bi(ng-class="{'bi-save': !saving, 'bi-hourglass-split': saving}")
-            span(ng-if="!saving")  Simpan
-            span(ng-if="saving")  Menyimpan...
+      //- Modal: Add/Edit Subcategory
+      div.modal-overlay(ng-if="modalSubcat" ng-click="modalSubcat = null")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 {{ modalSubcat.editing ? 'Edit' : 'Tambah' }} Subkategori
+          div.modal-body
+            div.form-group
+              label Nama Subkategori
+              input.form-control(type="text" ng-model="modalSubcat.name" placeholder="Contoh: Diameter Kecil" autofocus)
+          div.modal-actions
+            button.btn-ghost(ng-click="modalSubcat = null") Batal
+            button.btn-primary(ng-click="saveSubcat()" ng-disabled="!modalSubcat.name") Simpan
 
-      //- Toast
-      div.toast-container(ng-if="toast.show")
-        div.toast-msg(ng-class="'toast-' + toast.type")
-          i.bi(ng-class="{'bi-check-circle': toast.type==='success', 'bi-exclamation-circle': toast.type==='danger', 'bi-info-circle': toast.type==='info'}")
-          |  {{ toast.message }}
+      //- Modal: Manage Subcategory Items
+      div.modal-overlay(ng-if="modalSubcatItems" ng-click="modalSubcatItems = null")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Assign Items — {{ modalSubcatItems.subcat.name }}
+            button.modal-close(ng-click="modalSubcatItems = null") ×
+          div.modal-body
+            p.section-desc Centang item yang masuk ke subkategori ini. Item yang sudah di-assign ke subkategori lain ditampilkan tapi tidak bisa dipilih.
+            div.search-box
+              i.bi.bi-search
+              input(type="text" ng-model="modalSubcatItems.search" placeholder="Cari nama barang...")
+            div.items-checklist
+              div.loading-state(ng-if="modalSubcatItems.loading")
+                span Memuat...
+              label.checkbox-item(
+                ng-repeat="item in modalSubcatItems.items | filter:{name: modalSubcatItems.search}"
+                ng-class="{'item-disabled': item.assignedTo && item.assignedTo !== modalSubcatItems.subcat.id}"
+              )
+                input(
+                  type="checkbox"
+                  ng-model="modalSubcatItems.checked[item.ig_id]"
+                  ng-disabled="item.assignedTo && item.assignedTo !== modalSubcatItems.subcat.id"
+                )
+                span
+                  | {{ item.name }}
+                  small.assigned-info(ng-if="item.assignedTo && item.assignedTo !== modalSubcatItems.subcat.id")
+                    |  (di "{{ item.assignedToName }}")
+          div.modal-actions
+            button.btn-ghost(ng-click="modalSubcatItems = null") Tutup
+            button.btn-primary(ng-click="saveSubcatItems()") Simpan Assignment
+
+      //- Modal: Add/Edit ERP Target
+      div.modal-overlay(ng-if="modalErp" ng-click="modalErp = null")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 {{ modalErp.editing ? 'Edit' : 'Tambah' }} ERP Target
+          div.modal-body
+            div.form-group
+              label Nama *
+              input.form-control(type="text" ng-model="modalErp.data.name" placeholder="Contoh: Production")
+            div.form-group
+              label Host *
+              input.form-control(type="text" ng-model="modalErp.data.host" placeholder="192.168.1.100")
+            div.form-row
+              div.form-group
+                label Port
+                input.form-control(type="number" ng-model="modalErp.data.port")
+              div.form-group
+                label Database *
+                input.form-control(type="text" ng-model="modalErp.data.db_name")
+            div.form-row
+              div.form-group
+                label Username *
+                input.form-control(type="text" ng-model="modalErp.data.db_user")
+              div.form-group
+                label Password
+                input.form-control(type="password" ng-model="modalErp.data.db_password" placeholder="{{ modalErp.editing ? '(kosong = tidak diubah)' : '' }}")
+            div.form-group
+              label Catatan
+              textarea.form-control(ng-model="modalErp.data.note" rows="2" placeholder="Opsional")
+            div.test-result(ng-if="modalErp.testResult")
+              div.test-success(ng-if="modalErp.testResult.success")
+                i.bi.bi-check-circle-fill
+                |  Connect berhasil. {{ modalErp.testResult.version }}
+              div.test-fail(ng-if="!modalErp.testResult.success")
+                i.bi.bi-x-circle-fill
+                |  {{ modalErp.testResult.error }}
+          div.modal-actions
+            button.btn-ghost(ng-click="modalErp = null") Batal
+            button.btn-ghost(ng-click="testErpModal()" ng-disabled="!modalErp.data.host || !modalErp.data.db_name")
+              i.bi.bi-plug
+              |  Test
+            button.btn-primary(ng-click="saveErp()") Simpan

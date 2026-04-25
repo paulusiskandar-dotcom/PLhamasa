@@ -35,6 +35,7 @@ plmApp.controller("loginController", function ($scope, $authService) {
 
         $authService.login($scope.credentials).then(function (res) {
             localStorage.setItem("accessToken", res.result.accessToken);
+            localStorage.setItem("userInfo", JSON.stringify(res.result.user || {}));
             document.cookie = "accessToken=" + res.result.accessToken + "; path=/";
             window.location.href = "/price-list";
         }).catch(function () {

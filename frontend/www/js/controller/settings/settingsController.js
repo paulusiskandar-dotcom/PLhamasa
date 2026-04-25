@@ -1,85 +1,246 @@
-plmApp.controller("settingsController", function ($scope, $timeout, $settingsService) {
+plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService) {
 
-    $scope.sidebarHidden = localStorage.getItem("plm.sidebarHidden") === "true";
+    $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
         $scope.sidebarHidden = !$scope.sidebarHidden;
-        localStorage.setItem("plm.sidebarHidden", $scope.sidebarHidden);
+        localStorage.setItem('plm.sidebarHidden', $scope.sidebarHidden);
     };
 
-    $scope.categories   = [];   // [{id, name, checked}]
-    $scope.loading      = true;
-    $scope.saving       = false;
-    $scope.isDirty      = false;
-    $scope.toast        = { show: false, message: "", type: "" };
+    var userInfo = {};
+    try { userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}'); } catch (e) {}
+    $scope.isSuperadmin = userInfo.role === 'superadmin';
 
-    var originalIds = [];
-
-    function showToast(message, type) {
-        $scope.toast = { show: true, message: message, type: type || "info" };
-        $timeout(function () { $scope.toast.show = false; }, 3500);
+    $scope.toast = { show: false, message: '', type: 'info' };
+    function showToast(msg, type, duration) {
+        $scope.toast = { show: true, message: msg, type: type || 'info' };
+        $timeout(function () { $scope.toast.show = false; }, duration || 3000);
     }
 
-    function load() {
-        $scope.loading = true;
-        $settingsService.get().then(function (res) {
-            var data     = res.result;
-            var savedIds = data.cat_ids || [];
+    // ── State ──────────────────────────────────────────────────
+    $scope.categories = [];
+    $scope.extendedSelection = {};
+    $scope.extendedDirty = false;
+    var _extOriginal = {};
 
-            originalIds = savedIds.slice();
+    $scope.subcatFilter = '';
+    $scope.subcategories = [];
+    $scope.modalSubcat = null;
+    $scope.modalSubcatItems = null;
 
-            $scope.categories = (data.categories || [])
-                .sort(function (a, b) { return a.name.localeCompare(b.name); })
-                .map(function (c) {
-                    return {
-                        id:      c.id,
-                        name:    c.name,
-                        checked: savedIds.indexOf(c.id) !== -1,
-                    };
+    $scope.erpTargets = [];
+    $scope.modalErp = null;
+
+    // ── Init ───────────────────────────────────────────────────
+    function init() {
+        $masterService.getCategories().then(function (r) {
+            $scope.categories = r.result || [];
+            loadExtendedSetting();
+        }).catch(function () {
+            showToast('Gagal memuat kategori', 'danger');
+        });
+
+        if ($scope.isSuperadmin) {
+            loadErpTargets();
+        }
+    }
+
+    function loadExtendedSetting() {
+        $http.get(api.url + 'settings/extended-categories').then(function (r) {
+            var data = r.data.result || {};
+            // API returns { cat_ids: [...], categories: [...] }
+            var ids = Array.isArray(data) ? data : (data.cat_ids || []);
+            _extOriginal = {};
+            $scope.extendedSelection = {};
+            ids.forEach(function (id) {
+                _extOriginal[String(id)] = true;
+                $scope.extendedSelection[String(id)] = true;
+            });
+            $scope.extendedDirty = false;
+        }).catch(function () {
+            showToast('Gagal load pengaturan', 'danger');
+        });
+    }
+
+    $scope.markExtendedDirty = function () { $scope.extendedDirty = true; };
+
+    $scope.resetExtended = function () {
+        $scope.extendedSelection = angular.copy(_extOriginal);
+        $scope.extendedDirty = false;
+    };
+
+    $scope.saveExtended = function () {
+        var ids = Object.keys($scope.extendedSelection)
+            .filter(function (k) { return $scope.extendedSelection[k]; });
+        $http.post(api.url + 'settings/extended-categories', { cat_ids: ids })
+            .then(function () {
+                showToast('Pengaturan disimpan', 'success');
+                _extOriginal = angular.copy($scope.extendedSelection);
+                $scope.extendedDirty = false;
+            })
+            .catch(function () { showToast('Gagal simpan', 'danger'); });
+    };
+
+    // ── Subcategory ────────────────────────────────────────────
+    $scope.loadSubcategories = function () {
+        if (!$scope.subcatFilter) { $scope.subcategories = []; return; }
+        subcategoryService.getByCategory($scope.subcatFilter).then(function (r) {
+            $scope.subcategories = r.result || [];
+        }).catch(function () {
+            showToast('Gagal memuat subkategori', 'danger');
+        });
+    };
+
+    $scope.showAddSubcat = function () { $scope.modalSubcat = { editing: false, name: '' }; };
+    $scope.renameSubcat = function (sub) { $scope.modalSubcat = { editing: true, id: sub.id, name: sub.name }; };
+
+    $scope.saveSubcat = function () {
+        var name = ($scope.modalSubcat.name || '').trim();
+        if (!name) return;
+        var p = $scope.modalSubcat.editing
+            ? subcategoryService.update($scope.modalSubcat.id, name)
+            : subcategoryService.create($scope.subcatFilter, name);
+        p.then(function () {
+            showToast('Subkategori disimpan', 'success');
+            $scope.modalSubcat = null;
+            $scope.loadSubcategories();
+        }).catch(function (err) {
+            var msg = (err.data && err.data.message) || 'Gagal simpan';
+            showToast(msg, 'danger');
+        });
+    };
+
+    $scope.deleteSubcat = function (sub) {
+        if (!confirm('Hapus "' + sub.name + '"?')) return;
+        subcategoryService.remove(sub.id).then(function () {
+            showToast('Dihapus', 'success');
+            $scope.loadSubcategories();
+        }).catch(function () { showToast('Gagal hapus', 'danger'); });
+    };
+
+    $scope.manageSubcatItems = function (sub) {
+        $scope.modalSubcatItems = { subcat: sub, items: [], checked: {}, search: '', loading: true };
+
+        // Load items from ERP for this category, then get assignments
+        $http.get(api.url + 'items', { params: { cat_id: $scope.subcatFilter } })
+            .then(function (r) {
+                var rawItems = r.data.result || [];
+                return subcategoryService.getAssignments($scope.subcatFilter).then(function (ra) {
+                    var assignments = ra.result || {};
+                    var subcatNameMap = {};
+                    $scope.subcategories.forEach(function (s) { subcatNameMap[s.id] = s.name; });
+
+                    var checked = {};
+                    var items = rawItems.map(function (it) {
+                        var assignedTo = assignments[it.ig_id] ? parseInt(assignments[it.ig_id]) : null;
+                        if (assignedTo === sub.id) checked[it.ig_id] = true;
+                        return {
+                            ig_id: it.ig_id,
+                            name: it.name || it.i_name || ('Item ' + it.ig_id),
+                            assignedTo: assignedTo,
+                            assignedToName: assignedTo ? (subcatNameMap[assignedTo] || '') : null,
+                        };
+                    });
+
+                    $scope.modalSubcatItems.items = items;
+                    $scope.modalSubcatItems.checked = checked;
+                    $scope.modalSubcatItems.loading = false;
                 });
+            }).catch(function () {
+                $scope.modalSubcatItems.loading = false;
+                showToast('Gagal memuat items', 'danger');
+            });
+    };
 
-            $scope.loading  = false;
-            $scope.isDirty  = false;
-        }).catch(function () {
-            showToast("Gagal memuat pengaturan", "danger");
-            $scope.loading = false;
-        });
+    $scope.saveSubcatItems = function () {
+        var igIds = Object.keys($scope.modalSubcatItems.checked)
+            .filter(function (k) { return $scope.modalSubcatItems.checked[k]; })
+            .map(Number);
+        subcategoryService.assignItems($scope.modalSubcatItems.subcat.id, igIds).then(function () {
+            showToast('Assignment disimpan', 'success');
+            $scope.modalSubcatItems = null;
+            $scope.loadSubcategories();
+        }).catch(function () { showToast('Gagal simpan', 'danger'); });
+    };
+
+    // ── ERP Target ─────────────────────────────────────────────
+    function loadErpTargets() {
+        erpTargetService.list().then(function (r) {
+            $scope.erpTargets = r.result || [];
+        }).catch(function () { showToast('Gagal memuat ERP targets', 'danger'); });
     }
 
-    load();
-
-    $scope.onCheck = function () {
-        var current = $scope.categories
-            .filter(function (c) { return c.checked; })
-            .map(function (c) { return c.id; })
-            .sort();
-
-        var orig = originalIds.slice().sort();
-        $scope.isDirty = JSON.stringify(current) !== JSON.stringify(orig);
+    $scope.showAddErp = function () {
+        $scope.modalErp = {
+            editing: false,
+            data: { name: '', host: '', port: 5432, db_name: '', db_user: '', db_password: '', note: '' },
+            testResult: null,
+        };
     };
 
-    $scope.reset = function () {
-        $scope.categories.forEach(function (c) {
-            c.checked = originalIds.indexOf(c.id) !== -1;
-        });
-        $scope.isDirty = false;
+    $scope.editErp = function (erp) {
+        $scope.modalErp = {
+            editing: true, id: erp.id,
+            data: { name: erp.name, host: erp.host, port: erp.port, db_name: erp.db_name, db_user: erp.db_user, db_password: '', note: erp.note || '' },
+            testResult: null,
+        };
     };
 
-    $scope.save = function () {
-        if ($scope.saving || !$scope.isDirty) return;
-        $scope.saving = true;
-
-        var selected = $scope.categories
-            .filter(function (c) { return c.checked; })
-            .map(function (c) { return c.id; });
-
-        $settingsService.save(selected).then(function () {
-            originalIds   = selected.slice();
-            $scope.isDirty = false;
-            $scope.saving  = false;
-            showToast("Pengaturan berhasil disimpan", "success");
-        }).catch(function () {
-            $scope.saving = false;
-            showToast("Gagal menyimpan pengaturan", "danger");
+    $scope.testErpModal = function () {
+        $scope.modalErp.testResult = null;
+        erpTargetService.testConnection($scope.modalErp.data).then(function (r) {
+            $scope.modalErp.testResult = r.result || r;
+        }).catch(function (err) {
+            $scope.modalErp.testResult = { success: false, error: (err.data && err.data.message) || 'Connection failed' };
         });
     };
+
+    $scope.saveErp = function () {
+        var d = $scope.modalErp.data;
+        if (!d.name || !d.host || !d.db_name || !d.db_user) {
+            showToast('Lengkapi field wajib (Nama, Host, Database, Username)', 'warning');
+            return;
+        }
+        var p = $scope.modalErp.editing
+            ? erpTargetService.update($scope.modalErp.id, d)
+            : erpTargetService.create(d);
+        p.then(function () {
+            showToast('ERP target disimpan', 'success');
+            $scope.modalErp = null;
+            loadErpTargets();
+        }).catch(function (err) {
+            var msg = (err.data && err.data.message) || 'Gagal simpan';
+            showToast(msg, 'danger');
+        });
+    };
+
+    $scope.activateErp = function (erp) {
+        if (!confirm('Aktifkan "' + erp.name + '"?\nERP target lain akan dinonaktifkan.')) return;
+        erpTargetService.activate(erp.id).then(function () {
+            showToast('Diaktifkan', 'success');
+            loadErpTargets();
+        }).catch(function () { showToast('Gagal aktifkan', 'danger'); });
+    };
+
+    $scope.testErp = function (erp) {
+        showToast('Testing...', 'info');
+        erpTargetService.testConnection({ host: erp.host, port: erp.port, db_name: erp.db_name, db_user: erp.db_user, db_password: '' }).then(function (r) {
+            var res = r.result || r;
+            if (res.success) {
+                showToast('Connect berhasil — ' + res.version, 'success', 5000);
+            } else {
+                showToast('Gagal: ' + res.error, 'danger', 5000);
+            }
+        }).catch(function () { showToast('Test gagal', 'danger'); });
+    };
+
+    $scope.deleteErp = function (erp) {
+        if (erp.is_active) { showToast('Tidak bisa hapus target yang aktif', 'warning'); return; }
+        if (!confirm('Hapus "' + erp.name + '"?')) return;
+        erpTargetService.remove(erp.id).then(function () {
+            showToast('Dihapus', 'success');
+            loadErpTargets();
+        }).catch(function () { showToast('Gagal hapus', 'danger'); });
+    };
+
+    init();
 });

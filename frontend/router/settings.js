@@ -1,10 +1,15 @@
 module.exports = function (req, res) {
     res.render("settings", {
         page: {
-            title: "Settings — Price List Manager",
+            title: "Settings — PLhamasa",
             data: {
-                services:   ["/js/services/settings.js"],
                 controller: "/js/controller/settings/settingsController.js",
+                services: [
+                    "/js/services/auth.js",
+                    "/js/services/master.js",
+                    "/js/services/subcategory.js",
+                    "/js/services/erpTarget.js",
+                ]
             }
         }
     });

@@ -1386,3 +1386,238 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .filter-group-grow { flex: 2; min-width: 200px; }
 
 .detail-meta { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; }
+
+/* ─── Settings Page v2 ───────────────────────────────────────── */
+.settings-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  max-width: 860px;
+  box-shadow: var(--shadow);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--navy);
+  color: #fff;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.section-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+}
+
+.section-header i { font-size: 16px; opacity: .8; }
+
+.section-body {
+  padding: 20px 24px;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.section-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+.role-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  background: rgba(255,255,255,.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: auto;
+}
+
+/* Checkbox grid for extended categories */
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 6px 16px;
+  margin-bottom: 4px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  transition: background .1s;
+}
+.checkbox-item:hover { background: var(--bg); border-color: var(--border); }
+.checkbox-item input[type="checkbox"] {
+  width: 14px; height: 14px;
+  cursor: pointer;
+  accent-color: var(--navy);
+  flex-shrink: 0;
+}
+.checkbox-item span { font-size: 13px; color: var(--text); }
+
+.empty-mini { font-size: 13px; color: var(--text-muted); padding: 8px 0; }
+
+/* Subcategory section */
+.subcat-controls {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 320px;
+}
+.subcat-controls label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; }
+
+.subcat-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px 0;
+  font-style: italic;
+}
+
+.subcat-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  background: var(--bg);
+}
+
+.subcat-info { display: flex; align-items: center; gap: 12px; }
+.subcat-info strong { font-size: 14px; color: var(--text); }
+.item-count { font-size: 12px; color: var(--text-muted); background: var(--border); padding: 1px 7px; border-radius: 10px; }
+
+.subcat-actions { display: flex; gap: 6px; }
+
+.subcat-add { margin-top: 10px; }
+
+/* ERP Target section */
+.erp-target-list { margin-bottom: 12px; }
+
+.erp-empty { font-size: 13px; color: var(--text-muted); font-style: italic; padding: 8px 0; }
+
+.erp-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  background: var(--bg);
+  transition: border-color .15s;
+}
+.erp-card.erp-active { border-color: var(--success); background: #F0FBF4; }
+
+.erp-info { flex: 1; }
+.erp-name { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.erp-name strong { font-size: 14px; color: var(--text); }
+.active-badge { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; background: var(--success); color: #fff; padding: 2px 7px; border-radius: 3px; }
+.erp-host { font-size: 12px; font-family: var(--mono); color: var(--text-muted); }
+.erp-note { font-size: 12px; color: var(--text-muted); margin-top: 3px; font-style: italic; }
+
+.erp-actions { display: flex; gap: 6px; flex-shrink: 0; margin-left: 12px; }
+
+.erp-add { margin-top: 4px; }
+
+/* Form layout for ERP modal */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.form-group textarea.form-control { resize: vertical; }
+
+/* Test connection result */
+.test-result { margin-top: 10px; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; }
+.test-success { color: var(--success); display: flex; align-items: center; gap: 8px; }
+.test-fail { color: var(--danger); display: flex; align-items: center; gap: 8px; }
+
+/* Items checklist modal */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  margin-bottom: 12px;
+}
+.search-box i { color: var(--text-muted); flex-shrink: 0; }
+.search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+}
+
+.items-checklist {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.item-disabled { opacity: .5; }
+.assigned-info { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
+
+/* Small button variant */
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-secondary {
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background .15s;
+}
+.btn-secondary:hover { background: var(--navy-light); }
+.btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
