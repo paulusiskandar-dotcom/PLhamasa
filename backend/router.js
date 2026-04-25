@@ -1,4 +1,5 @@
-const auth = require("./middleware/auth");
+const auth             = require("./middleware/auth");
+const requireSuperadmin = require("./middleware/requireSuperadmin");
 
 module.exports = function (app) {
 
@@ -33,5 +34,37 @@ module.exports = function (app) {
     // ─── Settings ──────────────────────────────────────────────────────────────
     app.get("/settings/extended-categories",  auth.verifyToken, require("./controllers/settings")._getExtendedCategories);
     app.post("/settings/extended-categories", auth.verifyToken, require("./controllers/settings")._setExtendedCategories);
+
+    // ── PRICE LIST V2 ──────────────────────────────────────────────────────────
+    app.get("/price-list",                        auth.verifyToken, require("./controllers/priceList")._list);
+    app.post("/price-list/start",                 auth.verifyToken, require("./controllers/priceList")._start);
+    app.get("/price-list/:id",                    auth.verifyToken, require("./controllers/priceList")._getById);
+    app.post("/price-list/:id/lock",              auth.verifyToken, require("./controllers/priceList")._lock);
+    app.post("/price-list/:id/heartbeat",         auth.verifyToken, require("./controllers/priceList")._heartbeat);
+    app.post("/price-list/:id/release-lock",      auth.verifyToken, require("./controllers/priceList")._releaseLock);
+    app.post("/price-list/:id/take-over",         auth.verifyToken, require("./controllers/priceList")._takeover);
+    app.put("/price-list/:id/item",               auth.verifyToken, require("./controllers/priceList")._updateItem);
+    app.put("/price-list/:id/items/bulk",         auth.verifyToken, require("./controllers/priceList")._bulkUpdate);
+    app.get("/price-list/:id/log",                auth.verifyToken, require("./controllers/priceList")._getLog);
+    app.post("/price-list/:id/post-to-erp",       auth.verifyToken, require("./controllers/priceList")._postToErp);
+
+    // ── SUBCATEGORY ────────────────────────────────────────────────────────────
+    app.get("/subcategory",                                   auth.verifyToken, require("./controllers/subcategory")._list);
+    app.get("/subcategory/category/:cat_id/assignments",      auth.verifyToken, require("./controllers/subcategory")._assignments);
+    app.get("/subcategory/:id",                               auth.verifyToken, require("./controllers/subcategory")._getById);
+    app.post("/subcategory",                                  auth.verifyToken, require("./controllers/subcategory")._create);
+    app.put("/subcategory/:id",                               auth.verifyToken, require("./controllers/subcategory")._update);
+    app.delete("/subcategory/:id",                            auth.verifyToken, require("./controllers/subcategory")._delete);
+    app.post("/subcategory/:id/items",                        auth.verifyToken, require("./controllers/subcategory")._assignItems);
+    app.delete("/subcategory/:id/items/:ig_id",               auth.verifyToken, require("./controllers/subcategory")._removeItem);
+
+    // ── ERP TARGET ─────────────────────────────────────────────────────────────
+    app.get("/erp-target",                  auth.verifyToken, require("./controllers/erpTarget")._list);
+    app.get("/erp-target/active",           auth.verifyToken, require("./controllers/erpTarget")._getActive);
+    app.post("/erp-target/test",            auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._testConnection);
+    app.post("/erp-target",                 auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._create);
+    app.put("/erp-target/:id",              auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._update);
+    app.delete("/erp-target/:id",           auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._delete);
+    app.post("/erp-target/:id/activate",    auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._activate);
 
 };
