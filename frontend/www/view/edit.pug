@@ -1,0 +1,289 @@
+extends master
+
+block content
+  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="editController")
+
+    //- Sidebar
+    nav.sidebar
+      div.sidebar-brand
+        span.brand-icon ⬡
+        span Price List Manager
+      ul.sidebar-nav
+        li
+          a(href="/price-list")
+            i.bi.bi-table
+            span  Price List
+        li
+          a(href="/settings")
+            i.bi.bi-gear
+            span  Settings
+        li
+          a(href="/logout")
+            i.bi.bi-box-arrow-left
+            span  Logout
+
+    //- Inject priceListId from server
+    script.
+      var plmPageData = { priceListId: !{JSON.stringify(page.data.priceListId || null)} };
+
+    main.main-content
+
+      button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
+        i.bi.bi-list
+
+      //- Header
+      div.page-header
+        div.page-header-left
+          div(ng-if="pl")
+            h2.page-title
+              | {{ pl.cat_name }}
+              span.page-revision  \#{{ pl.revision_no | padNumber:3 }}
+            p.page-sub Edit harga price list
+          div(ng-if="!pl && !loading")
+            h2.page-title Price List
+        div.page-actions
+          button.btn-ghost(ng-click="backToList()")
+            i.bi.bi-arrow-left
+            |  Kembali
+          button.btn-ghost(ng-if="lockState === 'mine'" ng-click="releaseAndExit()")
+            i.bi.bi-x-circle
+            |  Selesai Edit
+
+      //- Lock Banners
+      div.lock-banner(ng-if="lockState === 'mine'")
+        i.bi.bi-pencil-fill
+        span  Sedang Anda edit. Lock aktif.
+
+      div.lock-banner.lock-banner-other(ng-if="lockState === 'other_active'")
+        i.bi.bi-lock-fill
+        span  Sedang diedit oleh #[strong {{ lockInfo.locked_by_name }}]. Anda hanya bisa view.
+
+      div.lock-banner.lock-banner-stale(ng-if="lockState === 'other_idle'")
+        i.bi.bi-clock-history
+        span  Idle ({{ lockInfo.locked_by_name }}, {{ lockInfo.locked_minutes_ago }} menit lalu).
+        button.btn-warning.btn-sm(ng-click="takeOverLock()") Take Over
+
+      div.lock-banner.lock-banner-readonly(ng-if="pl && pl.status === 'PUBLISHED'")
+        i.bi.bi-check-circle-fill
+        span  Price List ini sudah di-Post ke ERP (PUBLISHED). Read-only.
+
+      //- Loading
+      div.loading-state(ng-if="loading")
+        i.bi.bi-arrow-clockwise.spinning
+        span  Memuat data...
+
+      //- Filter Bar
+      div.filter-bar(ng-if="pl && !loading")
+        div.filter-group
+          label Subkategori
+          select.form-control(ng-model="filter.subcatId" ng-options="s.id as s.name for s in subcategories")
+            option(value="") Semua
+        div.filter-group
+          label Merek
+          select.form-control(ng-model="filter.brand" ng-options="b for b in availableBrands")
+            option(value="") Semua
+        div.filter-group
+          label Grade
+          select.form-control(ng-model="filter.grade" ng-options="g for g in availableGrades")
+            option(value="") Semua
+        div.filter-group
+          label Golongan
+          select.form-control(ng-model="filter.group" ng-options="g for g in availableGroups")
+            option(value="") Semua
+        div.filter-group.filter-group-grow
+          label Nama Barang
+          input.form-control(type="text" ng-model="filter.name" placeholder="Cari nama barang...")
+
+      //- Modifier Bar
+      div.modifier-bar(ng-if="pl && pl.status === 'OPEN' && lockState === 'mine' && !loading")
+        div.modifier-title
+          i.bi.bi-magic
+          |  Pengubah Harga
+        div.modifier-row
+          div.modifier-targets
+            span.mod-target-label Target:
+            label.mod-checkbox(ng-repeat="pt in priceTypes")
+              input(type="checkbox" ng-model="modifier.targets[pt.code]")
+              span  {{ pt.label }}
+              span.text-muted(ng-if="hasGudangPabrik")  ({{ pt.group }})
+            button.btn-ghost.btn-sm(ng-click="selectAllTargets()") Semua
+            button.btn-ghost.btn-sm(ng-if="hasGudangPabrik" ng-click="selectGudang()") Gudang
+            button.btn-ghost.btn-sm(ng-if="hasGudangPabrik" ng-click="selectPabrik()") Pabrik
+          div.modifier-input-row
+            select.form-control.mod-type(ng-model="modifier.type" ng-options="m.id as m.label for m in modifierTypes")
+            input.form-control.mod-value(
+              type="text"
+              ng-model="modifier.value"
+              inputmode="numeric"
+              placeholder="{{ modifier.type === 'plus_percent' || modifier.type === 'minus_percent' ? '%' : 'Nilai' }}"
+            )
+            button.btn-primary(ng-click="applyModifier()" ng-disabled="!hasSelectedItems() || !modifier.value")
+              i.bi.bi-lightning-fill
+              |  Generate
+
+      //- Table area
+      div.table-wrapper(ng-if="pl && !loading")
+        div.table-info(ng-if="filteredItems.length > 0")
+          | {{ filteredItems.length }} barang
+          span.save-status(ng-if="saveStatus === 'saving'")  · menyimpan...
+          span.save-status.save-ok(ng-if="saveStatus === 'saved'")  · ✓ tersimpan
+          span.save-status.save-error(ng-if="saveStatus === 'error'")  · ⚠ gagal simpan
+
+        div.empty-state(ng-if="filteredItems.length === 0")
+          i.bi.bi-search
+          p Tidak ada barang sesuai filter
+
+        div.table-scroll(ng-if="filteredItems.length > 0")
+          table.data-table
+
+            //- Standard header (2 price types)
+            thead(ng-if="!hasGudangPabrik")
+              tr
+                th.th-check(rowspan="2")
+                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
+                th(rowspan="2" ng-click="sortBy('name')" style="cursor:pointer")
+                  | Nama Barang
+                  i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.text-right(rowspan="2" ng-click="sortBy('weight')" style="cursor:pointer")
+                  | Berat
+                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
+                th.group-header(colspan="3") CASH
+                th.group-header(colspan="3") KREDIT
+              tr
+                th.text-right /KG
+                th /KG BARU
+                th.text-right /LBR
+                th.text-right /KG
+                th /KG BARU
+                th.text-right /LBR
+
+            //- Extended header (4 price types)
+            thead(ng-if="hasGudangPabrik")
+              tr
+                th.th-check(rowspan="3")
+                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
+                th(rowspan="3" ng-click="sortBy('name')" style="cursor:pointer")
+                  | Nama Barang
+                  i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.text-right(rowspan="3" ng-click="sortBy('weight')" style="cursor:pointer")
+                  | Berat
+                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
+                th.group-header(colspan="6") GUDANG
+                th.group-header(colspan="6") PABRIK
+              tr
+                th.subgroup-header(colspan="3") Cash
+                th.subgroup-header(colspan="3") Kredit
+                th.subgroup-header(colspan="3") Cash
+                th.subgroup-header(colspan="3") Kredit
+              tr
+                th.text-right /KG
+                th /KG BARU
+                th.text-right /LBR
+                th.text-right /KG
+                th /KG BARU
+                th.text-right /LBR
+                th.text-right /KG
+                th /KG BARU
+                th.text-right /LBR
+                th.text-right /KG
+                th /KG BARU
+                th.text-right /LBR
+
+            tbody
+              tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked}")
+                td.th-check
+                  input(type="checkbox" ng-model="item._checked" ng-change="onItemCheckedChange()")
+                td {{ item.name }}
+                td.text-right.mono {{ item.weight }}
+                td.text-right.mono(ng-repeat-start="pt in priceTypes track by pt.code")
+                  | {{ item.prices[pt.code].current | number }}
+                td
+                  input.price-input(
+                    type="text"
+                    inputmode="numeric"
+                    ng-model="item.new_display[pt.code]"
+                    ng-change="onCellChange(item, pt)"
+                    ng-disabled="lockState !== 'mine' || pl.status !== 'OPEN'"
+                    placeholder="—"
+                  )
+                  span.cell-saved-indicator(ng-if="item._saved && item._saved[pt.code]") ✓
+                td.text-right.mono.text-bold(ng-repeat-end)
+                  | {{ item.new_unit[pt.code] | number }}
+
+      //- Bottom toolbar
+      div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")
+        button.btn-success.btn-large(ng-click="confirmPostToErp()" ng-disabled="lockState !== 'mine'")
+          i.bi.bi-cloud-upload
+          |  Post to ERP
+        button.btn-secondary(ng-click="exportPdf()")
+          i.bi.bi-file-pdf
+          |  Export PDF
+        button.btn-secondary(ng-click="exportExcel()")
+          i.bi.bi-file-earmark-excel
+          |  Export Excel
+        button.btn-ghost(ng-click="showLog()")
+          i.bi.bi-clock-history
+          |  Lihat Log
+
+      //- Modal Post to ERP
+      div.modal-overlay(ng-if="modalPost" ng-click="modalPost = null")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Konfirmasi Post to ERP
+          div.modal-body
+            p
+              | Yakin post #[strong {{ pl.cat_name }} \#{{ pl.revision_no | padNumber:3 }}] ke #[strong {{ erpActive && erpActive.name }}]?
+            p.warning(ng-if="erpActive")  ⚠ Setelah ini jadi PUBLISHED dan tidak bisa diedit lagi. Sistem otomatis buat OPEN baru.
+            p(ng-if="!erpActive") Belum ada ERP target aktif.
+          div.modal-actions
+            button.btn-ghost(ng-click="modalPost = null") Batal
+            button.btn-success(ng-click="executePostToErp()" ng-disabled="posting || !erpActive")
+              span(ng-if="!posting") Yakin, Post Sekarang
+              span(ng-if="posting") Posting...
+
+      //- Modal Lock Lost
+      div.modal-overlay(ng-if="modalLockLost")
+        div.modal-card
+          div.modal-header
+            h3 Lock Hilang
+          div.modal-body
+            p Lock kamu sudah diambil alih oleh user lain. Perubahan terakhir mungkin tidak tersimpan.
+          div.modal-actions
+            button.btn-primary(ng-click="goBackToList()") OK, Kembali ke List
+
+      //- Modal Log
+      div.modal-overlay(ng-if="modalLog" ng-click="modalLog = null")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Log Perubahan
+            button.modal-close(ng-click="modalLog = null") ×
+          div.modal-body
+            div.loading-state(ng-if="modalLog.loading")
+              i.bi.bi-arrow-clockwise.spinning
+              span  Memuat...
+            div.empty-state(ng-if="!modalLog.loading && modalLog.entries.length === 0")
+              i.bi.bi-inbox
+              p Belum ada perubahan dicatat
+            table.log-table(ng-if="!modalLog.loading && modalLog.entries.length > 0")
+              thead
+                tr
+                  th Waktu
+                  th User
+                  th ig_id
+                  th pr_id
+                  th Lama
+                  th Baru
+              tbody
+                tr(ng-repeat="entry in modalLog.entries")
+                  td.mono {{ entry.logged_at | dateTimeFormat }}
+                  td {{ entry.user_name }}
+                  td.mono {{ entry.ig_id }}
+                  td.mono {{ entry.pr_id }}
+                  td.mono.text-right {{ entry.old_price | number:0 }}
+                  td.mono.text-right {{ entry.new_price | number:0 }}
+          div.modal-actions
+            button.btn-primary(ng-click="modalLog = null") Tutup
+
+      //- Toast
+      div.toast-container(ng-if="toast.show")
+        div.toast-msg(ng-class="'toast-' + toast.type") {{ toast.message }}
