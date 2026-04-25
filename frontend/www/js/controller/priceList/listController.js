@@ -107,7 +107,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     };
 
     $scope.continueEdit = function (pl) {
-        showToast('Edit page akan tersedia di Phase 4', 'info');
+        window.location.href = '/edit/' + pl.id;
     };
 
     $scope.showDetail = function (pl) {
