@@ -1446,9 +1446,10 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .mod-checkbox:hover { background: rgba(255,255,255,.15); border-color: var(--gold); }
 .mod-checkbox input { margin: 0; cursor: pointer; }
 .mod-checkbox span { color: rgba(255,255,255,.9); }
-.mod-checkbox span.text-muted { color: var(--gold-light); font-size: 11px; }
+.modifier-bar .text-muted,
+.mod-checkbox .text-muted { color: rgba(255,255,255,.6) !important; font-size: 11px; }
 .mod-checkbox input:checked ~ span { color: #fff; font-weight: 600; }
-.mod-checkbox input:checked ~ span.text-muted { color: var(--gold); }
+.mod-checkbox input:checked ~ .text-muted { color: rgba(201,169,97,.8) !important; }
 .modifier-input-row { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .mod-type { width: 110px; }
 .mod-value { width: 110px; text-align: right; }
