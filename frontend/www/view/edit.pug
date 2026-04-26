@@ -42,12 +42,6 @@ block content
           div(ng-if="!pl && !loading")
             h2.page-title Price List
         div.page-actions
-          button.btn-ghost(ng-click="backToList()")
-            i.bi.bi-arrow-left
-            |  Kembali
-          button.btn-ghost(ng-if="lockState === 'mine'" ng-click="releaseAndExit()")
-            i.bi.bi-x-circle
-            |  Selesai Edit
 
       //- Lock Banners
       div.lock-banner(ng-if="lockState === 'mine'")
@@ -225,7 +219,7 @@ block content
                 )
                   | {{ item.new_unit[pt.code] | number }}
 
-      //- Bottom toolbar
+      //- Bottom toolbar — OPEN
       div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")
         button.btn-toolbar.btn-toolbar-primary(ng-click="confirmPostToErp()" ng-disabled="lockState !== 'mine'")
           i.bi.bi-cloud-upload
@@ -240,6 +234,29 @@ block content
         button.btn-toolbar(ng-click="showLog()")
           i.bi.bi-clock-history
           |  Lihat Log
+        div.toolbar-spacer
+        button.btn-toolbar(ng-click="backToList()")
+          i.bi.bi-arrow-left
+          |  Kembali
+        button.btn-toolbar.btn-toolbar-primary(ng-show="lockState === 'mine'" ng-click="releaseAndExit()")
+          i.bi.bi-x-circle
+          |  Selesai Edit
+
+      //- Bottom toolbar — PUBLISHED
+      div.bottom-toolbar(ng-if="pl && pl.status === 'PUBLISHED' && !loading")
+        button.btn-toolbar(ng-click="exportPdf()")
+          i.bi.bi-file-pdf
+          |  Export PDF
+        button.btn-toolbar(ng-click="exportExcel()")
+          i.bi.bi-file-earmark-excel
+          |  Export Excel
+        button.btn-toolbar(ng-click="showLog()")
+          i.bi.bi-clock-history
+          |  Lihat Log
+        div.toolbar-spacer
+        button.btn-toolbar(ng-click="backToList()")
+          i.bi.bi-arrow-left
+          |  Kembali
 
       //- Modal Post to ERP
       div.modal-overlay(ng-if="modalPost" ng-click="modalPost = null")
