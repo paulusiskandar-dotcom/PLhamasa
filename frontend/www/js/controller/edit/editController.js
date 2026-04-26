@@ -426,6 +426,7 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     };
 
     $scope.showLog = function () {
+        if (!plId) return;
         $scope.modalLog = { entries: [], loading: true };
         priceListService.getLog(plId, 100, 0).then(function (r) {
             $scope.modalLog.entries = r.result || [];
@@ -435,6 +436,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             showToast('Gagal memuat log', 'danger');
         });
     };
+
+    $scope.closeLog = function () { $scope.modalLog = null; };
 
     // Init
     loadData();

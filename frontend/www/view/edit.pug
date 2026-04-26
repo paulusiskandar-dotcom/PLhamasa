@@ -285,11 +285,11 @@ block content
             button.btn-primary(ng-click="goBackToList()") OK, Kembali ke List
 
       //- Modal Log
-      div.modal-overlay(ng-if="modalLog" ng-click="modalLog = null")
+      div.modal-overlay(ng-if="modalLog" ng-click="closeLog()")
         div.modal-card.modal-large(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Log Perubahan
-            button.modal-close(ng-click="modalLog = null") ×
+            button.modal-close(ng-click="closeLog()") ×
           div.modal-body
             div.loading-state(ng-if="modalLog.loading")
               i.bi.bi-arrow-clockwise.spinning
@@ -316,7 +316,7 @@ block content
                   td.mono.text-right {{ entry.old_price | number:0 }}
                   td.mono.text-right {{ entry.new_price | number:0 }}
           div.modal-actions
-            button.btn-primary(ng-click="modalLog = null") Tutup
+            button.btn-primary(ng-click="closeLog()") Tutup
 
       //- Toast
       div.toast-container(ng-if="toast.show")

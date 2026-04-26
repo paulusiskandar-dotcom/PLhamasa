@@ -146,10 +146,10 @@ module.exports.generateErpExcel = async function (priceListId) {
         row.getCell(7).value  = item.i_group || '';
         row.getCell(8).value  = item.unit_code || 'Btg';
         row.getCell(9).value  = weight;
-        row.getCell(10).value = prices[3] ? roundSpecial(prices[3] * weight) : 0;
-        row.getCell(11).value = prices[2] ? roundSpecial(prices[2] * weight) : 0;
-        row.getCell(12).value = prices[5] ? roundSpecial(prices[5] * weight) : 0;
-        row.getCell(13).value = prices[4] ? roundSpecial(prices[4] * weight) : 0;
+        row.getCell(10).value = prices[1] ? roundSpecial(prices[1] * weight) : 0; // CASH PABRIK  (pr_id=1)
+        row.getCell(11).value = prices[2] ? roundSpecial(prices[2] * weight) : 0; // CASH GUDANG  (pr_id=2)
+        row.getCell(12).value = prices[3] ? roundSpecial(prices[3] * weight) : 0; // KREDIT PABRIK (pr_id=3)
+        row.getCell(13).value = prices[4] ? roundSpecial(prices[4] * weight) : 0; // KREDIT GUDANG (pr_id=4)
 
         for (let c = 9; c <= 13; c++) {
             row.getCell(c).alignment = { horizontal: 'center' };

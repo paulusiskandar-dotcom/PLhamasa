@@ -1618,10 +1618,10 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   background: #E8ECF0;
   color: var(--navy);
 }
-.badge-2 { background: #E3F2FD; color: #1565C0; }
-.badge-3 { background: #FFF3E0; color: #E65100; }
-.badge-4 { background: #F3E5F5; color: #6A1B9A; }
-.badge-5 { background: #FCE4EC; color: #AD1457; }
+.badge-1 { background: #FFF3E0; color: #E65100; }   /* Cash Pabrik — orange */
+.badge-2 { background: #E3F2FD; color: #1565C0; }   /* Cash Gudang — blue */
+.badge-3 { background: #FCE4EC; color: #AD1457; }   /* Kredit Pabrik — pink */
+.badge-4 { background: #F3E5F5; color: #6A1B9A; }   /* Kredit Gudang — purple */
 .col-time { white-space: nowrap; color: #5A6C7E; font-size: 12px; }
 .col-item { font-weight: 500; color: var(--navy); }
 

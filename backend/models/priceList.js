@@ -267,8 +267,6 @@ module.exports.bulkUpdateItemPrices = async function (plId, items, userId) {
 
 // ── Log ───────────────────────────────────────────────────────────────────────
 
-const PR_LABELS = { 2: 'Cash Gudang', 3: 'Cash Pabrik', 4: 'Kredit Gudang', 5: 'Kredit Pabrik' };
-
 module.exports.getLog = async function (plId, limit = 100, offset = 0) {
     const logs = await dbPLM().any(`
         SELECT pll.id, pll.logged_at, pll.ig_id, pll.pr_id,
@@ -284,17 +282,34 @@ module.exports.getLog = async function (plId, limit = 100, offset = 0) {
     if (!logs.length) return logs;
 
     const igIds = [...new Set(logs.map(l => l.ig_id))];
-    const erpItems = await dbERP().any(
-        'SELECT ig_id, i_name FROM item WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL',
-        [igIds]
-    );
+    const prIds = [...new Set(logs.map(l => l.pr_id))];
+
+    const [erpItems, erpPrices] = await Promise.all([
+        dbERP().any(
+            'SELECT ig_id, i_name FROM item WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL',
+            [igIds]
+        ),
+        dbERP().any(
+            'SELECT pr_id, pr_code, pr_name FROM price WHERE pr_id = ANY($1::int[])',
+            [prIds]
+        ),
+    ]);
+
     const itemMap = {};
     erpItems.forEach(r => { itemMap[r.ig_id] = r.i_name; });
+
+    const prMap = {};
+    erpPrices.forEach(p => {
+        const label = (p.pr_name && p.pr_name.trim())
+            ? p.pr_name.trim()
+            : (p.pr_code || '').split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+        prMap[p.pr_id] = label;
+    });
 
     return logs.map(l => ({
         ...l,
         i_name:   itemMap[l.ig_id] || ('IG#' + l.ig_id),
-        pr_label: PR_LABELS[l.pr_id] || ('PR#' + l.pr_id),
+        pr_label: prMap[l.pr_id]   || ('PR#' + l.pr_id),
     }));
 };
 
