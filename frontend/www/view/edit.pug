@@ -134,7 +134,7 @@ block content
           p Tidak ada barang sesuai filter
 
         div.table-scroll(ng-if="filteredItems.length > 0")
-          table.data-table
+          table.data-table(ng-class="{'has-gudang-pabrik': hasGudangPabrik}")
 
             //- Standard header (2 price types)
             thead(ng-if="!hasGudangPabrik")
@@ -168,26 +168,26 @@ block content
                 th.text-right(rowspan="3" ng-click="sortBy('weight')" style="cursor:pointer")
                   | Berat
                   i.sort-icon.bi(ng-class="getSortIcon('weight')")
-                th.group-header(colspan="6") GUDANG
-                th.group-header(colspan="6") PABRIK
+                th.group-header.group-gudang(colspan="6") GUDANG
+                th.group-header.group-pabrik(colspan="6") PABRIK
               tr
-                th.subgroup-header(colspan="3") Cash
-                th.subgroup-header(colspan="3") Kredit
-                th.subgroup-header(colspan="3") Cash
-                th.subgroup-header(colspan="3") Kredit
+                th.subgroup-header.group-gudang(colspan="3") Cash
+                th.subgroup-header.group-gudang(colspan="3") Kredit
+                th.subgroup-header.group-pabrik(colspan="3") Cash
+                th.subgroup-header.group-pabrik(colspan="3") Kredit
               tr
-                th.text-right /KG
-                th /KG BARU
-                th.col-lbr-header /LBR
-                th.text-right /KG
-                th /KG BARU
-                th.col-lbr-header /LBR
-                th.text-right /KG
-                th /KG BARU
-                th.col-lbr-header /LBR
-                th.text-right /KG
-                th /KG BARU
-                th.col-lbr-header /LBR
+                th.text-right.group-gudang /KG
+                th.group-gudang /KG BARU
+                th.col-lbr-header.group-gudang /LBR
+                th.text-right.group-gudang /KG
+                th.group-gudang /KG BARU
+                th.col-lbr-header.group-gudang /LBR
+                th.text-right.group-pabrik.group-divider-left /KG
+                th.group-pabrik /KG BARU
+                th.col-lbr-header.group-pabrik /LBR
+                th.text-right.group-pabrik /KG
+                th.group-pabrik /KG BARU
+                th.col-lbr-header.group-pabrik /LBR
 
             tbody
               tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked}")
@@ -195,9 +195,12 @@ block content
                   input(type="checkbox" ng-model="item._checked" ng-change="onItemCheckedChange()")
                 td {{ item.name }}
                 td.text-right.mono {{ item.weight }}
-                td.text-right.mono(ng-repeat-start="pt in priceTypes track by pt.code")
+                td.text-right.mono(
+                  ng-repeat-start="pt in priceTypes track by pt.code"
+                  ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik', 'group-divider-left': hasGudangPabrik && $index === 2}"
+                )
                   | {{ item.prices[pt.code].current | number }}
-                td
+                td(ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}")
                   input.price-input(
                     type="text"
                     inputmode="numeric"
@@ -207,7 +210,10 @@ block content
                     placeholder="—"
                   )
                   span.cell-saved-indicator(ng-if="item._saved && item._saved[pt.code]") ✓
-                td.col-lbr.text-right.text-bold(ng-repeat-end)
+                td.col-lbr.text-right.text-bold(
+                  ng-repeat-end
+                  ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}"
+                )
                   | {{ item.new_unit[pt.code] | number }}
 
       //- Bottom toolbar

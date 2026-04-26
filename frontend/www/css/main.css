@@ -19,10 +19,17 @@
   --success:     #1E7A3C;
   --warning:     #C07A10;
   --info:        #1A5F8A;
-  --orange:      #F57C00;
-  --orange-light:#FF9800;
-  --orange-dark: #E65100;
-  --navy-deep:   #14253D;
+  --orange:          #F57C00;
+  --orange-light:    #FF9800;
+  --orange-dark:     #E65100;
+  --navy-deep:       #14253D;
+  --gudang-bg:       #F5F8FB;
+  --gudang-bg-stripe:#EFF4F9;
+  --gudang-bg-hover: #EBF1F7;
+  --pabrik-bg:       #FAF8F5;
+  --pabrik-bg-stripe:#F7F3EE;
+  --pabrik-bg-hover: #F4F0EB;
+  --group-divider:   #1E3A5F;
   --mono:        'IBM Plex Mono', monospace;
   --sans:        'IBM Plex Sans', sans-serif;
   --radius:      4px;
@@ -1494,6 +1501,45 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   text-align: center !important; font-size: 11px !important; font-weight: 600;
 }
 .text-bold { font-weight: 700; }
+
+/* ── GROUP COLOR CODING (Extended 4-type categories) ───────────────── */
+
+/* Pabrik top-header — darker warm tone + gold left border */
+.data-table thead th.group-header.group-pabrik {
+  background: #2C2A2E !important;
+  border-left: 3px solid var(--gold) !important;
+}
+/* Subgroup rows */
+.data-table thead th.subgroup-header.group-gudang { background: #2A4F82 !important; }
+.data-table thead th.subgroup-header.group-pabrik { background: #4A4448 !important; }
+/* 3rd header row — Pabrik /KG /KG BARU columns */
+.data-table thead th.group-pabrik:not(.group-header):not(.subgroup-header) {
+  background: #2C2A2E !important;
+}
+
+/* Body bg — scoped to .has-gudang-pabrik so Standard tables stay white */
+.data-table.has-gudang-pabrik tbody td.group-gudang { background: var(--gudang-bg) !important; }
+.data-table.has-gudang-pabrik tbody td.group-pabrik { background: var(--pabrik-bg) !important; }
+.data-table.has-gudang-pabrik tbody tr:nth-child(even) td.group-gudang { background: var(--gudang-bg-stripe) !important; }
+.data-table.has-gudang-pabrik tbody tr:nth-child(even) td.group-pabrik { background: var(--pabrik-bg-stripe) !important; }
+.data-table.has-gudang-pabrik tbody tr:hover td.group-gudang { background: var(--gudang-bg-hover) !important; }
+.data-table.has-gudang-pabrik tbody tr:hover td.group-pabrik { background: var(--pabrik-bg-hover) !important; }
+.data-table.has-gudang-pabrik tbody tr.row-selected td.group-gudang,
+.data-table.has-gudang-pabrik tbody tr.row-selected td.group-pabrik { background: #FFF3D6 !important; }
+
+/* Divider border between Gudang and Pabrik groups */
+.data-table thead th.group-divider-left,
+.data-table.has-gudang-pabrik tbody td.group-divider-left {
+  border-left: 2px solid var(--group-divider) !important;
+}
+
+/* /LBR col within groups — override base soft-blue */
+.data-table.has-gudang-pabrik tbody td.col-lbr.group-gudang { background: #E5EDF4 !important; }
+.data-table.has-gudang-pabrik tbody td.col-lbr.group-pabrik { background: #F2EDE3 !important; }
+.data-table.has-gudang-pabrik tbody tr:nth-child(even) td.col-lbr.group-gudang { background: #DCE6EF !important; }
+.data-table.has-gudang-pabrik tbody tr:nth-child(even) td.col-lbr.group-pabrik { background: #EDE6D8 !important; }
+.data-table.has-gudang-pabrik tbody tr:hover td.col-lbr.group-gudang { background: #D2DEE9 !important; }
+.data-table.has-gudang-pabrik tbody tr:hover td.col-lbr.group-pabrik { background: #E5DCC8 !important; }
 
 @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
