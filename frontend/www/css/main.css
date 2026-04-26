@@ -358,12 +358,10 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 13px;
   background: var(--bg-card);
-  box-shadow: var(--shadow);
-  border-radius: var(--radius);
-  overflow: hidden;
 }
 
 .data-table thead tr {
@@ -371,25 +369,25 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   color: #fff;
 }
 
-/* ── Sticky thead (edit page) ───────────────────────────────────── */
+/* ── Sticky thead ───────────────────────────────────────────────── */
 .data-table thead tr:nth-child(1) th {
   position: sticky;
   top: 0;
-  z-index: 12;
+  z-index: 23;
   background-clip: padding-box;
 }
 .data-table thead tr:nth-child(2) th {
   position: sticky;
   top: 40px;
-  z-index: 11;
+  z-index: 22;
   background-clip: padding-box;
 }
 .data-table thead tr:nth-child(3) th {
   position: sticky;
   top: 76px;
-  z-index: 10;
+  z-index: 21;
   background-clip: padding-box;
-  box-shadow: 0 2px 4px rgba(0,0,0,.08);
+  box-shadow: 0 2px 4px rgba(0,0,0,.1);
 }
 
 .data-table th {
@@ -421,7 +419,6 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 }
 
 .data-table tbody tr {
-  border-bottom: 1px solid var(--border);
   transition: background .1s;
 }
 
@@ -432,6 +429,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .data-table td {
   padding: 10px 14px;
   vertical-align: middle;
+  border-bottom: 1px solid var(--border);
 }
 
 /* ─── /LBR column ─────────────────────────────────────────────── */
