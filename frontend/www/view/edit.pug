@@ -141,18 +141,25 @@ block content
               tr
                 th.th-check
                   input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
-                th(ng-click="sortBy('name')" style="cursor:pointer")
+                th.sortable(ng-click="sortBy('name')")
                   | Nama Barang
                   i.sort-icon.bi(ng-class="getSortIcon('name')")
-                th.text-right(ng-click="sortBy('weight')" style="cursor:pointer")
+                th.sortable.text-right(ng-click="sortBy('weight')")
                   | Berat
                   i.sort-icon.bi(ng-class="getSortIcon('weight')")
-                th.text-right /KG LAMA
-                th /KG LAMA BARU
-                th.col-lbr-header /LBR
-                th.text-right /KG LAMA
-                th /KG LAMA BARU
-                th.col-lbr-header /LBR
+                th.sortable.text-right(
+                  ng-repeat-start="pt in priceTypes track by pt.code"
+                  ng-click="sortBy('kg:' + pt.code)"
+                )
+                  | /KG LAMA
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:' + pt.code)")
+                th /KG BARU
+                th.sortable.col-lbr-header(
+                  ng-repeat-end
+                  ng-click="sortBy('lbr:' + pt.code)"
+                )
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
 
             //- Extended header (4 price types)
             thead(ng-if="hasGudangPabrik")
@@ -173,24 +180,27 @@ block content
               tr
                 th.th-check
                   input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
-                th(ng-click="sortBy('name')" style="cursor:pointer")
+                th.sortable(ng-click="sortBy('name')")
                   | Nama Barang
                   i.sort-icon.bi(ng-class="getSortIcon('name')")
-                th.text-right(ng-click="sortBy('weight')" style="cursor:pointer")
+                th.sortable.text-right(ng-click="sortBy('weight')")
                   | Berat
                   i.sort-icon.bi(ng-class="getSortIcon('weight')")
-                th.text-right.group-gudang /KG LAMA
-                th.group-gudang /KG LAMA BARU
-                th.col-lbr-header.group-gudang /LBR
-                th.text-right.group-gudang /KG LAMA
-                th.group-gudang /KG LAMA BARU
-                th.col-lbr-header.group-gudang /LBR
-                th.text-right.group-pabrik.group-divider-left /KG LAMA
-                th.group-pabrik /KG LAMA BARU
-                th.col-lbr-header.group-pabrik /LBR
-                th.text-right.group-pabrik /KG LAMA
-                th.group-pabrik /KG LAMA BARU
-                th.col-lbr-header.group-pabrik /LBR
+                th.sortable.text-right(
+                  ng-repeat-start="pt in priceTypes track by pt.code"
+                  ng-class="{'group-gudang': pt.group === 'Gudang', 'group-pabrik': pt.group === 'Pabrik', 'group-divider-left': $index === 2}"
+                  ng-click="sortBy('kg:' + pt.code)"
+                )
+                  | /KG LAMA
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:' + pt.code)")
+                th(ng-class="{'group-gudang': pt.group === 'Gudang', 'group-pabrik': pt.group === 'Pabrik'}") /KG BARU
+                th.sortable.col-lbr-header(
+                  ng-repeat-end
+                  ng-class="{'group-gudang': pt.group === 'Gudang', 'group-pabrik': pt.group === 'Pabrik'}"
+                  ng-click="sortBy('lbr:' + pt.code)"
+                )
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
 
             tbody
               tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked}")

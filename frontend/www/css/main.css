@@ -1009,8 +1009,12 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   margin-left: 4px;
   opacity: .5;
 }
-.th-sortable:hover .sort-icon,
-[ng-class-active="true"] .sort-icon { opacity: 1; }
+.data-table thead th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+.data-table thead th.sortable:hover { filter: brightness(1.18); }
+.data-table thead th.sortable:hover .sort-icon { opacity: 1; }
 
 .td-new { padding: 4px 8px; }
 

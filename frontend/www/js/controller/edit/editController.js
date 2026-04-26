@@ -180,11 +180,22 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         var sd = $scope.sort.dir === 'asc' ? 1 : -1;
         filtered.sort(function (a, b) {
             var av, bv;
-            if (sf === 'name') { av = a.name || ''; bv = b.name || ''; }
-            else if (sf === 'weight') { av = a.weight || 0; bv = b.weight || 0; }
-            else {
-                av = (a.prices[sf] && a.prices[sf].current) || 0;
-                bv = (b.prices[sf] && b.prices[sf].current) || 0;
+            if (sf === 'name') {
+                av = (a.name || '').toLowerCase();
+                bv = (b.name || '').toLowerCase();
+            } else if (sf === 'weight') {
+                av = a.weight || 0;
+                bv = b.weight || 0;
+            } else if (sf.indexOf('kg:') === 0) {
+                var code = sf.slice(3);
+                av = (a.prices[code] && a.prices[code].current) || 0;
+                bv = (b.prices[code] && b.prices[code].current) || 0;
+            } else if (sf.indexOf('lbr:') === 0) {
+                var lbrCode = sf.slice(4);
+                av = (a.new_unit && a.new_unit[lbrCode]) || (a.prices[lbrCode] && a.prices[lbrCode].current_unit) || 0;
+                bv = (b.new_unit && b.new_unit[lbrCode]) || (b.prices[lbrCode] && b.prices[lbrCode].current_unit) || 0;
+            } else {
+                av = 0; bv = 0;
             }
             if (av < bv) return -1 * sd;
             if (av > bv) return 1 * sd;
