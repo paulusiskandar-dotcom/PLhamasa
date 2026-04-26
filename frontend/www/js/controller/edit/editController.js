@@ -248,6 +248,14 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         $scope.priceTypes.forEach(function (pt) { $scope.modifier.targets[pt.code] = pt.group === 'Pabrik'; });
     };
 
+    $scope.onModifierValueChange = function () {
+        var isPercent = $scope.modifier.type === 'plus_percent' || $scope.modifier.type === 'minus_percent';
+        if (!isPercent) {
+            var formatted = formatThousand(parseThousand($scope.modifier.value));
+            if (formatted !== '') $scope.modifier.value = formatted;
+        }
+    };
+
     // ── Apply Modifier (Generate) ──────────────────────────────
     $scope.applyModifier = function () {
         var targets = $scope.priceTypes.filter(function (pt) { return $scope.modifier.targets[pt.code]; });

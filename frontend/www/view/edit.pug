@@ -108,6 +108,7 @@ block content
             input.form-control.mod-value(
               type="text"
               ng-model="modifier.value"
+              ng-change="onModifierValueChange()"
               inputmode="numeric"
               placeholder="{{ modifier.type === 'plus_percent' || modifier.type === 'minus_percent' ? '%' : 'Nilai' }}"
             )
