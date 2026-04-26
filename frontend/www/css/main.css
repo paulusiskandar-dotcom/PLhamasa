@@ -371,24 +371,37 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 }
 
 /* ── Sticky thead ───────────────────────────────────────────────── */
+/* All thead th must have an explicit background so they're opaque when stuck */
+.data-table thead th {
+  background: var(--navy);
+  background-clip: padding-box;
+}
+
 .data-table thead tr:nth-child(1) th {
   position: sticky;
   top: 0;
   z-index: 23;
-  background-clip: padding-box;
 }
 .data-table thead tr:nth-child(2) th {
   position: sticky;
   top: 40px;
   z-index: 22;
-  background-clip: padding-box;
 }
 .data-table thead tr:nth-child(3) th {
   position: sticky;
   top: 76px;
   z-index: 21;
-  background-clip: padding-box;
   box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+/* Spacer cells in rows 1–2 (left-column placeholders, no content) */
+.data-table thead th.spacer-left {
+  padding: 0;
+  border: none;
+}
+/* Row 2 spacers match subgroup-header background */
+.data-table.has-gudang-pabrik thead tr:nth-child(2) th.spacer-left {
+  background: var(--navy-light) !important;
 }
 
 .data-table th {

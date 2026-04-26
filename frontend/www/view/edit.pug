@@ -139,17 +139,20 @@ block content
             //- Standard header (2 price types)
             thead(ng-if="!hasGudangPabrik")
               tr
-                th.th-check(rowspan="2")
-                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
-                th(rowspan="2" ng-click="sortBy('name')" style="cursor:pointer")
-                  | Nama Barang
-                  i.sort-icon.bi(ng-class="getSortIcon('name')")
-                th.text-right(rowspan="2" ng-click="sortBy('weight')" style="cursor:pointer")
-                  | Berat
-                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
+                th.spacer-left
+                th.spacer-left
+                th.spacer-left
                 th.group-header(colspan="3") CASH
                 th.group-header(colspan="3") KREDIT
               tr
+                th.th-check
+                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
+                th(ng-click="sortBy('name')" style="cursor:pointer")
+                  | Nama Barang
+                  i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.text-right(ng-click="sortBy('weight')" style="cursor:pointer")
+                  | Berat
+                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
                 th.text-right /KG
                 th /KG BARU
                 th.col-lbr-header /LBR
@@ -160,22 +163,28 @@ block content
             //- Extended header (4 price types)
             thead(ng-if="hasGudangPabrik")
               tr
-                th.th-check(rowspan="3")
-                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
-                th(rowspan="3" ng-click="sortBy('name')" style="cursor:pointer")
-                  | Nama Barang
-                  i.sort-icon.bi(ng-class="getSortIcon('name')")
-                th.text-right(rowspan="3" ng-click="sortBy('weight')" style="cursor:pointer")
-                  | Berat
-                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
+                th.spacer-left
+                th.spacer-left
+                th.spacer-left
                 th.group-header.group-gudang(colspan="6") GUDANG
                 th.group-header.group-pabrik(colspan="6") PABRIK
               tr
+                th.spacer-left
+                th.spacer-left
+                th.spacer-left
                 th.subgroup-header.group-gudang(colspan="3") Cash
                 th.subgroup-header.group-gudang(colspan="3") Kredit
                 th.subgroup-header.group-pabrik(colspan="3") Cash
                 th.subgroup-header.group-pabrik(colspan="3") Kredit
               tr
+                th.th-check
+                  input(type="checkbox" ng-model="selection.all" ng-change="toggleSelectAll()")
+                th(ng-click="sortBy('name')" style="cursor:pointer")
+                  | Nama Barang
+                  i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.text-right(ng-click="sortBy('weight')" style="cursor:pointer")
+                  | Berat
+                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
                 th.text-right.group-gudang /KG
                 th.group-gudang /KG BARU
                 th.col-lbr-header.group-gudang /LBR
