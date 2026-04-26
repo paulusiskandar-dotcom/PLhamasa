@@ -1516,6 +1516,24 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .btn-generate-gold:active:not(:disabled) { transform: translateY(1px); }
 .btn-generate-gold:disabled { background: rgba(245,124,0,.4); box-shadow: none; cursor: not-allowed; }
 
+/* ─── Log modal — price type badge & column styles ─────────────── */
+.price-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  background: #E8ECF0;
+  color: var(--navy);
+}
+.badge-2 { background: #E3F2FD; color: #1565C0; }
+.badge-3 { background: #FFF3E0; color: #E65100; }
+.badge-4 { background: #F3E5F5; color: #6A1B9A; }
+.badge-5 { background: #FCE4EC; color: #AD1457; }
+.col-time { white-space: nowrap; color: #5A6C7E; font-size: 12px; }
+.col-item { font-weight: 500; color: var(--navy); }
+
 /* ─── Settings Page v2 ───────────────────────────────────────── */
 .settings-section {
   background: var(--bg-card);

@@ -270,16 +270,17 @@ block content
                 tr
                   th Waktu
                   th User
-                  th ig_id
-                  th pr_id
-                  th Lama
-                  th Baru
+                  th Nama Barang
+                  th Jenis Harga
+                  th.text-right Harga Lama
+                  th.text-right Harga Baru
               tbody
                 tr(ng-repeat="entry in modalLog.entries")
-                  td.mono {{ entry.logged_at | dateTimeFormat }}
+                  td.col-time.mono {{ entry.logged_at | dateTimeFormat }}
                   td {{ entry.user_name }}
-                  td.mono {{ entry.ig_id }}
-                  td.mono {{ entry.pr_id }}
+                  td.col-item {{ entry.i_name }}
+                  td
+                    span.price-type-badge(ng-class="'badge-' + entry.pr_id") {{ entry.pr_label }}
                   td.mono.text-right {{ entry.old_price | number:0 }}
                   td.mono.text-right {{ entry.new_price | number:0 }}
           div.modal-actions

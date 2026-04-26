@@ -267,8 +267,10 @@ module.exports.bulkUpdateItemPrices = async function (plId, items, userId) {
 
 // ── Log ───────────────────────────────────────────────────────────────────────
 
+const PR_LABELS = { 2: 'Cash Gudang', 3: 'Cash Pabrik', 4: 'Kredit Gudang', 5: 'Kredit Pabrik' };
+
 module.exports.getLog = async function (plId, limit = 100, offset = 0) {
-    return dbPLM().any(`
+    const logs = await dbPLM().any(`
         SELECT pll.id, pll.logged_at, pll.ig_id, pll.pr_id,
                pll.old_price, pll.new_price,
                u.username AS user_name
@@ -278,6 +280,22 @@ module.exports.getLog = async function (plId, limit = 100, offset = 0) {
         ORDER BY pll.logged_at DESC
         LIMIT $2 OFFSET $3
     `, [plId, limit, offset]);
+
+    if (!logs.length) return logs;
+
+    const igIds = [...new Set(logs.map(l => l.ig_id))];
+    const erpItems = await dbERP().any(
+        'SELECT ig_id, i_name FROM item WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL',
+        [igIds]
+    );
+    const itemMap = {};
+    erpItems.forEach(r => { itemMap[r.ig_id] = r.i_name; });
+
+    return logs.map(l => ({
+        ...l,
+        i_name:   itemMap[l.ig_id] || ('IG#' + l.ig_id),
+        pr_label: PR_LABELS[l.pr_id] || ('PR#' + l.pr_id),
+    }));
 };
 
 // ── Post to ERP ───────────────────────────────────────────────────────────────
