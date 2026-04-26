@@ -1,17 +1,23 @@
 var plmApp = angular.module("plmApp", []);
 
 plmApp.config(function ($httpProvider) {
-    // Attach accessToken ke semua request
-    $httpProvider.interceptors.push(function () {
+    $httpProvider.interceptors.push(function ($q) {
         return {
             request: function (config) {
-                // accessToken disimpan di cookie atau localStorage
                 var token = localStorage.getItem("accessToken");
                 if (token) {
                     if (config.params === undefined) config.params = {};
                     config.params.accessToken = token;
                 }
                 return config;
+            },
+            responseError: function (rejection) {
+                if (rejection.status === 401) {
+                    localStorage.removeItem("accessToken");
+                    localStorage.removeItem("userInfo");
+                    window.location.href = "/login";
+                }
+                return $q.reject(rejection);
             }
         };
     });
