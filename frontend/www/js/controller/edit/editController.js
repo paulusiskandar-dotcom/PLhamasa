@@ -88,13 +88,24 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             $scope.modifier.targets = {};
             $scope.priceTypes.forEach(function (pt) { $scope.modifier.targets[pt.code] = true; });
 
-            // Build items
+            // Build items — pre-fill new/new_unit from current saved prices
             $scope.items = (data.items || []).map(function (it) {
                 var newObj = {};
                 var newDisplay = {};
                 var newUnit = {};
                 var savedObj = {};
-                $scope.priceTypes.forEach(function (pt) { savedObj[pt.code] = false; });
+                $scope.priceTypes.forEach(function (pt) {
+                    savedObj[pt.code] = false;
+                    var cur = it.prices[pt.code] ? it.prices[pt.code].current : null;
+                    if (cur !== null && cur !== undefined) {
+                        // Compute current_unit for the /LBR column
+                        it.prices[pt.code].current_unit = roundSpecial(cur * (it.weight || 0));
+                        // Pre-fill /KG BARU with current saved price
+                        newObj[pt.code]     = cur;
+                        newDisplay[pt.code] = formatThousand(cur);
+                        newUnit[pt.code]    = it.prices[pt.code].current_unit;
+                    }
+                });
                 return angular.extend(it, {
                     _checked: false,
                     _saved: savedObj,
