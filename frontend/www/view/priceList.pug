@@ -37,8 +37,21 @@ block content
       div.filter-bar
         div.filter-group
           label Kategori
-          select.form-control(ng-model="filterCatId" ng-change="loadList()" ng-options="c.id as c.name for c in categories")
+          select.form-control(ng-model="filter.catId" ng-change="applyFilterSort()" ng-options="c.id as c.name for c in categories")
             option(value="") Semua Kategori
+        div.filter-group
+          label Status
+          select.form-control(ng-model="filter.status" ng-change="applyFilterSort()")
+            option(value="") Semua Status
+            option(value="OPEN") OPEN (sedang draft)
+            option(value="PUBLISHED") PUBLISHED (arsip)
+        div.filter-group
+          label Sort By
+          select.form-control(ng-model="filter.sortBy" ng-change="applyFilterSort()")
+            option(value="default") Status & Kategori (default)
+            option(value="created_desc") Terbaru Dibuat
+            option(value="updated_desc") Terbaru Diedit
+            option(value="cat_name") Kategori A-Z
 
       //- Loading
       div.loading-state(ng-if="loading")
@@ -55,7 +68,7 @@ block content
 
       //- Grouped by category
       div.category-group(ng-repeat="group in groupedLists")
-        div.category-header
+        div.category-header(ng-if="!group.flat")
           h3 {{ group.cat_name }}
           button.btn-secondary.btn-sm(ng-if="!group.has_open" ng-click="startNew(group.cat_id, group.cat_name)")
             i.bi.bi-plus
@@ -64,6 +77,7 @@ block content
         div.pl-card(ng-repeat="pl in group.records" ng-class="'pl-' + pl.status.toLowerCase()")
           div.pl-header
             span.pl-revision \#{{ pl.revision_no | padNumber:3 }}
+            span.pl-category(ng-if="group.flat") {{ pl.cat_name }}
             span.pl-status(ng-class="'status-' + pl.status.toLowerCase()") {{ pl.status }}
             span.pl-timestamp {{ pl.created_at | dateFormat }}
             span.lock-badge.lock-mine(ng-if="pl.locked_status === 'mine'")  🟢 Sedang Anda edit

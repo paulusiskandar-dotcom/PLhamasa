@@ -1134,6 +1134,15 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   color: var(--navy);
 }
 
+.pl-category {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+  background: rgba(30,58,95,.07);
+  padding: 1px 8px;
+  border-radius: 3px;
+}
+
 .pl-status {
   display: inline-block;
   padding: 2px 8px;

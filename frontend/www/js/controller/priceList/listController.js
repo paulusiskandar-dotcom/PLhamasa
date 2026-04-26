@@ -6,7 +6,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         localStorage.setItem('plm.sidebarHidden', $scope.sidebarHidden);
     };
 
-    $scope.filterCatId = '';
+    $scope.filter = { catId: '', status: '', sortBy: 'default' };
     $scope.lists = [];
     $scope.groupedLists = [];
     $scope.categories = [];
@@ -67,14 +67,47 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         return arr;
     }
 
+    function wrapAsSingleGroup(records) {
+        if (!records.length) return [];
+        return [{ cat_id: null, cat_name: 'Semua', records: records, has_open: false, flat: true }];
+    }
+
+    $scope.applyFilterSort = function () {
+        var f = $scope.filter;
+        var data = ($scope.lists || []).slice();
+
+        if (f.catId)   data = data.filter(function (pl) { return String(pl.cat_id) === String(f.catId); });
+        if (f.status)  data = data.filter(function (pl) { return pl.status === f.status; });
+
+        switch (f.sortBy) {
+            case 'created_desc':
+                data.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+                $scope.groupedLists = wrapAsSingleGroup(data);
+                break;
+            case 'updated_desc':
+                data.sort(function (a, b) {
+                    return new Date(b.last_log_at || b.created_at) - new Date(a.last_log_at || a.created_at);
+                });
+                $scope.groupedLists = wrapAsSingleGroup(data);
+                break;
+            case 'cat_name':
+                data.sort(function (a, b) { return a.cat_name.localeCompare(b.cat_name); });
+                $scope.groupedLists = wrapAsSingleGroup(data);
+                break;
+            default:
+                $scope.groupedLists = groupByCategory(data);
+                break;
+        }
+
+        updateCategoriesAvailable();
+    };
+
     $scope.loadList = function () {
         $scope.loading = true;
-        var catId = $scope.filterCatId || null;
-        priceListService.list(catId).then(function (res) {
+        priceListService.list(null).then(function (res) {
             $scope.lists = res.result || [];
-            $scope.groupedLists = groupByCategory($scope.lists);
-            updateCategoriesAvailable();
             $scope.loading = false;
+            $scope.applyFilterSort();
         }).catch(function () {
             $scope.loading = false;
             showToast('Gagal memuat data', 'danger');
