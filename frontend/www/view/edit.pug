@@ -153,7 +153,9 @@ block content
                 )
                   | /KG LAMA
                   i.sort-icon.bi(ng-class="getSortIcon('kg:' + pt.code)")
-                th /KG BARU
+                th.sortable(ng-click="sortBy('kgbaru:' + pt.code)")
+                  | /KG BARU
+                  i.sort-icon.bi(ng-class="getSortIcon('kgbaru:' + pt.code)")
                 th.sortable.col-lbr-header(
                   ng-repeat-end
                   ng-click="sortBy('lbr:' + pt.code)"
@@ -193,7 +195,12 @@ block content
                 )
                   | /KG LAMA
                   i.sort-icon.bi(ng-class="getSortIcon('kg:' + pt.code)")
-                th(ng-class="{'group-gudang': pt.group === 'Gudang', 'group-pabrik': pt.group === 'Pabrik'}") /KG BARU
+                th.sortable(
+                  ng-class="{'group-gudang': pt.group === 'Gudang', 'group-pabrik': pt.group === 'Pabrik'}"
+                  ng-click="sortBy('kgbaru:' + pt.code)"
+                )
+                  | /KG BARU
+                  i.sort-icon.bi(ng-class="getSortIcon('kgbaru:' + pt.code)")
                 th.sortable.col-lbr-header(
                   ng-repeat-end
                   ng-class="{'group-gudang': pt.group === 'Gudang', 'group-pabrik': pt.group === 'Pabrik'}"

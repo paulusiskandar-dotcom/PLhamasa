@@ -186,6 +186,10 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             } else if (sf === 'weight') {
                 av = a.weight || 0;
                 bv = b.weight || 0;
+            } else if (sf.indexOf('kgbaru:') === 0) {
+                var newCode = sf.slice(7);
+                av = (a.new && a.new[newCode]) || 0;
+                bv = (b.new && b.new[newCode]) || 0;
             } else if (sf.indexOf('kg:') === 0) {
                 var code = sf.slice(3);
                 av = (a.prices[code] && a.prices[code].current) || 0;
