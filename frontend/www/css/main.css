@@ -408,22 +408,24 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 /* ─── /LBR column ─────────────────────────────────────────────── */
 .data-table td.col-lbr {
+  background: #EEF3F8 !important;
   text-align: right;
   padding: 10px 16px;
+  border-left: 1px solid rgba(30, 58, 95, 0.15);
+  border-right: 1px solid rgba(30, 58, 95, 0.15);
   font-family: var(--mono);
-  font-size: 14px;
   font-variant-numeric: tabular-nums;
+  font-size: 14px;
   font-weight: 700;
   color: var(--navy-deep);
-  background: inherit !important;
-  border-left: 1px solid rgba(30, 58, 95, 0.12);
-  border-right: 1px solid rgba(30, 58, 95, 0.12);
+  letter-spacing: .2px;
 }
-.data-table tbody tr:hover td.col-lbr { background: #F5F7FA !important; }
+.data-table tbody tr:nth-child(even) td.col-lbr { background: #E5EDF4 !important; }
+.data-table tbody tr:hover td.col-lbr { background: #DCE6EF !important; }
+.data-table tbody tr.row-selected td.col-lbr { background: #FFF3D6 !important; }
 .data-table thead th.col-lbr-header {
-  text-align: right;
-  border-left: 1px solid rgba(255, 255, 255, 0.18);
-  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .mono { font-family: var(--mono); font-size: 12px; }
