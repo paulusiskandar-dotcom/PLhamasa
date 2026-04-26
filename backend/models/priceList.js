@@ -298,6 +298,16 @@ module.exports.getLog = async function (plId, limit = 100, offset = 0) {
     }));
 };
 
+// ── Export audit log ──────────────────────────────────────────────────────────
+
+module.exports.logExport = function (priceListId, exportType, fileName, filePath, userId) {
+    return dbPLM().none(
+        `INSERT INTO price_list_export (price_list_id, export_type, file_name, file_path, user_id)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [priceListId, exportType, fileName || null, filePath || null, userId]
+    );
+};
+
 // ── Post to ERP ───────────────────────────────────────────────────────────────
 
 module.exports.postToErp = async function (plId, userId, erpTargetId) {

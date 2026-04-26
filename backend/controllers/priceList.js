@@ -8,6 +8,7 @@ const $model          = require('../models/priceList');
 const $itemModel      = require('../models/item');
 const $erpTargetModel = require('../models/erpTarget');
 const $settingsModel  = require('../models/settings');
+const { generateErpExcel } = require('../utils/excel');
 
 // Round ERP baseline per-kg price (same as existing roundERP in price.js)
 function roundERP(raw) {
@@ -391,5 +392,26 @@ module.exports._postToErp = async function (req, res) {
         return response.success(res, result, 'Posted to ERP');
     } catch (err) {
         return response.error(res, null, err);
+    }
+};
+
+// ── GET /price-list/:id/export-excel ──────────────────────────────────────────
+
+module.exports._exportExcel = async function (req, res) {
+    try {
+        const plId = parseInt(req.params.id, 10);
+        if (isNaN(plId)) return response.error(res, 'invalid_id', null, 400);
+
+        const { buffer, filename } = await generateErpExcel(plId);
+
+        // Audit log — fire-and-forget, don't block the download
+        $model.logExport(plId, 'excel', filename, null, res.locals.user.id).catch(() => {});
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(buffer);
+    } catch (err) {
+        console.error('Export Excel error:', err);
+        return response.error(res, err.message || 'export_failed', null, 500);
     }
 };

@@ -177,7 +177,8 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     };
 
     $scope.exportExcel = function (pl) {
-        showToast('Export Excel coming soon', 'info');
+        showToast('Mengunduh Excel...', 'info');
+        priceListService.exportExcel(pl.id);
     };
 
     // Init

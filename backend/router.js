@@ -47,6 +47,7 @@ module.exports = function (app) {
     app.put("/price-list/:id/items/bulk",         auth.verifyToken, require("./controllers/priceList")._bulkUpdate);
     app.get("/price-list/:id/log",                auth.verifyToken, require("./controllers/priceList")._getLog);
     app.post("/price-list/:id/post-to-erp",       auth.verifyToken, require("./controllers/priceList")._postToErp);
+    app.get("/price-list/:id/export-excel",       auth.verifyToken, require("./controllers/priceList")._exportExcel);
 
     // ── SUBCATEGORY ────────────────────────────────────────────────────────────
     app.get("/subcategory",                                   auth.verifyToken, require("./controllers/subcategory")._list);

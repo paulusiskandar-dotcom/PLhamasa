@@ -63,6 +63,111 @@ module.exports.exportPriceListERP = async function (filename, cols, rows) {
 };
 
 /*
+ * generateErpExcel — ETL template matching PERUBAHAN_HARGA_*.xlsx
+ * Returns { buffer: Buffer, filename: string }
+ */
+module.exports.generateErpExcel = async function (priceListId) {
+    const dbPLM = () => global.dbPLM;
+    const dbERP = () => global.dbERP;
+
+    // 1. Get price list metadata
+    const pl = await dbPLM().oneOrNone('SELECT id, cat_id, cat_name FROM price_list WHERE id = $1', [priceListId]);
+    if (!pl) throw new Error('price_list_not_found');
+
+    // 2. Get price list items
+    const plmItems = await dbPLM().any(
+        'SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id = $1',
+        [priceListId]
+    );
+    if (!plmItems.length) throw new Error('no_items');
+
+    // Group prices by ig_id → { pr_id: price }
+    const priceByIg = {};
+    plmItems.forEach(it => {
+        if (!priceByIg[it.ig_id]) priceByIg[it.ig_id] = {};
+        priceByIg[it.ig_id][it.pr_id] = parseFloat(it.i_price);
+    });
+    const igIds = Object.keys(priceByIg).map(Number);
+
+    // 3. Get item info from ERP
+    const items = await dbERP().any(`
+        SELECT i.ig_id, i.i_id, i.serial_id, i.i_name, i.grade,
+               i.i_brand, i.i_group, i.i_weight,
+               ic.unit_code
+        FROM item i
+        LEFT JOIN item_category ic ON ic.cat_id = i.cat_id
+        WHERE i.ig_id = ANY($1::int[]) AND i.deleted_at IS NULL AND i.is_item = true
+        ORDER BY i.i_name ASC
+    `, [igIds]);
+
+    // 4. Build workbook
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Sheet 1');
+
+    // Row 1
+    ws.getCell('A1').value = 'ETL code :';
+    ws.getCell('B1').value = 'PLETL';
+
+    // Row 3 — headers
+    const HEADERS = [
+        'ID BARANG', 'KODE BARANG', 'SERIAL', 'NAMA BARANG', 'GRADE',
+        'MEREK', 'GOLONGAN', 'UNIT', 'BERAT',
+        'CASH PABRIK', 'CASH GUDANG', 'KREDIT PABRIK', 'KREDIT GUDANG'
+    ];
+    const headerRow = ws.getRow(3);
+    HEADERS.forEach((h, i) => {
+        const cell = headerRow.getCell(i + 1);
+        cell.value = h;
+        if (i >= 8) cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+
+    // Column widths
+    const COL_WIDTHS = [10, 20, 13, 40.57, 9.14, 13, 10, 9.14, 9.14, 15, 13, 13, 13];
+    COL_WIDTHS.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+
+    // 5. Data rows from row 4
+    function roundSpecial(raw) {
+        if (!raw) return 0;
+        const sisa = Math.round(raw) % 100;
+        return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
+    }
+
+    items.forEach((item, idx) => {
+        const prices = priceByIg[item.ig_id] || {};
+        const weight = parseFloat(item.i_weight) || 0;
+
+        const row = ws.getRow(4 + idx);
+        row.getCell(1).value  = item.ig_id;
+        row.getCell(2).value  = item.i_id || '';
+        row.getCell(3).value  = item.serial_id || '-';
+        row.getCell(4).value  = item.i_name || '';
+        row.getCell(5).value  = item.grade || '';
+        row.getCell(6).value  = item.i_brand || '';
+        row.getCell(7).value  = item.i_group || '';
+        row.getCell(8).value  = item.unit_code || 'Btg';
+        row.getCell(9).value  = weight;
+        row.getCell(10).value = prices[3] ? roundSpecial(prices[3] * weight) : 0;
+        row.getCell(11).value = prices[2] ? roundSpecial(prices[2] * weight) : 0;
+        row.getCell(12).value = prices[5] ? roundSpecial(prices[5] * weight) : 0;
+        row.getCell(13).value = prices[4] ? roundSpecial(prices[4] * weight) : 0;
+
+        for (let c = 9; c <= 13; c++) {
+            row.getCell(c).alignment = { horizontal: 'center' };
+        }
+    });
+
+    // 6. Build filename and return buffer
+    const slug = pl.cat_name
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    const filename = `PERUBAHAN_HARGA_${slug}.xlsx`;
+
+    const buffer = await wb.xlsx.writeBuffer();
+    return { buffer, filename };
+};
+
+/*
  * Export PL Manual — format rapi untuk distribusi manual
  * Header perusahaan, judul, tanggal, tabel dengan styling
  */

@@ -420,7 +420,10 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
 
     // ── Export & Log ────────────────────────────────────────────
     $scope.exportPdf = function () { showToast('Export PDF coming soon', 'info'); };
-    $scope.exportExcel = function () { showToast('Export Excel coming soon', 'info'); };
+    $scope.exportExcel = function () {
+        showToast('Mengunduh Excel...', 'info');
+        priceListService.exportExcel(plId);
+    };
 
     $scope.showLog = function () {
         $scope.modalLog = { entries: [], loading: true };
