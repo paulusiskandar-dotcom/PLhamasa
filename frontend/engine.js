@@ -8,13 +8,20 @@ const port = process.env.PORT || 3000;
 
 app.set("view engine", "pug");
 app.set("views", path.join(__dirname, "www/view"));
-app.use(express.static(path.join(__dirname, "www")));
+app.use(express.static(path.join(__dirname, "www"), {
+    setHeaders: function (res, filePath) {
+        if (filePath.endsWith('.js') || filePath.endsWith('.css') || filePath.endsWith('.pug')) {
+            res.set('Cache-Control', 'no-store');
+        }
+    }
+}));
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ─── API URL injected to all views ────────────────────────────────────────────
+// ─── No-cache for HTML pages + API URL ───────────────────────────────────────
 app.use(function (req, res, next) {
+    res.set('Cache-Control', 'no-store');
     res.locals.apiUrl = process.env.API_URL || "http://localhost:3001/";
     next();
 });
