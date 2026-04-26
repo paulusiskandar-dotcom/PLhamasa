@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS settings (
 -- ── PRICE LIST (rekaman per kategori) ──────────────────────────
 CREATE TABLE price_list (
     id                  SERIAL PRIMARY KEY,
-    cat_id              INTEGER NOT NULL,
+    cat_id              VARCHAR(50) NOT NULL,
     cat_name            VARCHAR(100) NOT NULL,
     revision_no         INTEGER NOT NULL,
     status              VARCHAR(20) NOT NULL,
@@ -95,7 +95,7 @@ CREATE INDEX idx_ple_pl ON price_list_export(price_list_id, exported_at DESC);
 -- ── SUBCATEGORY ────────────────────────────────────────────────
 CREATE TABLE subcategory (
     id              SERIAL PRIMARY KEY,
-    cat_id          INTEGER NOT NULL,
+    cat_id          VARCHAR(50) NOT NULL,
     cat_name        VARCHAR(100) NOT NULL,
     name            VARCHAR(100) NOT NULL,
     created_by      INTEGER REFERENCES users(id),
