@@ -336,7 +336,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  overflow: clip;
   box-shadow: var(--shadow);
 }
 
@@ -369,6 +369,27 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .data-table thead tr {
   background: var(--navy);
   color: #fff;
+}
+
+/* ── Sticky thead (edit page) ───────────────────────────────────── */
+.data-table thead tr:nth-child(1) th {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  background-clip: padding-box;
+}
+.data-table thead tr:nth-child(2) th {
+  position: sticky;
+  top: 40px;
+  z-index: 11;
+  background-clip: padding-box;
+}
+.data-table thead tr:nth-child(3) th {
+  position: sticky;
+  top: 76px;
+  z-index: 10;
+  background-clip: padding-box;
+  box-shadow: 0 2px 4px rgba(0,0,0,.08);
 }
 
 .data-table th {
@@ -554,7 +575,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 ::-webkit-scrollbar-thumb { background: var(--steel); border-radius: 3px; }
 
 /* ─── Table horizontal scroll ───────────────────────────────── */
-.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-scroll { overflow-x: auto; overflow-y: clip; -webkit-overflow-scrolling: touch; }
 
 /* ─── Generated-column header variants ──────────────────────── */
 .col-price-new {
@@ -1444,7 +1465,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
     margin-top: 20px; padding: 14px 20px;
     background: #fff; border-radius: 6px;
     box-shadow: 0 -2px 8px rgba(0,0,0,.06);
-    position: sticky; bottom: 0;
+    position: sticky; bottom: 0; z-index: 5;
 }
 /* ─── Bottom toolbar buttons ────────────────────────────────────── */
 .btn-toolbar {
