@@ -44,6 +44,7 @@ body {
   color: var(--text);
   font-size: 14px;
   line-height: 1.5;
+  overflow-x: auto;
 }
 
 /* ─── Login ──────────────────────────────────────────────────── */
@@ -336,7 +337,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: clip;
+  overflow: visible;
   box-shadow: var(--shadow);
 }
 
@@ -573,7 +574,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 ::-webkit-scrollbar-thumb { background: var(--steel); border-radius: 3px; }
 
 /* ─── Table horizontal scroll ───────────────────────────────── */
-.table-scroll { overflow-x: auto; overflow-y: clip; -webkit-overflow-scrolling: touch; }
+.table-scroll { overflow: visible; }
 
 /* ─── Generated-column header variants ──────────────────────── */
 .col-price-new {
