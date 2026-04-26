@@ -19,6 +19,10 @@
   --success:     #1E7A3C;
   --warning:     #C07A10;
   --info:        #1A5F8A;
+  --orange:      #F57C00;
+  --orange-light:#FF9800;
+  --orange-dark: #E65100;
+  --navy-deep:   #14253D;
   --mono:        'IBM Plex Mono', monospace;
   --sans:        'IBM Plex Sans', sans-serif;
   --radius:      4px;
@@ -405,23 +409,21 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 /* ─── /LBR column ─────────────────────────────────────────────── */
 .data-table td.col-lbr {
   text-align: right;
+  padding: 10px 16px;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
   font-weight: 700;
-  color: var(--navy);
-  background: transparent !important;
-  border-left: 1px solid rgba(30, 58, 95, 0.18);
-  border-right: 1px solid rgba(30, 58, 95, 0.18);
+  color: var(--navy-deep);
+  background: inherit !important;
+  border-left: 1px solid rgba(30, 58, 95, 0.12);
+  border-right: 1px solid rgba(30, 58, 95, 0.12);
 }
-.data-table tbody tr:hover td.col-lbr { background: transparent !important; }
-.data-table tbody tr:nth-child(even) td.col-lbr { background: transparent !important; }
-.data-table tbody tr.row-selected td.col-lbr { background: #FFF8E1 !important; }
+.data-table tbody tr:hover td.col-lbr { background: #F5F7FA !important; }
 .data-table thead th.col-lbr-header {
   text-align: right;
-  font-weight: 700;
-  border-left: 1px solid rgba(255, 255, 255, 0.3);
-  border-right: 1px solid rgba(255, 255, 255, 0.3);
+  border-left: 1px solid rgba(255, 255, 255, 0.18);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .mono { font-family: var(--mono); font-size: 12px; }
@@ -1447,10 +1449,13 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .btn-toolbar:hover { background: var(--navy); color: #fff; }
 .btn-toolbar:disabled { opacity: .45; cursor: not-allowed; }
 .btn-toolbar-primary {
-  background: var(--navy);
+  background: var(--orange);
   color: #fff;
+  border-color: var(--orange);
+  box-shadow: 0 1px 3px rgba(245,124,0,.35);
 }
-.btn-toolbar-primary:hover { background: var(--navy-light); }
+.btn-toolbar-primary:hover:not(:disabled) { background: var(--orange-light); border-color: var(--orange-light); }
+.btn-toolbar-primary:disabled { background: rgba(245,124,0,.4) !important; border-color: rgba(245,124,0,.4) !important; box-shadow: none; }
 .toolbar-divider {
   width: 1px;
   height: 28px;
@@ -1489,11 +1494,12 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .detail-meta { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; }
 
-/* ─── Generate button (gold accent) ────────────────────────────── */
+/* ─── Generate button (orange primary) ─────────────────────────── */
 .btn-generate-gold {
-  padding: 9px 20px;
-  background: var(--gold);
-  color: var(--navy);
+  height: 40px;
+  padding: 0 22px;
+  background: var(--orange);
+  color: #fff;
   border: none;
   border-radius: var(--radius);
   font-size: 13px;
@@ -1502,11 +1508,13 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  letter-spacing: .02em;
-  transition: background .15s;
+  letter-spacing: .03em;
+  box-shadow: 0 1px 3px rgba(245,124,0,.35);
+  transition: background .15s, transform .05s;
 }
-.btn-generate-gold:hover { background: var(--gold-light); }
-.btn-generate-gold:disabled { opacity: .5; cursor: not-allowed; }
+.btn-generate-gold:hover:not(:disabled) { background: var(--orange-light); }
+.btn-generate-gold:active:not(:disabled) { transform: translateY(1px); }
+.btn-generate-gold:disabled { background: rgba(245,124,0,.4); box-shadow: none; cursor: not-allowed; }
 
 /* ─── Settings Page v2 ───────────────────────────────────────── */
 .settings-section {
