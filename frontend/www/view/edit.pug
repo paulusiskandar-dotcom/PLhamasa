@@ -152,10 +152,10 @@ block content
               tr
                 th.text-right /KG
                 th /KG BARU
-                th.text-right /LBR
+                th.col-lbr-header /LBR
                 th.text-right /KG
                 th /KG BARU
-                th.text-right /LBR
+                th.col-lbr-header /LBR
 
             //- Extended header (4 price types)
             thead(ng-if="hasGudangPabrik")
@@ -178,16 +178,16 @@ block content
               tr
                 th.text-right /KG
                 th /KG BARU
-                th.text-right /LBR
+                th.col-lbr-header /LBR
                 th.text-right /KG
                 th /KG BARU
-                th.text-right /LBR
+                th.col-lbr-header /LBR
                 th.text-right /KG
                 th /KG BARU
-                th.text-right /LBR
+                th.col-lbr-header /LBR
                 th.text-right /KG
                 th /KG BARU
-                th.text-right /LBR
+                th.col-lbr-header /LBR
 
             tbody
               tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked}")
@@ -207,21 +207,22 @@ block content
                     placeholder="—"
                   )
                   span.cell-saved-indicator(ng-if="item._saved && item._saved[pt.code]") ✓
-                td.col-lbr.text-bold(ng-repeat-end)
+                td.col-lbr.text-right.text-bold(ng-repeat-end)
                   | {{ item.new_unit[pt.code] | number }}
 
       //- Bottom toolbar
       div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")
-        button.btn-success.btn-large(ng-click="confirmPostToErp()" ng-disabled="lockState !== 'mine'")
+        button.btn-toolbar.btn-toolbar-primary(ng-click="confirmPostToErp()" ng-disabled="lockState !== 'mine'")
           i.bi.bi-cloud-upload
           |  Post to ERP
-        button.btn-secondary(ng-click="exportPdf()")
+        div.toolbar-divider
+        button.btn-toolbar(ng-click="exportPdf()")
           i.bi.bi-file-pdf
           |  Export PDF
-        button.btn-secondary(ng-click="exportExcel()")
+        button.btn-toolbar(ng-click="exportExcel()")
           i.bi.bi-file-earmark-excel
           |  Export Excel
-        button.btn-ghost(ng-click="showLog()")
+        button.btn-toolbar(ng-click="showLog()")
           i.bi.bi-clock-history
           |  Lihat Log
 
