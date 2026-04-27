@@ -221,7 +221,7 @@ block content
                   ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik', 'group-divider-left': hasGudangPabrik && $index === 2}"
                 )
                   | {{ item.prices[pt.code].current | number }}
-                td(ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}")
+                td.col-kg-baru(ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}")
                   input.price-input(
                     type="text"
                     inputmode="numeric"
