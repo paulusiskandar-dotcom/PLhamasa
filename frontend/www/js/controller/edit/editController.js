@@ -455,7 +455,16 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.modalPdfTemplate   = null;
 
     $scope.dismissSyncNotification = function () { $scope.syncNotification = null; };
-    $scope.showSyncedItemsList     = function () { $scope.modalSyncedItems = $scope.syncNotification; };
+
+    $scope.showSyncedItemsList = function () {
+        if (!$scope.syncNotification) return;
+        $scope.modalSyncedItems = {
+            count: $scope.syncNotification.count || 0,
+            items: $scope.syncNotification.items || [],
+        };
+    };
+
+    $scope.closeSyncedItemsModal = function () { $scope.modalSyncedItems = null; };
 
     $scope.closePdfTemplateModal = function () { $scope.modalPdfTemplate = null; };
 

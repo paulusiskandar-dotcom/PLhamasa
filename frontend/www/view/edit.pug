@@ -347,17 +347,21 @@ block content
             button.btn-primary(ng-click="closeLog()") Tutup
 
       //- Modal Synced Items
-      div.modal-overlay(ng-if="modalSyncedItems" ng-click="modalSyncedItems = null")
+      div.modal-overlay(ng-if="modalSyncedItems" ng-click="closeSyncedItemsModal()")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Item Baru dari ERP
-            button.modal-close(ng-click="modalSyncedItems = null") ×
+            button.modal-close(ng-click="closeSyncedItemsModal()") ×
           div.modal-body
-            p.section-desc {{ modalSyncedItems.count }} item baru ditambahkan ke rekaman ini dengan harga default dari ERP.
-            ul.synced-items-list
+            p.section-desc
+              strong {{ modalSyncedItems.count }} item baru
+              |  ditambahkan ke rekaman ini dengan harga default dari ERP.
+            ul.synced-items-list(ng-if="modalSyncedItems.items.length > 0")
               li(ng-repeat="it in modalSyncedItems.items") {{ it.i_name }}
+            div.empty-state(ng-if="modalSyncedItems.items.length === 0")
+              | Tidak ada detail item.
           div.modal-actions
-            button.btn-primary(ng-click="modalSyncedItems = null") OK
+            button.btn-primary(ng-click="closeSyncedItemsModal()") OK
 
       //- Modal PDF Template
       div.modal-overlay(ng-if="modalPdfTemplate" ng-click="closePdfTemplateModal()")
