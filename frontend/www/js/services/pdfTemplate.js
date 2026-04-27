@@ -7,8 +7,9 @@ plmApp.factory('pdfTemplateService', function ($http) {
             return $http.get(url).then(function (r) { return r.data; });
         },
         getItems: function (key, catId) {
-            return $http.get(base + '/' + key + '/items?cat_id=' + catId)
-                .then(function (r) { return r.data; });
+            var url = base + '/' + key + '/items';
+            if (catId) url += '?cat_id=' + catId;
+            return $http.get(url).then(function (r) { return r.data; });
         },
         setValue: function (key, igId, fieldKey, value) {
             return $http.post(base + '/' + key + '/value', {

@@ -34,7 +34,7 @@ function fmtBerat(b) {
 const meta = {
     name:         'As Hitam',
     cat_id:       null,
-    cat_name:     'As Hitam',
+    cat_name:     'AS HITAM',
     description:  'Template As Hitam — A5 landscape, grade S 45 C',
     custom_fields: [
         { key: 'dia_mm', label: 'DIA mm', type: 'text' },

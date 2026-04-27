@@ -35,7 +35,7 @@ function fmtBerat(b) {
 const meta = {
     name:         'Square Bar',
     cat_id:       null,
-    cat_name:     'Square Bar',
+    cat_name:     'SQUARE BAR',
     description:  'Template Ass Kotak / Square Bar — A5 landscape',
     custom_fields: [
         { key: 'dia_inch', label: 'DIA inch', type: 'text' },

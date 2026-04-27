@@ -11,18 +11,24 @@ const PR_CODE = { 1: 'cash_pabrik', 2: 'cash_gudang', 3: 'kredit_pabrik', 4: 'kr
 
 // ── GET /pdf-template/list[?cat_id=X] ────────────────────────────────────────
 module.exports._list = async function (req, res) {
-    const catId = req.query.cat_id || null;
-    const list = catId ? registry.listByCategory(catId) : registry.list();
-    return response.success(res, list);
+    try {
+        const catId = req.query.cat_id || null;
+        const list = catId ? await registry.listByCategory(catId) : await registry.list();
+        return response.success(res, list);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
 };
 
-// ── GET /pdf-template/:key/items?cat_id=X ────────────────────────────────────
+// ── GET /pdf-template/:key/items[?cat_id=X] ──────────────────────────────────
 module.exports._getTemplateItems = async function (req, res) {
     try {
         const tpl = registry.get(req.params.key);
         if (!tpl) return response.error(res, 'template_not_found', null, 404);
 
-        const catId = req.query.cat_id;
+        // cat_id can come from query param or be resolved from template cat_name
+        let catId = req.query.cat_id || null;
+        if (!catId) catId = await registry.getCatId(req.params.key);
         if (!catId) return response.error(res, 'cat_id_required', null, 400);
 
         const items = await dbERP().any(
@@ -47,8 +53,11 @@ module.exports._getTemplateItems = async function (req, res) {
             valueMap[v.ig_id][v.field_key] = v.value;
         });
 
+        // Use enriched meta (with resolved cat_id)
+        const enrichedTpl = (await registry.list()).find(function (t) { return t.key === req.params.key; });
+
         return response.success(res, {
-            template: tpl.meta,
+            template: enrichedTpl || tpl.meta,
             items: items.map(function (it) {
                 return {
                     ig_id:         it.ig_id,

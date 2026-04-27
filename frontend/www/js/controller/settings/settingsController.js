@@ -329,9 +329,8 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
 
     $scope.loadPdfTpl = function () {
         if (!$scope.pdfTplKey) { $scope.pdfTplData = null; return; }
-        var tpl = ($scope.pdfTemplates || []).find(function (t) { return t.key === $scope.pdfTplKey; });
-        if (!tpl || !tpl.cat_id) { showToast('Template ini tidak terikat kategori tertentu.', 'info'); return; }
-        pdfTemplateService.getItems($scope.pdfTplKey, tpl.cat_id).then(function (r) {
+        // cat_id is now resolved server-side — pass null, backend resolves from template cat_name
+        pdfTemplateService.getItems($scope.pdfTplKey, null).then(function (r) {
             $scope.pdfTplData = r.result;
             $scope.pdfTplOriginal = {};
             ($scope.pdfTplData.items || []).forEach(function (it) {
@@ -339,7 +338,10 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
             });
             $scope.pdfTplDirty     = false;
             $scope.pdfTplLastSaved = null;
-        }).catch(function () { showToast('Gagal memuat data template', 'danger'); });
+        }).catch(function (err) {
+            var msg = (err && err.data && err.data.message) ? err.data.message : 'Gagal memuat data template';
+            showToast(msg, 'danger');
+        });
     };
 
     $scope.markPdfDirty = function () {

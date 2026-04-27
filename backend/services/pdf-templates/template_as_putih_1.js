@@ -34,8 +34,8 @@ function fmtBerat(b) {
 
 const meta = {
     name:         'As Putih',
-    cat_id:       'RBPM',
-    cat_name:     'As Putih',
+    cat_id:       null,
+    cat_name:     'AS PUTIH',
     description:  'Template Assental / Round Bar — A5 landscape, multi-page',
     custom_fields: [
         { key: 'dia_inch', label: 'DIA inch', type: 'text' },
