@@ -89,16 +89,19 @@ function render({ items, customValues }) {
     const dd = {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 8, 8, 25],
+        pageMargins:     [8, 30, 8, 25],
 
-        content: [
-            {
+        header: function () {
+            return {
                 text:      'ASSENTAL / ROUND BAR',
                 alignment: 'center',
                 bold:      true,
-                fontSize:  12,
-                margin:    [0, 0, 0, 6],
-            },
+                fontSize:  16,
+                margin:    [0, 8, 0, 6],
+            };
+        },
+
+        content: [
             {
                 table: {
                     headerRows: 2,
