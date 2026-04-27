@@ -13,6 +13,71 @@ function roundSpecial(raw) {
         : Math.ceil(raw / 100) * 100;
 }
 
+// ── Auto-sync new ERP items into an OPEN price list ───────────────────────────
+
+module.exports.syncItemsFromErp = async function (plId, validPrIds) {
+    // validPrIds: [2,4] for Standard or [1,2,3,4] for Extended
+
+    // 1. Get already-present ig_ids
+    const existingRows = await dbPLM().any(
+        'SELECT DISTINCT ig_id FROM price_list_item WHERE price_list_id = $1', [plId]
+    );
+    const existingIds = existingRows.map(function (r) { return r.ig_id; });
+
+    // 2. Get blacklisted ig_ids
+    const blRows = await dbPLM().any('SELECT ig_id FROM item_blacklist');
+    const blIds  = blRows.map(function (r) { return r.ig_id; });
+
+    // 3. Get cat_id for this price list
+    const pl = await dbPLM().oneOrNone('SELECT cat_id FROM price_list WHERE id = $1', [plId]);
+    if (!pl) return { synced: 0, items: [] };
+
+    // 4. Find new items in ERP not yet in the price list and not blacklisted
+    const exclude = [...new Set([...existingIds, ...blIds])];
+    let q = `
+        SELECT i.ig_id, i.i_name, i.i_weight
+        FROM item i
+        WHERE i.cat_id = $1 AND i.deleted_at IS NULL AND i.is_item = true
+    `;
+    const params = [pl.cat_id];
+    if (exclude.length) {
+        params.push(exclude);
+        q += ` AND i.ig_id != ALL($${params.length}::int[])`;
+    }
+    q += ' ORDER BY i.i_name ASC';
+
+    const newItems = await dbERP().any(q, params);
+    if (!newItems.length) return { synced: 0, items: [] };
+
+    // 5. Get ERP unit prices for new items
+    const newIgIds = newItems.map(function (i) { return i.ig_id; });
+    const erpPrices = await dbERP().any(
+        'SELECT ig_id, pr_id, i_price FROM item_price WHERE ig_id = ANY($1::int[])',
+        [newIgIds]
+    );
+
+    // 6. Insert per-kg prices for each new item × each pr_id
+    for (const item of newItems) {
+        const weight = parseFloat(item.i_weight) || 0;
+        for (const prId of validPrIds) {
+            const ep = erpPrices.find(function (r) { return r.ig_id === item.ig_id && r.pr_id === prId; });
+            const unitPrice = ep ? parseFloat(ep.i_price) : 0;
+            const perKg = (weight > 0 && unitPrice > 0) ? roundSpecial(unitPrice / weight) : 0;
+            await dbPLM().none(
+                `INSERT INTO price_list_item (price_list_id, ig_id, pr_id, i_price)
+                 VALUES ($1, $2, $3, $4)
+                 ON CONFLICT (price_list_id, ig_id, pr_id) DO NOTHING`,
+                [plId, item.ig_id, prId, perKg]
+            );
+        }
+    }
+
+    return {
+        synced: newItems.length,
+        items:  newItems.map(function (i) { return { ig_id: i.ig_id, i_name: i.i_name }; }),
+    };
+};
+
 // ── List ──────────────────────────────────────────────────────────────────────
 
 module.exports.listAll = async function (catId, currentUserId) {

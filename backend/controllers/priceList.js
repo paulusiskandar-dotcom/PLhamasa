@@ -69,6 +69,24 @@ module.exports._getById = async function (req, res) {
 
         const priceTypes = isExtended ? EXTENDED_PRICE_TYPES : STANDARD_PRICE_TYPES;
 
+        // Auto-sync new ERP items for OPEN price lists
+        let syncInfo = { synced_count: 0, newly_synced_items: [] };
+        if (pl.status === 'OPEN') {
+            const validPrIds = isExtended ? [1, 2, 3, 4] : [2, 4];
+            const syncResult = await $model.syncItemsFromErp(plId, validPrIds);
+            syncInfo.synced_count     = syncResult.synced;
+            syncInfo.newly_synced_items = syncResult.items;
+
+            if (syncResult.synced > 0) {
+                const newIgIds = syncResult.items.map(function (i) { return i.ig_id; });
+                const newRows  = await global.dbPLM.any(
+                    'SELECT ig_id, pr_id, i_price, updated_by, updated_at FROM price_list_item WHERE price_list_id = $1 AND ig_id = ANY($2::int[])',
+                    [plId, newIgIds]
+                );
+                pl.items = (pl.items || []).concat(newRows);
+            }
+        }
+
         // Build price map from price_list_item: { ig_id: { pr_id: price } }
         const priceMap = {};
         (pl.items || []).forEach(item => {
@@ -100,6 +118,8 @@ module.exports._getById = async function (req, res) {
         const erpMap = {};
         erpItems.forEach(r => { erpMap[r.ig_id] = r; });
 
+        const newlySyncedIds = new Set(syncInfo.newly_synced_items.map(function (i) { return i.ig_id; }));
+
         // Build formatted items
         const items = ig_ids.map(ig_id => {
             const erp = erpMap[ig_id] || {};
@@ -114,12 +134,13 @@ module.exports._getById = async function (req, res) {
 
             return {
                 ig_id,
-                name:   erp.i_name   || ('Item ' + ig_id),
-                weight: parseFloat(erp.i_weight) || 0,
-                brand:  erp.i_brand  || null,
-                grade:  erp.grade    || null,
-                group:  erp.i_group  || null,
+                name:         erp.i_name   || ('Item ' + ig_id),
+                weight:       parseFloat(erp.i_weight) || 0,
+                brand:        erp.i_brand  || null,
+                grade:        erp.grade    || null,
+                group:        erp.i_group  || null,
                 prices,
+                newly_synced: newlySyncedIds.has(ig_id),
             };
         });
 
@@ -144,6 +165,7 @@ module.exports._getById = async function (req, res) {
             priceTypes,
             lockInfo,
             locked_status,
+            sync_info: syncInfo,
         });
     } catch (err) {
         console.error('_getById error:', err);

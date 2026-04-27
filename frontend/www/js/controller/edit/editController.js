@@ -48,6 +48,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.modalPost = false;
     $scope.modalLockLost = false;
     $scope.modalLog = null;
+    $scope.syncNotification = null;
+    $scope.modalSyncedItems = null;
 
     // ── Helpers ───────────────────────────────────────────────
     function roundSpecial(raw) {
@@ -116,7 +118,14 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             });
 
             $scope.lockState = data.locked_status;
-            $scope.lockInfo = data.lockInfo;
+            $scope.lockInfo  = data.lockInfo;
+
+            // Show banner if new items were auto-synced
+            var si = data.sync_info;
+            if (si && si.synced_count > 0) {
+                $scope.syncNotification = { count: si.synced_count, items: si.newly_synced_items || [] };
+                $timeout(function () { $scope.syncNotification = null; }, 30000);
+            }
 
             buildFilterOptions();
             applyFilter();
@@ -444,6 +453,9 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     // ── Export & Log ────────────────────────────────────────────
     $scope.pdfTemplateOptions = [];
     $scope.modalPdfTemplate   = null;
+
+    $scope.dismissSyncNotification = function () { $scope.syncNotification = null; };
+    $scope.showSyncedItemsList     = function () { $scope.modalSyncedItems = $scope.syncNotification; };
 
     $scope.closePdfTemplateModal = function () { $scope.modalPdfTemplate = null; };
 
