@@ -33,10 +33,10 @@ function fmtBerat(b) {
 }
 
 const meta = {
-    name:         'AS PUTIH 1',
+    name:         'As Putih',
     cat_id:       'RBPM',
     cat_name:     'As Putih',
-    description:  'Template Assental / Round Bar — A5, multi-page, footer',
+    description:  'Template Assental / Round Bar — A5 landscape, multi-page',
     custom_fields: [
         { key: 'dia_inch', label: 'DIA inch', type: 'text' },
         { key: 'dia_mm',   label: 'DIA mm',   type: 'text' },
@@ -88,8 +88,8 @@ function render({ items, customValues }) {
 
     const dd = {
         pageSize:        'A5',
-        pageOrientation: 'portrait',
-        pageMargins:     [20, 20, 20, 30],
+        pageOrientation: 'landscape',
+        pageMargins:     [8, 8, 8, 25],
 
         content: [
             {
