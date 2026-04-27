@@ -1,5 +1,6 @@
 const TEMPLATES = {
     as_putih_1: require('./template_as_putih_1'),
+    as_hitam:   require('./template_as_hitam'),
 };
 
 module.exports = {
