@@ -1978,3 +1978,57 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   background: #FFF8E1; border-left: 3px solid var(--orange);
   padding: 8px 12px; font-size: 12px; color: var(--text-muted); margin-top: 10px;
 }
+
+/* ─── Post to ERP modals ──────────────────────────────────────── */
+
+/* Summary stat pills */
+.post-summary-row {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.post-stat {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;
+}
+.post-stat strong { font-size: 14px; font-weight: 700; }
+.post-stat-changed  { background: #FFF3E0; color: #E65100; border: 1px solid #FFCC80; }
+.post-stat-new      { background: #E8F5E9; color: #2E7D32; border: 1px solid #A5D6A7; }
+.post-stat-unchanged{ background: #F5F5F5; color: #757575; border: 1px solid #E0E0E0; }
+.post-stat-total    { background: #E3F2FD; color: #1565C0; border: 1px solid #90CAF9; }
+
+/* Diff row tinting */
+.diff-row-changed  { background: #FFFDE7 !important; }
+.diff-row-new      { background: #F1F8E9 !important; }
+.diff-row-unchanged{ opacity: 0.7; }
+
+/* Diff badge */
+.diff-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 10px;
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em;
+}
+.diff-changed  { background: #FFF3E0; color: #E65100; }
+.diff-new      { background: #E8F5E9; color: #2E7D32; }
+.diff-unchanged{ background: #F5F5F5; color: #9E9E9E; }
+
+/* Filter checkboxes under the diff table */
+.post-diff-filter {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  margin-top: 10px; font-size: 12px; color: var(--text-muted);
+}
+.post-diff-filter label {
+  display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;
+}
+.post-diff-filter input[type="checkbox"] { cursor: pointer; }
+
+/* Confirm step stats */
+.post-confirm-stats {
+  display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0;
+}
+
+/* Post diff table — wider than log table */
+.post-diff-table { font-size: 12px; }
+.post-diff-table td, .post-diff-table th { padding: 5px 8px; }
+
+/* Result icons */
+.text-success { color: #2E7D32; }
+.text-warning { color: #E65100; }
+.text-danger  { color: #C62828; }
