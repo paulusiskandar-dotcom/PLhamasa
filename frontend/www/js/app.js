@@ -95,3 +95,26 @@ plmApp.filter("timeAgo", function () {
         return moment(val).fromNow();
     };
 });
+
+// Filter diff rows by selected diff_status checkboxes
+plmApp.filter("postFilter", function () {
+    return function (rows, filter) {
+        if (!rows || !filter) return rows;
+        return rows.filter(function (r) {
+            return !!filter[r.diff_status];
+        });
+    };
+});
+
+// Map pr_id → human label
+plmApp.filter("priceTypeLabel", function () {
+    var labels = {
+        1: 'Cash Pabrik',
+        2: 'Cash Gudang',
+        3: 'Kredit Pabrik',
+        4: 'Kredit Gudang',
+    };
+    return function (prId) {
+        return labels[prId] || ('PR ' + prId);
+    };
+});
