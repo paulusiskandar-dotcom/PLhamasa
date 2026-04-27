@@ -39,7 +39,7 @@ CREATE TABLE price_list (
     locked_heartbeat    TIMESTAMPTZ,
     based_on_id         INTEGER REFERENCES price_list(id),
     UNIQUE (cat_id, revision_no),
-    CHECK (status IN ('OPEN', 'PUBLISHED'))
+    CHECK (status IN ('OPEN', 'POSTING', 'PUBLISHED'))
 );
 
 CREATE UNIQUE INDEX idx_open_per_cat
@@ -87,10 +87,15 @@ CREATE TABLE price_list_export (
     file_path       VARCHAR(500),
     user_id         INTEGER NOT NULL REFERENCES users(id),
     exported_at     TIMESTAMPTZ DEFAULT NOW(),
+    post_status     VARCHAR(20),
+    duration_ms     INTEGER,
+    error_msg       TEXT,
+    snapshot        JSONB,
     CHECK (export_type IN ('pdf', 'excel', 'erp'))
 );
 
-CREATE INDEX idx_ple_pl ON price_list_export(price_list_id, exported_at DESC);
+CREATE INDEX idx_ple_pl        ON price_list_export(price_list_id, exported_at DESC);
+CREATE INDEX idx_export_pl_type ON price_list_export(price_list_id, export_type);
 
 -- ── SUBCATEGORY ────────────────────────────────────────────────
 CREATE TABLE subcategory (
