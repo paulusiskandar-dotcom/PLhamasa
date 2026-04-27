@@ -8,6 +8,7 @@ module.exports = function (req, res) {
                     "/js/services/auth.js",
                     "/js/services/priceList.js",
                     "/js/services/master.js",
+                    "/js/services/pdfTemplate.js",
                 ]
             }
         }

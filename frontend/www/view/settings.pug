@@ -89,7 +89,40 @@ block content
                 i.bi.bi-plus-lg
                 |  Tambah Subkategori
 
-      //- Section 3: ERP Target (superadmin only)
+      //- Section 3: PDF Template — Custom Field Values
+      div.settings-section
+        div.section-header
+          i.bi.bi-file-earmark-pdf
+          h3 Template PDF — Custom Field
+        div.section-body
+          p.section-desc
+            | Isi data custom per item untuk setiap template PDF
+            | (contoh: diameter dalam inch / mm).
+            | Nilai tersimpan otomatis saat blur.
+          div.subcat-controls
+            label Pilih Template
+            select.form-control(ng-model="pdfTplKey" ng-change="loadPdfTpl()" ng-options="t.key as t.name + ' (' + t.cat_name + ')' for t in pdfTemplates")
+              option(value="") Pilih template...
+          div(ng-if="pdfTplData")
+            p.detail-meta(style="margin-top:14px")
+              | {{ pdfTplData.template.description }}
+            table.pdf-field-table
+              thead
+                tr
+                  th(style="min-width:260px") Nama Barang
+                  th(ng-repeat="f in pdfTplData.template.custom_fields") {{ f.label }}
+              tbody
+                tr(ng-repeat="item in pdfTplData.items")
+                  td.pdf-item-name {{ item.name }}
+                  td(ng-repeat="f in pdfTplData.template.custom_fields")
+                    input.form-control.pdf-field-input(
+                      type="text"
+                      ng-model="item.custom_values[f.key]"
+                      ng-blur="savePdfFieldValue(item, f)"
+                      placeholder="—"
+                    )
+
+      //- Section 4: ERP Target (superadmin only)
       div.settings-section(ng-if="isSuperadmin")
         div.section-header
           i.bi.bi-database

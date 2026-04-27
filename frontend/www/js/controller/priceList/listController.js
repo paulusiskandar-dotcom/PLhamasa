@@ -1,4 +1,4 @@
-plmApp.controller('priceListListController', function ($scope, $timeout, priceListService, $masterService) {
+plmApp.controller('priceListListController', function ($scope, $timeout, priceListService, $masterService, pdfTemplateService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -172,8 +172,20 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         $scope.modalLog = null;
     };
 
+    $scope.pdfTemplateOptions = [];
+    $scope.modalPdfTemplate   = null;
+
     $scope.exportPdf = function (pl) {
-        showToast('Export PDF coming soon', 'info');
+        pdfTemplateService.list(pl.cat_id).then(function (r) {
+            $scope.pdfTemplateOptions = r.result || [];
+            $scope._pdfTargetPl = pl;
+            $scope.modalPdfTemplate = true;
+        }).catch(function () { showToast('Gagal memuat template PDF', 'danger'); });
+    };
+
+    $scope.exportPdfWithTemplate = function (key) {
+        if ($scope._pdfTargetPl) pdfTemplateService.render(key, $scope._pdfTargetPl.id);
+        $scope.modalPdfTemplate = null;
     };
 
     $scope.exportExcel = function (pl) {

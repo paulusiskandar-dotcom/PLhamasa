@@ -59,6 +59,12 @@ module.exports = function (app) {
     app.post("/subcategory/:id/items",                        auth.verifyToken, require("./controllers/subcategory")._assignItems);
     app.delete("/subcategory/:id/items/:ig_id",               auth.verifyToken, require("./controllers/subcategory")._removeItem);
 
+    // ── PDF TEMPLATE ───────────────────────────────────────────────────────────
+    app.get("/pdf-template/list",              auth.verifyToken, require("./controllers/pdfTemplate")._list);
+    app.get("/pdf-template/:key/items",        auth.verifyToken, require("./controllers/pdfTemplate")._getTemplateItems);
+    app.post("/pdf-template/:key/value",       auth.verifyToken, require("./controllers/pdfTemplate")._setValue);
+    app.post("/pdf-template/:key/render",      auth.verifyToken, require("./controllers/pdfTemplate")._render);
+
     // ── ERP TARGET ─────────────────────────────────────────────────────────────
     app.get("/erp-target",                  auth.verifyToken, require("./controllers/erpTarget")._list);
     app.get("/erp-target/active",           auth.verifyToken, require("./controllers/erpTarget")._getActive);

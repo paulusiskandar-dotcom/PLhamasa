@@ -1,4 +1,4 @@
-plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService) {
+plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -242,5 +242,32 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
         }).catch(function () { showToast('Gagal hapus', 'danger'); });
     };
 
+    // ── PDF Template Custom Fields ──────────────────────────────
+    $scope.pdfTemplates = [];
+    $scope.pdfTplKey    = '';
+    $scope.pdfTplData   = null;
+
+    function loadPdfTemplates() {
+        pdfTemplateService.list().then(function (r) {
+            $scope.pdfTemplates = r.result || [];
+        }).catch(function () {});
+    }
+
+    $scope.loadPdfTpl = function () {
+        if (!$scope.pdfTplKey) { $scope.pdfTplData = null; return; }
+        var tpl = ($scope.pdfTemplates || []).find(function (t) { return t.key === $scope.pdfTplKey; });
+        if (!tpl || !tpl.cat_id) { showToast('Template ini tidak terikat kategori tertentu.', 'info'); return; }
+        pdfTemplateService.getItems($scope.pdfTplKey, tpl.cat_id).then(function (r) {
+            $scope.pdfTplData = r.result;
+        }).catch(function () { showToast('Gagal memuat data template', 'danger'); });
+    };
+
+    $scope.savePdfFieldValue = function (item, field) {
+        var value = (item.custom_values && item.custom_values[field.key]) || '';
+        pdfTemplateService.setValue($scope.pdfTplKey, item.ig_id, field.key, value)
+            .catch(function () { showToast('Gagal simpan ' + field.label, 'danger'); });
+    };
+
     init();
+    loadPdfTemplates();
 });

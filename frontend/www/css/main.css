@@ -1873,3 +1873,26 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 }
 .btn-secondary:hover { background: var(--navy-light); }
 .btn-secondary:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ─── PDF Template ───────────────────────────────────────────── */
+.pdf-field-table {
+  width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px;
+}
+.pdf-field-table th {
+  background: #F5F7FA; padding: 8px 10px; text-align: left;
+  font-weight: 600; color: var(--navy); font-size: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.pdf-field-table td { padding: 6px 10px; border-bottom: 1px solid #F0F2F5; }
+.pdf-item-name { color: var(--navy); font-weight: 500; }
+.pdf-field-input { height: 30px !important; padding: 0 8px !important; font-size: 12px !important; width: 100%; }
+
+.tpl-list { display: flex; flex-direction: column; gap: 8px; }
+.tpl-option {
+  text-align: left; background: #fff; border: 1px solid var(--border);
+  border-radius: 6px; padding: 12px 16px; cursor: pointer; width: 100%;
+  transition: border-color .15s, background .15s;
+}
+.tpl-option:hover { border-color: var(--orange); background: #FFF8F0; }
+.tpl-option strong { display: block; color: var(--navy); margin-bottom: 4px; }
+.tpl-option small { color: var(--text-muted); font-size: 12px; }

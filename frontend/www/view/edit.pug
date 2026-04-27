@@ -243,7 +243,7 @@ block content
           i.bi.bi-cloud-upload
           |  Post to ERP
         div.toolbar-divider
-        button.btn-toolbar(ng-click="exportPdf()")
+        button.btn-toolbar(ng-click="showPdfTemplateModal()")
           i.bi.bi-file-pdf
           |  Export PDF
         button.btn-toolbar(ng-click="exportExcel()")
@@ -262,7 +262,7 @@ block content
 
       //- Bottom toolbar — PUBLISHED
       div.bottom-toolbar(ng-if="pl && pl.status === 'PUBLISHED' && !loading")
-        button.btn-toolbar(ng-click="exportPdf()")
+        button.btn-toolbar(ng-click="showPdfTemplateModal()")
           i.bi.bi-file-pdf
           |  Export PDF
         button.btn-toolbar(ng-click="exportExcel()")
@@ -335,6 +335,23 @@ block content
                   td.mono.text-right {{ entry.new_price | number:0 }}
           div.modal-actions
             button.btn-primary(ng-click="closeLog()") Tutup
+
+      //- Modal PDF Template
+      div.modal-overlay(ng-if="modalPdfTemplate" ng-click="modalPdfTemplate = null")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Pilih Template PDF
+            button.modal-close(ng-click="modalPdfTemplate = null") ×
+          div.modal-body
+            div.empty-state(ng-if="pdfTemplateOptions.length === 0")
+              i.bi.bi-file-earmark-pdf
+              p Belum ada template PDF untuk kategori ini.
+            div.tpl-list(ng-if="pdfTemplateOptions.length > 0")
+              button.tpl-option(ng-repeat="tpl in pdfTemplateOptions" ng-click="exportPdfWithTemplate(tpl.key)")
+                strong {{ tpl.name }}
+                small {{ tpl.description }}
+          div.modal-actions
+            button.btn-ghost(ng-click="modalPdfTemplate = null") Tutup
 
       //- Toast
       div.toast-container(ng-if="toast.show")

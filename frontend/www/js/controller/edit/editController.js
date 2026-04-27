@@ -1,4 +1,4 @@
-plmApp.controller('editController', function ($scope, $timeout, $window, priceListService, $masterService, subcategoryService, erpTargetService) {
+plmApp.controller('editController', function ($scope, $timeout, $window, priceListService, $masterService, subcategoryService, erpTargetService, pdfTemplateService) {
 
     // Get price list ID from server-injected data
     var plId = (window.plmPageData && window.plmPageData.priceListId) ? window.plmPageData.priceListId : null;
@@ -442,7 +442,23 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     };
 
     // ── Export & Log ────────────────────────────────────────────
-    $scope.exportPdf = function () { showToast('Export PDF coming soon', 'info'); };
+    $scope.pdfTemplateOptions = [];
+    $scope.modalPdfTemplate   = null;
+
+    $scope.showPdfTemplateModal = function () {
+        if (!$scope.pl) return;
+        pdfTemplateService.list($scope.pl.cat_id).then(function (r) {
+            $scope.pdfTemplateOptions = r.result || [];
+            $scope.modalPdfTemplate   = true;
+        }).catch(function () { showToast('Gagal memuat template PDF', 'danger'); });
+    };
+
+    $scope.exportPdfWithTemplate = function (key) {
+        pdfTemplateService.render(key, plId);
+        $scope.modalPdfTemplate = null;
+    };
+
+    $scope.exportPdf = $scope.showPdfTemplateModal;
     $scope.exportExcel = function () {
         showToast('Mengunduh Excel...', 'info');
         priceListService.exportExcel(plId);

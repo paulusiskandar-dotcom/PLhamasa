@@ -136,3 +136,18 @@ CREATE TABLE erp_target (
 
 CREATE UNIQUE INDEX idx_erp_active
     ON erp_target(is_active) WHERE is_active = TRUE;
+
+-- ── PDF TEMPLATE CUSTOM FIELD VALUES ──────────────────────────
+CREATE TABLE IF NOT EXISTS pdf_template_field_value (
+    id              SERIAL PRIMARY KEY,
+    template_key    VARCHAR(50) NOT NULL,
+    ig_id           INTEGER NOT NULL,
+    field_key       VARCHAR(50) NOT NULL,
+    value           TEXT,
+    updated_by      INTEGER REFERENCES users(id),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (template_key, ig_id, field_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ptfv_template_item
+    ON pdf_template_field_value(template_key, ig_id);
