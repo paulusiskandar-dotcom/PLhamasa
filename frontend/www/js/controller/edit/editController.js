@@ -445,6 +445,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.pdfTemplateOptions = [];
     $scope.modalPdfTemplate   = null;
 
+    $scope.closePdfTemplateModal = function () { $scope.modalPdfTemplate = null; };
+
     $scope.showPdfTemplateModal = function () {
         if (!$scope.pl) return;
         pdfTemplateService.list($scope.pl.cat_id).then(function (r) {

@@ -118,9 +118,20 @@ block content
                     input.form-control.pdf-field-input(
                       type="text"
                       ng-model="item.custom_values[f.key]"
-                      ng-blur="savePdfFieldValue(item, f)"
+                      ng-change="markPdfDirty()"
                       placeholder="—"
                     )
+            div.pdf-save-bar
+              span.pdf-save-status(ng-if="pdfTplDirty")
+                i.bi.bi-exclamation-circle
+                |  Ada perubahan belum disimpan
+              span.pdf-save-status.saved(ng-if="!pdfTplDirty && pdfTplLastSaved")
+                i.bi.bi-check-circle
+                |  Tersimpan {{ pdfTplLastSaved | timeAgo }}
+              button.btn-primary(ng-click="savePdfTplAll()" ng-disabled="!pdfTplDirty || pdfTplSaving")
+                i.bi.bi-save(ng-if="!pdfTplSaving")
+                i.bi.bi-arrow-clockwise.spinning(ng-if="pdfTplSaving")
+                |  {{ pdfTplSaving ? 'Menyimpan...' : 'Simpan Semua' }}
 
       //- Section 4: Blacklist Item
       div.settings-section

@@ -313,9 +313,13 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
     };
 
     // ── PDF Template Custom Fields ──────────────────────────────
-    $scope.pdfTemplates = [];
-    $scope.pdfTplKey    = '';
-    $scope.pdfTplData   = null;
+    $scope.pdfTemplates    = [];
+    $scope.pdfTplKey       = '';
+    $scope.pdfTplData      = null;
+    $scope.pdfTplDirty     = false;
+    $scope.pdfTplSaving    = false;
+    $scope.pdfTplLastSaved = null;
+    $scope.pdfTplOriginal  = {};
 
     function loadPdfTemplates() {
         pdfTemplateService.list().then(function (r) {
@@ -329,13 +333,59 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
         if (!tpl || !tpl.cat_id) { showToast('Template ini tidak terikat kategori tertentu.', 'info'); return; }
         pdfTemplateService.getItems($scope.pdfTplKey, tpl.cat_id).then(function (r) {
             $scope.pdfTplData = r.result;
+            $scope.pdfTplOriginal = {};
+            ($scope.pdfTplData.items || []).forEach(function (it) {
+                $scope.pdfTplOriginal[it.ig_id] = Object.assign({}, it.custom_values);
+            });
+            $scope.pdfTplDirty     = false;
+            $scope.pdfTplLastSaved = null;
         }).catch(function () { showToast('Gagal memuat data template', 'danger'); });
     };
 
-    $scope.savePdfFieldValue = function (item, field) {
-        var value = (item.custom_values && item.custom_values[field.key]) || '';
-        pdfTemplateService.setValue($scope.pdfTplKey, item.ig_id, field.key, value)
-            .catch(function () { showToast('Gagal simpan ' + field.label, 'danger'); });
+    $scope.markPdfDirty = function () {
+        $scope.pdfTplDirty     = true;
+        $scope.pdfTplLastSaved = null;
+    };
+
+    $scope.savePdfTplAll = function () {
+        if (!$scope.pdfTplData || $scope.pdfTplSaving) return;
+        $scope.pdfTplSaving = true;
+
+        var changes = [];
+        ($scope.pdfTplData.items || []).forEach(function (item) {
+            var orig = $scope.pdfTplOriginal[item.ig_id] || {};
+            var curr = item.custom_values || {};
+            ($scope.pdfTplData.template.custom_fields || []).forEach(function (f) {
+                if ((orig[f.key] || '') !== (curr[f.key] || '')) {
+                    changes.push({ ig_id: item.ig_id, field_key: f.key, value: curr[f.key] || '' });
+                }
+            });
+        });
+
+        if (!changes.length) {
+            $scope.pdfTplSaving = false;
+            $scope.pdfTplDirty  = false;
+            return;
+        }
+
+        Promise.all(changes.map(function (c) {
+            return pdfTemplateService.setValue($scope.pdfTplKey, c.ig_id, c.field_key, c.value);
+        })).then(function () {
+            $scope.$apply(function () {
+                ($scope.pdfTplData.items || []).forEach(function (it) {
+                    $scope.pdfTplOriginal[it.ig_id] = Object.assign({}, it.custom_values);
+                });
+                $scope.pdfTplDirty     = false;
+                $scope.pdfTplSaving    = false;
+                $scope.pdfTplLastSaved = new Date();
+                showToast('Tersimpan ' + changes.length + ' perubahan', 'success');
+            });
+        }).catch(function () {
+            $scope.$apply(function () {
+                $scope.pdfTplSaving = false;
+                showToast('Gagal menyimpan beberapa perubahan', 'danger');
+            });
+        });
     };
 
     init();

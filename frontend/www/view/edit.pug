@@ -337,21 +337,21 @@ block content
             button.btn-primary(ng-click="closeLog()") Tutup
 
       //- Modal PDF Template
-      div.modal-overlay(ng-if="modalPdfTemplate" ng-click="modalPdfTemplate = null")
+      div.modal-overlay(ng-if="modalPdfTemplate" ng-click="closePdfTemplateModal()")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Pilih Template PDF
-            button.modal-close(ng-click="modalPdfTemplate = null") ×
+            button.modal-close(ng-click="closePdfTemplateModal()") ×
           div.modal-body
-            div.empty-state(ng-if="pdfTemplateOptions.length === 0")
+            div.empty-state(ng-if="!pdfTemplateOptions || pdfTemplateOptions.length === 0")
               i.bi.bi-file-earmark-pdf
               p Belum ada template PDF untuk kategori ini.
-            div.tpl-list(ng-if="pdfTemplateOptions.length > 0")
+            div.tpl-list(ng-if="pdfTemplateOptions && pdfTemplateOptions.length > 0")
               button.tpl-option(ng-repeat="tpl in pdfTemplateOptions" ng-click="exportPdfWithTemplate(tpl.key)")
                 strong {{ tpl.name }}
                 small {{ tpl.description }}
           div.modal-actions
-            button.btn-ghost(ng-click="modalPdfTemplate = null") Tutup
+            button.btn-ghost(ng-click="closePdfTemplateModal()") Tutup
 
       //- Toast
       div.toast-container(ng-if="toast.show")

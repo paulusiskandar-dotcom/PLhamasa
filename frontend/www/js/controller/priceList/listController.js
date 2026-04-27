@@ -175,6 +175,8 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     $scope.pdfTemplateOptions = [];
     $scope.modalPdfTemplate   = null;
 
+    $scope.closePdfTemplateModal = function () { $scope.modalPdfTemplate = null; };
+
     $scope.exportPdf = function (pl) {
         pdfTemplateService.list(pl.cat_id).then(function (r) {
             $scope.pdfTemplateOptions = r.result || [];
