@@ -19,7 +19,21 @@ global.dbERP = dbERP;  // DB ERP (read-only: item, category, brand, price lama)
 global.dbPLM = dbPLM;  // DB PLhamasa (read+write: item_price per kg, price_log)
 
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        const allowed = [
+            /^http:\/\/localhost(:\d+)?$/,
+            /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+            /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
+            /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
+            /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
+        ];
+        if (allowed.some(function (p) { return p.test(origin); })) return callback(null, true);
+        return callback(new Error('CORS: origin not allowed: ' + origin));
+    },
+    credentials: true,
+}));
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 app.use(express.static(path.join(__dirname, "public")));
@@ -51,8 +65,8 @@ async function checkDatabases() {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 checkDatabases().then(() => {
-    app.listen(port, () => {
-        console.log(`[PLhamasa Backend] Running on port ${port}`);
+    app.listen(port, '0.0.0.0', () => {
+        console.log(`[PLhamasa Backend] Running on port ${port} (LAN: 192.168.9.139:${port})`);
     });
 });
 

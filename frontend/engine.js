@@ -39,6 +39,6 @@ app.use(function (req, res) {
     res.status(404).send("Halaman tidak ditemukan");
 });
 
-app.listen(port, () => {
-    console.log(`[Price List Manager] Frontend running on port ${port}`);
+app.listen(port, '0.0.0.0', () => {
+    console.log(`[Price List Manager] Frontend running on port ${port} (LAN: 192.168.9.139:${port})`);
 });
