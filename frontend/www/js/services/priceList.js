@@ -35,6 +35,15 @@ plmApp.factory('priceListService', function ($http) {
         postToErp: function (id) {
             return $http.post(base + '/' + id + '/post-to-erp', { confirm: true }).then(function (r) { return r.data; });
         },
+        postPreview: function (id) {
+            return $http.get(base + '/' + id + '/post-preview').then(function (r) { return r.data; });
+        },
+        postExecute: function (id, erpTargetId) {
+            return $http.post(base + '/' + id + '/post', { erp_target_id: erpTargetId || null }).then(function (r) { return r.data; });
+        },
+        crossCheck: function (id) {
+            return $http.get(base + '/' + id + '/cross-check').then(function (r) { return r.data; });
+        },
         exportExcel: function (id) {
             var token = localStorage.getItem('accessToken');
             var url = api.url + 'price-list/' + id + '/export-excel?accessToken=' + encodeURIComponent(token || '');
