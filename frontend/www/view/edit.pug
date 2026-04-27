@@ -286,21 +286,131 @@ block content
           i.bi.bi-arrow-left
           |  Kembali
 
-      //- Modal Post to ERP
-      div.modal-overlay(ng-if="modalPost" ng-click="modalPost = null")
+      //- Modal Post to ERP — Step 1: Preview diff
+      div.modal-overlay(ng-if="modalPostPreview" ng-click="closePostPreview()")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Preview Post to ERP
+            button.modal-close(ng-click="closePostPreview()") ×
+          div.modal-body
+            div.loading-state(ng-if="modalPostPreview.loading")
+              i.bi.bi-arrow-clockwise.spinning
+              span  Memuat diff...
+            div(ng-if="!modalPostPreview.loading")
+              div.post-summary-row
+                span.post-stat.post-stat-changed
+                  strong {{ modalPostPreview.summary.changed }}
+                  |  berubah
+                span.post-stat.post-stat-new
+                  strong {{ modalPostPreview.summary.new }}
+                  |  baru
+                span.post-stat.post-stat-unchanged
+                  strong {{ modalPostPreview.summary.unchanged }}
+                  |  sama
+                span.post-stat.post-stat-total
+                  strong {{ modalPostPreview.summary.total }}
+                  |  total
+              table.log-table.post-diff-table(ng-if="modalPostPreview.rows.length > 0")
+                thead
+                  tr
+                    th Nama Barang
+                    th Jenis
+                    th.text-right Berat (kg)
+                    th.text-right PLM /kg
+                    th.text-right PLM /btg
+                    th.text-right ERP saat ini
+                    th Status
+                tbody
+                  tr(ng-repeat="r in modalPostPreview.rows | postFilter:modalPostPreview.diffFilter" ng-class="'diff-row-' + r.diff_status")
+                    td {{ r.ig_name }}
+                    td
+                      span.price-type-badge(ng-class="'badge-' + r.pr_id") {{ r.pr_id | priceTypeLabel }}
+                    td.mono.text-right {{ r.weight | number:2 }}
+                    td.mono.text-right {{ r.plm_per_kg | number:0 }}
+                    td.mono.text-right {{ r.plm_per_unit | number:0 }}
+                    td.mono.text-right {{ r.erp_current !== null ? (r.erp_current | number:0) : '—' }}
+                    td
+                      span.diff-badge(ng-class="'diff-' + r.diff_status")
+                        span(ng-if="r.diff_status === 'new'") BARU
+                        span(ng-if="r.diff_status === 'changed'") BERUBAH
+                        span(ng-if="r.diff_status === 'unchanged'") SAMA
+              div.post-diff-filter
+                label Filter:
+                label
+                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.changed")
+                  |  Berubah
+                label
+                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.new")
+                  |  Baru
+                label
+                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.unchanged")
+                  |  Sama
+          div.modal-actions
+            button.btn-ghost(ng-click="closePostPreview()") Batal
+            button.btn-success(ng-click="openPostConfirm()" ng-disabled="modalPostPreview.loading || !erpActive")
+              |  Lanjut: Konfirmasi Post
+
+      //- Modal Post to ERP — Step 2: Confirmation
+      div.modal-overlay(ng-if="modalPostConfirm" ng-click="closePostConfirm()")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Konfirmasi Post to ERP
           div.modal-body
             p
-              | Yakin post #[strong {{ pl.cat_name }} \#{{ pl.revision_no | padNumber:3 }}] ke #[strong {{ erpActive && erpActive.name }}]?
-            p.warning(ng-if="erpActive")  ⚠ Setelah ini jadi PUBLISHED dan tidak bisa diedit lagi. Sistem otomatis buat OPEN baru.
+              | Post #[strong {{ pl.cat_name }} \#{{ pl.revision_no | padNumber:3 }}] ke ERP target #[strong {{ erpActive && erpActive.name }}]?
+            div.post-confirm-stats(ng-if="modalPostPreview")
+              span.post-stat.post-stat-changed {{ modalPostPreview.summary.changed }} berubah
+              span.post-stat.post-stat-new {{ modalPostPreview.summary.new }} baru
+            p.warning ⚠ Setelah post, rekaman ini jadi PUBLISHED dan tidak bisa diedit. Sistem otomatis buat OPEN baru.
             p(ng-if="!erpActive") Belum ada ERP target aktif.
           div.modal-actions
-            button.btn-ghost(ng-click="modalPost = null") Batal
+            button.btn-ghost(ng-click="closePostConfirm()") Batal
             button.btn-success(ng-click="executePostToErp()" ng-disabled="posting || !erpActive")
               span(ng-if="!posting") Yakin, Post Sekarang
               span(ng-if="posting") Posting...
+
+      //- Modal Post to ERP — Step 3: Result / cross-check
+      div.modal-overlay(ng-if="modalPostResult")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3(ng-if="modalPostResult.success") Post Berhasil
+            h3(ng-if="!modalPostResult.success") Post Gagal
+          div.modal-body
+            div(ng-if="modalPostResult.success")
+              p
+                i.bi.bi-check-circle-fill.text-success
+                |  #[strong {{ modalPostResult.items_posted }}] harga berhasil dikirim ke ERP dalam #[strong {{ modalPostResult.duration_ms }}ms].
+              div.loading-state(ng-if="modalPostResult.crossCheckLoading")
+                i.bi.bi-arrow-clockwise.spinning
+                span  Verifikasi ERP...
+              div(ng-if="modalPostResult.crossCheck")
+                p(ng-if="modalPostResult.crossCheck.ok")
+                  i.bi.bi-check-circle-fill.text-success
+                  |  Cross-check: semua #[strong {{ modalPostResult.crossCheck.matched }}] harga cocok di ERP.
+                div(ng-if="!modalPostResult.crossCheck.ok")
+                  p
+                    i.bi.bi-exclamation-triangle-fill.text-warning
+                    |  Cross-check: #[strong {{ modalPostResult.crossCheck.mismatched }}] harga tidak cocok.
+                  table.log-table(ng-if="modalPostResult.crossCheck.mismatches.length > 0")
+                    thead
+                      tr
+                        th Nama Barang
+                        th Jenis
+                        th.text-right PLM /btg
+                        th.text-right ERP
+                    tbody
+                      tr(ng-repeat="m in modalPostResult.crossCheck.mismatches")
+                        td {{ m.ig_name }}
+                        td
+                          span.price-type-badge(ng-class="'badge-' + m.pr_id") {{ m.pr_id | priceTypeLabel }}
+                        td.mono.text-right {{ m.plm_per_unit | number:0 }}
+                        td.mono.text-right {{ m.erp_price !== null ? (m.erp_price | number:0) : '—' }}
+            div(ng-if="!modalPostResult.success")
+              p
+                i.bi.bi-x-circle-fill.text-danger
+                |  Post gagal: #[strong {{ modalPostResult.error }}]
+          div.modal-actions
+            button.btn-primary(ng-click="closePostResult()") Tutup
 
       //- Modal Lock Lost
       div.modal-overlay(ng-if="modalLockLost")

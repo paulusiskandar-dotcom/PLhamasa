@@ -45,7 +45,6 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.modifier = { type: 'plus_nominal', value: null, targets: {} };
 
     $scope.toast = { show: false };
-    $scope.modalPost = false;
     $scope.modalLockLost = false;
     $scope.modalLog = null;
     $scope.syncNotification = null;
@@ -426,28 +425,78 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         }
     });
 
-    // ── Post to ERP ─────────────────────────────────────────────
+    // ── Post to ERP — rich 3-step flow ──────────────────────────
+    $scope.modalPostPreview = null;
+    $scope.modalPostConfirm = null;
+    $scope.modalPostResult  = null;
+
     $scope.confirmPostToErp = function () {
         if (!$scope.erpActive) {
             showToast('Belum ada ERP target aktif. Setup di Settings dulu.', 'warning', 5000);
             return;
         }
-        $scope.modalPost = true;
+        $scope.modalPostPreview = {
+            loading: true,
+            rows: [],
+            summary: { total: 0, new: 0, changed: 0, unchanged: 0 },
+            diffFilter: { changed: true, new: true, unchanged: false },
+        };
+        priceListService.postPreview(plId).then(function (r) {
+            $scope.modalPostPreview.loading = false;
+            $scope.modalPostPreview.rows    = r.result.rows || [];
+            $scope.modalPostPreview.summary = r.result.summary || {};
+        }).catch(function (err) {
+            $scope.modalPostPreview = null;
+            var msg = (err && err.data && err.data.message) ? err.data.message : 'Gagal memuat preview';
+            showToast(msg, 'danger', 5000);
+        });
     };
+
+    $scope.closePostPreview = function () { $scope.modalPostPreview = null; };
+
+    $scope.openPostConfirm = function () {
+        $scope.modalPostPreview = null;
+        $scope.modalPostConfirm = true;
+    };
+
+    $scope.closePostConfirm = function () { $scope.modalPostConfirm = null; };
 
     $scope.executePostToErp = function () {
         $scope.posting = true;
-        priceListService.postToErp(plId).then(function () {
+        $scope.modalPostConfirm = null;
+        priceListService.postExecute(plId, $scope.erpActive ? $scope.erpActive.id : null).then(function (r) {
             stopHeartbeat();
-            $scope.modalPost = false;
             $scope.posting = false;
-            showToast('Berhasil di-Post ke ERP!', 'success');
-            $timeout(function () { window.location.href = '/price-list'; }, 1500);
+            var res = r.result || {};
+            $scope.modalPostResult = {
+                success:           true,
+                items_posted:      res.items_posted,
+                duration_ms:       res.duration_ms,
+                crossCheckLoading: true,
+                crossCheck:        null,
+                new_open_id:       res.new_open_id,
+            };
+            priceListService.crossCheck(plId).then(function (cc) {
+                if ($scope.modalPostResult) {
+                    $scope.modalPostResult.crossCheckLoading = false;
+                    $scope.modalPostResult.crossCheck = cc.result || null;
+                }
+            }).catch(function () {
+                if ($scope.modalPostResult) $scope.modalPostResult.crossCheckLoading = false;
+            });
         }).catch(function (err) {
             $scope.posting = false;
             var msg = (err && err.data && err.data.message) ? err.data.message : 'Gagal Post to ERP';
-            showToast(msg, 'danger', 5000);
+            $scope.modalPostResult = { success: false, error: msg };
         });
+    };
+
+    $scope.closePostResult = function () {
+        var wasSuccess = $scope.modalPostResult && $scope.modalPostResult.success;
+        $scope.modalPostResult = null;
+        if (wasSuccess) {
+            $timeout(function () { window.location.href = '/price-list'; }, 300);
+        }
     };
 
     // ── Export & Log ────────────────────────────────────────────
