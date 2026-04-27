@@ -93,7 +93,7 @@ module.exports.generateErpExcel = async function (priceListId) {
     const items = await dbERP().any(`
         SELECT i.ig_id, i.i_id, i.serial_id, i.i_name, i.grade,
                i.i_brand, i.i_group, i.i_weight,
-               ic.unit_code
+               ic.unit
         FROM item i
         LEFT JOIN item_category ic ON ic.cat_id = i.cat_id
         WHERE i.ig_id = ANY($1::int[]) AND i.deleted_at IS NULL AND i.is_item = true
@@ -144,7 +144,7 @@ module.exports.generateErpExcel = async function (priceListId) {
         row.getCell(5).value  = item.grade || '';
         row.getCell(6).value  = item.i_brand || '';
         row.getCell(7).value  = item.i_group || '';
-        row.getCell(8).value  = item.unit_code || 'Btg';
+        row.getCell(8).value  = item.unit || 'Btg';
         row.getCell(9).value  = weight;
         row.getCell(10).value = prices[1] ? roundSpecial(prices[1] * weight) : 0; // CASH PABRIK  (pr_id=1)
         row.getCell(11).value = prices[2] ? roundSpecial(prices[2] * weight) : 0; // CASH GUDANG  (pr_id=2)
