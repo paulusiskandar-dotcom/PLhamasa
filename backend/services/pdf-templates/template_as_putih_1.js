@@ -77,13 +77,13 @@ function render({ items, customValues }) {
         { text: 'KREDIT', colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
     ];
     const headerSub = [
-        { text: '(inch)',   alignment: 'center', bold: true, fontSize: 12 },
-        { text: '(mm)',     alignment: 'center', bold: true, fontSize: 12 },
-        { text: '(kg)',     alignment: 'center', bold: true, fontSize: 12 },
-        { text: '(Rp/kg)', alignment: 'center', bold: true, fontSize: 12 },
-        { text: '(Rp/btg)',alignment: 'center', bold: true, fontSize: 12 },
-        { text: '(Rp/kg)', alignment: 'center', bold: true, fontSize: 12 },
-        { text: '(Rp/btg)',alignment: 'center', bold: true, fontSize: 12 },
+        { text: '(inch)',   alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        { text: '(mm)',     alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        { text: '(kg)',     alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        { text: '(Rp/kg)', alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        { text: '(Rp/btg)',alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        { text: '(Rp/kg)', alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        { text: '(Rp/btg)',alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
     ];
 
     const dd = {
