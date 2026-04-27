@@ -136,7 +136,8 @@ module.exports.createOpenFromBaseline = async function (catId, catName, userId, 
 
 // ── Create from based-on ──────────────────────────────────────────────────────
 
-module.exports.createOpenFromBasedOn = async function (basedOnId, userId) {
+module.exports.createOpenFromBasedOn = async function (basedOnId, userId, excludeIgIds) {
+    const excludeSet = new Set(excludeIgIds || []);
     return dbPLM().tx(async t => {
         const source = await t.one('SELECT * FROM price_list WHERE id = $1', [basedOnId]);
         const revNo = await module.exports.getNextRevisionNo(source.cat_id);
@@ -147,6 +148,7 @@ module.exports.createOpenFromBasedOn = async function (basedOnId, userId) {
         );
         const sourceItems = await t.any('SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id = $1', [basedOnId]);
         for (const item of sourceItems) {
+            if (excludeSet.has(item.ig_id)) continue;
             await t.none(
                 `INSERT INTO price_list_item (price_list_id, ig_id, pr_id, i_price, updated_by)
                  VALUES ($1, $2, $3, $4, $5)`,
@@ -334,8 +336,13 @@ module.exports.postToErp = async function (plId, userId, erpTargetId) {
     if (pl.status !== 'OPEN') return { success: false, error: 'not_open' };
     if (pl.locked_by !== userId) return { success: false, error: 'lock_required' };
 
-    // 2. Get items
-    const items = await dbPLM().any('SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id=$1', [plId]);
+    // 2. Get items (excluding blacklisted)
+    const $blacklist = require('./blacklist');
+    const blacklistedIds = await $blacklist.getBlacklistedIds();
+    const allItems = await dbPLM().any('SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id=$1', [plId]);
+    const items = blacklistedIds.length
+        ? allItems.filter(function (i) { return !blacklistedIds.includes(i.ig_id); })
+        : allItems;
     if (!items.length) return { success: false, error: 'no_items' };
 
     // 3. Get ERP target

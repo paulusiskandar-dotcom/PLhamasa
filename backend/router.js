@@ -59,6 +59,12 @@ module.exports = function (app) {
     app.post("/subcategory/:id/items",                        auth.verifyToken, require("./controllers/subcategory")._assignItems);
     app.delete("/subcategory/:id/items/:ig_id",               auth.verifyToken, require("./controllers/subcategory")._removeItem);
 
+    // ── BLACKLIST ──────────────────────────────────────────────────────────────
+    app.get("/blacklist",              auth.verifyToken, require("./controllers/blacklist")._list);
+    app.get("/blacklist/items",        auth.verifyToken, require("./controllers/blacklist")._itemsForCat);
+    app.post("/blacklist",             auth.verifyToken, require("./controllers/blacklist")._add);
+    app.delete("/blacklist/:ig_id",    auth.verifyToken, require("./controllers/blacklist")._remove);
+
     // ── PDF TEMPLATE ───────────────────────────────────────────────────────────
     app.get("/pdf-template/list",              auth.verifyToken, require("./controllers/pdfTemplate")._list);
     app.get("/pdf-template/:key/items",        auth.verifyToken, require("./controllers/pdfTemplate")._getTemplateItems);

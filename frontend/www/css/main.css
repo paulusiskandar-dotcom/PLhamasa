@@ -1896,3 +1896,44 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .tpl-option:hover { border-color: var(--orange); background: #FFF8F0; }
 .tpl-option strong { display: block; color: var(--navy); margin-bottom: 4px; }
 .tpl-option small { color: var(--text-muted); font-size: 12px; }
+
+/* ─── Blacklist UI ───────────────────────────────────────────── */
+.bl-tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 16px; }
+.bl-tab {
+  padding: 10px 20px; background: transparent; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted);
+  transition: all .15s;
+}
+.bl-tab:hover { color: var(--navy); }
+.bl-tab.active { color: var(--navy); border-bottom-color: var(--orange); }
+.bl-count {
+  display: inline-block; margin-left: 6px; background: var(--navy);
+  color: #fff; font-size: 11px; font-weight: 600; padding: 1px 7px;
+  border-radius: 10px;
+}
+.bl-filters { display: grid; grid-template-columns: 220px 1fr; gap: 10px; margin-bottom: 14px; }
+.bl-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bl-table thead th {
+  background: #F5F7FA; padding: 10px; text-align: left; font-weight: 600;
+  color: var(--navy); font-size: 12px; border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.bl-table tbody td { padding: 8px 10px; border-bottom: 1px solid #F0F2F5; vertical-align: middle; }
+.bl-table tbody tr:hover { background: #FAFBFC; }
+.bl-reason { color: var(--text-muted); font-size: 12px; }
+.bl-actions-top {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border); margin-bottom: 4px;
+}
+.bl-checkbox-all { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.bl-selected-count { font-size: 13px; font-weight: 600; color: var(--orange); }
+.bl-actions-bottom {
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end;
+}
+.bl-modal-list { margin: 8px 0; padding-left: 20px; font-size: 13px; color: var(--text-muted); }
+.bl-warning {
+  background: #FFF8E1; border-left: 3px solid var(--orange);
+  padding: 8px 12px; font-size: 12px; color: var(--text-muted); margin-top: 10px;
+}

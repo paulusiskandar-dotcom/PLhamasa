@@ -122,7 +122,115 @@ block content
                       placeholder="—"
                     )
 
-      //- Section 4: ERP Target (superadmin only)
+      //- Section 4: Blacklist Item
+      div.settings-section
+        div.section-header
+          i.bi.bi-slash-circle
+          h3 Blacklist Item
+        div.section-body
+          p.section-desc
+            | Item yang di-blacklist tidak akan muncul di rekaman price list baru,
+            | edit OPEN, export Excel, export PDF, atau push ke ERP.
+            | Rekaman PUBLISHED (arsip) tidak terpengaruh.
+          div.bl-tabs
+            button.bl-tab(ng-class="{active: blTab === 'add'}" ng-click="blTab = 'add'") Tambah ke Blacklist
+            button.bl-tab(ng-class="{active: blTab === 'list'}" ng-click="blTab = 'list'; loadBlacklist()")
+              | Daftar Blacklist
+              span.bl-count(ng-if="blacklistData.length") {{ blacklistData.length }}
+
+          div.bl-panel(ng-if="blTab === 'add'")
+            div.bl-filters
+              select.form-control(ng-model="blFilter.catId" ng-change="searchBlItems()" ng-options="c.id as c.name for c in categories")
+                option(value="") Pilih kategori dulu...
+              input.form-control(type="text" ng-model="blFilter.search" ng-change="searchBlItemsDebounced()" placeholder="Cari nama barang..." ng-disabled="!blFilter.catId")
+            div.bl-items-wrap(ng-if="blAvailableItems.length")
+              div.bl-actions-top
+                label.bl-checkbox-all
+                  input(type="checkbox" ng-model="blSelection.all" ng-change="toggleBlSelectAll()")
+                  | Pilih semua ({{ blAvailableItems.length }})
+                span.bl-selected-count(ng-if="blSelectedCount() > 0") {{ blSelectedCount() }} dipilih
+              table.bl-table
+                thead
+                  tr
+                    th(style="width:40px")
+                    th Nama Barang
+                    th(style="width:110px") Merek
+                    th(style="width:80px") Grade
+                    th(style="width:60px") Unit
+                tbody
+                  tr(ng-repeat="item in blAvailableItems")
+                    td
+                      input(type="checkbox" ng-model="item._selected" ng-change="updateBlSelectionAll()")
+                    td.bl-item-name {{ item.i_name }}
+                    td {{ item.i_brand || '-' }}
+                    td {{ item.grade || '-' }}
+                    td {{ item.un_name || '-' }}
+              div.bl-actions-bottom(ng-if="blSelectedCount() > 0")
+                button.btn-primary(ng-click="confirmAddBlacklist()")
+                  i.bi.bi-slash-circle
+                  |  Tambah ke Blacklist ({{ blSelectedCount() }} item)
+            div.empty-state(ng-if="blFilter.catId && blAvailableItems.length === 0") Tidak ada item ditemukan
+            div.empty-state(ng-if="!blFilter.catId") Pilih kategori untuk mulai
+
+          div.bl-panel(ng-if="blTab === 'list'")
+            div.empty-state(ng-if="blacklistData.length === 0") Belum ada item di blacklist
+            table.bl-table(ng-if="blacklistData.length > 0")
+              thead
+                tr
+                  th Nama Barang
+                  th(style="width:120px") Kategori
+                  th Alasan
+                  th(style="width:90px") Oleh
+                  th(style="width:130px") Kapan
+                  th(style="width:90px")
+              tbody
+                tr(ng-repeat="b in blacklistData")
+                  td.bl-item-name {{ b.i_name }}
+                  td {{ b.cat_name }}
+                  td.bl-reason {{ b.reason || '-' }}
+                  td {{ b.blacklisted_by_name }}
+                  td {{ b.blacklisted_at | dateTimeFormat }}
+                  td
+                    button.btn-ghost.btn-sm(ng-click="confirmRemoveBl(b)")
+                      i.bi.bi-trash
+                      |  Hapus
+
+      //- Modal: Tambah Blacklist
+      div.modal-overlay(ng-if="modalAddBl" ng-click="modalAddBl = null")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Tambah ke Blacklist
+            button.modal-close(ng-click="modalAddBl = null") ×
+          div.modal-body
+            p {{ modalAddBl.count }} item akan di-blacklist:
+            ul.bl-modal-list
+              li(ng-repeat="item in modalAddBl.items | limitTo:5") {{ item.i_name }}
+              li(ng-if="modalAddBl.items.length > 5")
+                em ...dan {{ modalAddBl.items.length - 5 }} lainnya
+            div.form-group(style="margin-top:14px")
+              label Alasan (opsional)
+              textarea.form-control(ng-model="modalAddBl.reason" rows="2" placeholder="Misal: Sudah discontinue")
+          div.modal-actions
+            button.btn-ghost(ng-click="modalAddBl = null") Batal
+            button.btn-primary(ng-click="executeAddBlacklist()")
+              | Konfirmasi Blacklist
+
+      //- Modal: Hapus Blacklist
+      div.modal-overlay(ng-if="modalRemoveBl" ng-click="modalRemoveBl = null")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Hapus dari Blacklist
+            button.modal-close(ng-click="modalRemoveBl = null") ×
+          div.modal-body
+            p Item ini akan kembali muncul di sistem.
+            p
+              strong {{ modalRemoveBl.i_name }}
+            p.bl-warning Item akan tersedia di rekaman price list baru, edit OPEN, export, dan push ERP.
+          div.modal-actions
+            button.btn-ghost(ng-click="modalRemoveBl = null") Batal
+            button.btn-primary(ng-click="executeRemoveBlacklist()") Hapus dari Blacklist
+
+      //- Section 5: ERP Target (superadmin only)
       div.settings-section(ng-if="isSuperadmin")
         div.section-header
           i.bi.bi-database

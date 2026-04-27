@@ -151,3 +151,14 @@ CREATE TABLE IF NOT EXISTS pdf_template_field_value (
 
 CREATE INDEX IF NOT EXISTS idx_ptfv_template_item
     ON pdf_template_field_value(template_key, ig_id);
+
+-- ── ITEM BLACKLIST ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS item_blacklist (
+    id              SERIAL PRIMARY KEY,
+    ig_id           INTEGER NOT NULL UNIQUE,
+    reason          TEXT,
+    blacklisted_by  INTEGER REFERENCES users(id),
+    blacklisted_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_blacklist_ig_id ON item_blacklist(ig_id);

@@ -69,9 +69,10 @@ module.exports.exportPriceListERP = async function (filename, cols, rows) {
 module.exports.generateErpExcel = async function (priceListId) {
     const dbPLM = () => global.dbPLM;
     const dbERP = () => global.dbERP;
+    const $blacklist = require('../models/blacklist');
 
     // 1. Get price list metadata
-    const pl = await dbPLM().oneOrNone('SELECT id, cat_id, cat_name FROM price_list WHERE id = $1', [priceListId]);
+    const pl = await dbPLM().oneOrNone('SELECT id, cat_id, cat_name, status FROM price_list WHERE id = $1', [priceListId]);
     if (!pl) throw new Error('price_list_not_found');
 
     // 2. Get price list items
@@ -87,7 +88,15 @@ module.exports.generateErpExcel = async function (priceListId) {
         if (!priceByIg[it.ig_id]) priceByIg[it.ig_id] = {};
         priceByIg[it.ig_id][it.pr_id] = parseFloat(it.i_price);
     });
-    const igIds = Object.keys(priceByIg).map(Number);
+
+    // Exclude blacklisted items (only for OPEN records)
+    let igIds = Object.keys(priceByIg).map(Number);
+    if (pl.status !== 'PUBLISHED') {
+        const blacklistedIds = await $blacklist.getBlacklistedIds();
+        if (blacklistedIds.length) {
+            igIds = igIds.filter(function (id) { return !blacklistedIds.includes(id); });
+        }
+    }
 
     // 3. Get item info from ERP
     const items = await dbERP().any(`

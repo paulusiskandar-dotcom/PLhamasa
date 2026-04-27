@@ -1,6 +1,7 @@
-const response = require('../utils/response');
-const registry  = require('../services/pdf-templates/registry');
-const moment    = require('moment-timezone');
+const response   = require('../utils/response');
+const registry   = require('../services/pdf-templates/registry');
+const moment     = require('moment-timezone');
+const $blacklist = require('../models/blacklist');
 
 const dbPLM = () => global.dbPLM;
 const dbERP = () => global.dbERP;
@@ -96,7 +97,7 @@ module.exports._render = async function (req, res) {
         if (isNaN(plId)) return response.error(res, 'price_list_id_required', null, 400);
 
         const pl = await dbPLM().oneOrNone(
-            'SELECT id, cat_id, cat_name FROM price_list WHERE id = $1', [plId]
+            'SELECT id, cat_id, cat_name, status FROM price_list WHERE id = $1', [plId]
         );
         if (!pl) return response.error(res, 'pl_not_found', null, 404);
 
@@ -104,7 +105,15 @@ module.exports._render = async function (req, res) {
             'SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id = $1', [plId]
         );
 
-        const igIds = [...new Set(plmPrices.map(function (p) { return p.ig_id; }))];
+        let igIds = [...new Set(plmPrices.map(function (p) { return p.ig_id; }))];
+
+        // Exclude blacklisted items (only for OPEN records)
+        if (pl.status !== 'PUBLISHED') {
+            const blacklistedIds = await $blacklist.getBlacklistedIds();
+            if (blacklistedIds.length) {
+                igIds = igIds.filter(function (id) { return !blacklistedIds.includes(id); });
+            }
+        }
         const erpItems = igIds.length ? await dbERP().any(
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item WHERE ig_id = ANY($1::int[])

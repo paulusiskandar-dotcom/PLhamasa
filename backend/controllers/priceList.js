@@ -9,6 +9,7 @@ const $itemModel      = require('../models/item');
 const $erpTargetModel = require('../models/erpTarget');
 const $settingsModel  = require('../models/settings');
 const { generateErpExcel } = require('../utils/excel');
+const $blacklist      = require('../models/blacklist');
 
 // Round ERP baseline per-kg price (same as existing roundERP in price.js)
 function roundERP(raw) {
@@ -75,7 +76,15 @@ module.exports._getById = async function (req, res) {
             priceMap[item.ig_id][item.pr_id] = parseFloat(item.i_price);
         });
 
-        const ig_ids = [...new Set((pl.items || []).map(i => i.ig_id))];
+        let ig_ids = [...new Set((pl.items || []).map(i => i.ig_id))];
+
+        // For OPEN records: exclude blacklisted items
+        if (pl.status === 'OPEN' && ig_ids.length) {
+            const blacklistedIds = await $blacklist.getBlacklistedIds();
+            if (blacklistedIds.length) {
+                ig_ids = ig_ids.filter(function (id) { return !blacklistedIds.includes(id); });
+            }
+        }
 
         // Get item metadata from ERP
         let erpItems = [];
@@ -163,14 +172,21 @@ module.exports._start = async function (req, res) {
         let result;
 
         if (based_on_id) {
-            // Create from existing price list
+            // Create from existing price list (excluding currently blacklisted items)
             const basedOnId = parseInt(based_on_id, 10);
             if (isNaN(basedOnId)) return response.error(res, 'invalid_based_on_id', null, 400);
-            result = await $model.createOpenFromBasedOn(basedOnId, userId);
+            const blacklistedIds = await $blacklist.getBlacklistedIds();
+            result = await $model.createOpenFromBasedOn(basedOnId, userId, blacklistedIds);
         } else {
             // Build from ERP baseline
-            // 1. Get items for this category from ERP
-            const erpItems = await $itemModel.getItemByQuery({ cat_id });
+            // 1. Get items for this category from ERP (excluding blacklisted)
+            const [allErpItems, blacklistedIds] = await Promise.all([
+                $itemModel.getItemByQuery({ cat_id }),
+                $blacklist.getBlacklistedIds(),
+            ]);
+            const erpItems = blacklistedIds.length
+                ? allErpItems.filter(function (r) { return !blacklistedIds.includes(r.ig_id); })
+                : allErpItems;
             if (!erpItems.length) {
                 return response.error(res, 'no_erp_items_for_category', null, 422);
             }

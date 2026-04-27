@@ -1,4 +1,4 @@
-plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService) {
+plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -240,6 +240,76 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
             showToast('Dihapus', 'success');
             loadErpTargets();
         }).catch(function () { showToast('Gagal hapus', 'danger'); });
+    };
+
+    // ── Blacklist ───────────────────────────────────────────────
+    $scope.blTab            = 'add';
+    $scope.blFilter         = { catId: '', search: '' };
+    $scope.blAvailableItems = [];
+    $scope.blacklistData    = [];
+    $scope.blSelection      = { all: false };
+    $scope.modalAddBl       = null;
+    $scope.modalRemoveBl    = null;
+    var blSearchTimer       = null;
+
+    $scope.searchBlItems = function () {
+        if (!$scope.blFilter.catId) { $scope.blAvailableItems = []; return; }
+        blacklistService.itemsForCategory($scope.blFilter.catId, $scope.blFilter.search).then(function (r) {
+            $scope.blAvailableItems = (r.result || []).map(function (it) {
+                return Object.assign({}, it, { _selected: false });
+            });
+            $scope.blSelection.all = false;
+        }).catch(function () { showToast('Gagal memuat items', 'danger'); });
+    };
+
+    $scope.searchBlItemsDebounced = function () {
+        if (blSearchTimer) clearTimeout(blSearchTimer);
+        blSearchTimer = setTimeout(function () { $scope.$apply($scope.searchBlItems); }, 300);
+    };
+
+    $scope.toggleBlSelectAll = function () {
+        $scope.blAvailableItems.forEach(function (it) { it._selected = $scope.blSelection.all; });
+    };
+
+    $scope.updateBlSelectionAll = function () {
+        $scope.blSelection.all = $scope.blAvailableItems.every(function (it) { return it._selected; });
+    };
+
+    $scope.blSelectedCount = function () {
+        return $scope.blAvailableItems.filter(function (it) { return it._selected; }).length;
+    };
+
+    $scope.confirmAddBlacklist = function () {
+        var selected = $scope.blAvailableItems.filter(function (it) { return it._selected; });
+        if (!selected.length) return;
+        $scope.modalAddBl = { count: selected.length, items: selected, reason: '' };
+    };
+
+    $scope.executeAddBlacklist = function () {
+        var igIds  = $scope.modalAddBl.items.map(function (it) { return it.ig_id; });
+        var reason = $scope.modalAddBl.reason;
+        blacklistService.add(igIds, reason).then(function (r) {
+            showToast((r.result.added || 0) + ' item ditambahkan ke blacklist', 'success');
+            $scope.modalAddBl = null;
+            $scope.searchBlItems();
+            $scope.blacklistData = [];
+        }).catch(function () { showToast('Gagal menambah blacklist', 'danger'); });
+    };
+
+    $scope.loadBlacklist = function () {
+        blacklistService.list().then(function (r) {
+            $scope.blacklistData = r.result || [];
+        }).catch(function () { showToast('Gagal memuat blacklist', 'danger'); });
+    };
+
+    $scope.confirmRemoveBl = function (item) { $scope.modalRemoveBl = item; };
+
+    $scope.executeRemoveBlacklist = function () {
+        blacklistService.remove($scope.modalRemoveBl.ig_id).then(function () {
+            showToast('Item dihapus dari blacklist', 'success');
+            $scope.modalRemoveBl = null;
+            $scope.loadBlacklist();
+        }).catch(function () { showToast('Gagal menghapus dari blacklist', 'danger'); });
     };
 
     // ── PDF Template Custom Fields ──────────────────────────────
