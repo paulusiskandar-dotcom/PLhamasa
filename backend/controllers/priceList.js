@@ -10,6 +10,7 @@ const $erpTargetModel = require('../models/erpTarget');
 const $settingsModel  = require('../models/settings');
 const { generateErpExcel } = require('../utils/excel');
 const $blacklist      = require('../models/blacklist');
+const $postErp        = require('../services/postErpService');
 
 // Round ERP baseline per-kg price (same as existing roundERP in price.js)
 function roundERP(raw) {
@@ -428,6 +429,69 @@ module.exports._postToErp = async function (req, res) {
             return response.error(res, result.error, null, code);
         }
         return response.success(res, result, 'Posted to ERP');
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+// ── GET /price-list/:id/post-preview ─────────────────────────────────────────
+
+module.exports._postPreview = async function (req, res) {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return response.error(res, 'invalid_id', null, 400);
+        const result = await $postErp.calculateDiff(id);
+        if (result.error) {
+            const code = result.error === 'not_found' ? 404 : 422;
+            return response.error(res, result.error, null, code);
+        }
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+// ── POST /price-list/:id/post ─────────────────────────────────────────────────
+
+module.exports._postExecute = async function (req, res) {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return response.error(res, 'invalid_id', null, 400);
+        const userId = res.locals.user.id;
+
+        let erpTargetId = req.body.erp_target_id;
+        if (!erpTargetId) {
+            const active = await $erpTargetModel.getActive();
+            if (!active) return response.error(res, 'no_active_erp_target', null, 422);
+            erpTargetId = active.id;
+        }
+
+        const result = await $postErp.executePost(id, parseInt(erpTargetId, 10), userId);
+        if (!result.success) {
+            const code = result.error === 'not_found' ? 404
+                : result.error === 'lock_required' ? 403
+                : result.error === 'not_open' ? 409
+                : 422;
+            return response.error(res, result.error, null, code);
+        }
+        return response.success(res, result, 'Posted to ERP');
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+// ── GET /price-list/:id/cross-check ──────────────────────────────────────────
+
+module.exports._crossCheck = async function (req, res) {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return response.error(res, 'invalid_id', null, 400);
+        const result = await $postErp.crossCheck(id);
+        if (result.error) {
+            const code = result.error === 'not_found' ? 404 : 422;
+            return response.error(res, result.error, null, code);
+        }
+        return response.success(res, result);
     } catch (err) {
         return response.error(res, null, err);
     }
