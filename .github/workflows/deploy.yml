@@ -9,7 +9,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,51 +22,9 @@ jobs:
 
       - name: Deploy code to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key ubuntu@16.79.81.18 << 'ENDSSH'
-            set -e
+          cat .github/scripts/deploy-code.sh | ssh -i ~/.ssh/deploy_key ubuntu@16.79.81.18 'bash -s'
 
-            echo "════════════════════════════════════════════════"
-            echo "DEPLOY PLhamasa"
-            echo "════════════════════════════════════════════════"
-
-            cd /home/ubuntu/source/PLhamasa
-
-            echo ""
-            echo "[1/4] Git pull..."
-            echo "────────────────────────────────────────────────"
-            git fetch origin main
-            BEFORE_SHA=$(git rev-parse HEAD)
-            git reset --hard origin/main
-            AFTER_SHA=$(git rev-parse HEAD)
-            echo "  Before: $BEFORE_SHA"
-            echo "  After:  $AFTER_SHA"
-            if [ "$BEFORE_SHA" != "$AFTER_SHA" ]; then
-              echo "  Changed files:"
-              git diff --name-only $BEFORE_SHA $AFTER_SHA | sed 's/^/    /'
-            fi
-
-            echo ""
-            echo "[2/4] Backend deps..."
-            echo "────────────────────────────────────────────────"
-            cd backend
-            npm install --production 2>&1 | tail -5
-
-            echo ""
-            echo "[3/4] Frontend deps..."
-            echo "────────────────────────────────────────────────"
-            cd ../frontend
-            npm install --production 2>&1 | tail -5
-
-            echo ""
-            echo "[4/4] Restart PM2..."
-            echo "────────────────────────────────────────────────"
-            pm2 restart PLhamasa-backend --update-env
-            pm2 restart PLhamasa-frontend --update-env
-            sleep 3
-            pm2 list | grep PLhamasa | sed 's/^/  /'
-          ENDSSH
-
-      - name: Apply DB schema via SSH
+      - name: Apply DB schema
         env:
           PLM_DB_HOST: ${{ secrets.PLM_DB_HOST }}
           PLM_DB_PORT: ${{ secrets.PLM_DB_PORT }}
@@ -75,98 +32,22 @@ jobs:
           PLM_DB_USER: ${{ secrets.PLM_DB_USER }}
           PLM_DB_PASS: ${{ secrets.PLM_DB_PASS }}
         run: |
-          echo "════════════════════════════════════════════════"
-          echo "APPLY DB SCHEMA"
-          echo "════════════════════════════════════════════════"
-
           if [ -z "$PLM_DB_HOST" ] || [ -z "$PLM_DB_NAME" ] || [ -z "$PLM_DB_USER" ] || [ -z "$PLM_DB_PASS" ]; then
             echo "❌ DB secrets tidak lengkap di GitHub Settings"
             echo "  Required: PLM_DB_HOST, PLM_DB_NAME, PLM_DB_USER, PLM_DB_PASS"
             exit 1
           fi
-          echo "  PLM_DB_HOST: $PLM_DB_HOST"
-          echo "  PLM_DB_PORT: ${PLM_DB_PORT:-5432}"
-          echo "  PLM_DB_NAME: $PLM_DB_NAME"
-          echo "  PLM_DB_USER: $PLM_DB_USER"
-          echo "  PLM_DB_PASS: *** (length: ${#PLM_DB_PASS})"
+          echo "  Connecting as: $PLM_DB_USER@$PLM_DB_HOST:${PLM_DB_PORT:-5432}/$PLM_DB_NAME"
+          echo "  PLM_DB_PASS length: ${#PLM_DB_PASS}"
 
-          ssh -i ~/.ssh/deploy_key ubuntu@16.79.81.18 \
+          cat .github/scripts/apply-schema.sh | ssh -i ~/.ssh/deploy_key \
+            ubuntu@16.79.81.18 \
             "PLM_DB_HOST='$PLM_DB_HOST' \
              PLM_DB_PORT='${PLM_DB_PORT:-5432}' \
              PLM_DB_NAME='$PLM_DB_NAME' \
              PLM_DB_USER='$PLM_DB_USER' \
              PLM_DB_PASS='$PLM_DB_PASS' \
-             bash -s" << 'APPLY_EOF'
-
-            set +e
-
-            if ! command -v psql > /dev/null 2>&1; then
-              echo "Installing postgresql-client..."
-              sudo apt-get update -qq
-              sudo apt-get install -y postgresql-client > /dev/null 2>&1
-            fi
-
-            cd /home/ubuntu/source/PLhamasa
-
-            if [ ! -f backend/docs/schema.sql ]; then
-              echo "⚠ schema.sql not found, skipping"
-              exit 0
-            fi
-
-            echo "Applying schema to ${PLM_DB_USER}@${PLM_DB_HOST}:${PLM_DB_PORT}/${PLM_DB_NAME}..."
-
-            SCHEMA_OUTPUT=$(PGPASSWORD="$PLM_DB_PASS" psql \
-              -h "$PLM_DB_HOST" \
-              -p "$PLM_DB_PORT" \
-              -U "$PLM_DB_USER" \
-              -d "$PLM_DB_NAME" \
-              -v ON_ERROR_STOP=0 \
-              -f backend/docs/schema.sql 2>&1)
-
-            echo "$SCHEMA_OUTPUT" | sed 's/^/  /' | tail -50
-
-            if echo "$SCHEMA_OUTPUT" | grep -q "FATAL:.*authentication failed"; then
-              echo ""
-              echo "❌ AUTH FAILED — cek GitHub Secret PLM_DB_PASS"
-              exit 1
-            fi
-
-            if echo "$SCHEMA_OUTPUT" | grep -q "could not connect"; then
-              echo ""
-              echo "❌ CANNOT CONNECT — cek PLM_DB_HOST/PLM_DB_PORT"
-              exit 1
-            fi
-
-            FATAL=$(echo "$SCHEMA_OUTPUT" | grep -c "^psql:.*ERROR:" || true)
-            if [ "$FATAL" -gt 0 ]; then
-              echo ""
-              echo "⚠ Ada $FATAL ERROR di SQL (non-fatal, ON_ERROR_STOP=0)"
-            fi
-
-            echo ""
-            echo "Restart backend setelah schema apply..."
-            pm2 restart PLhamasa-backend --update-env > /dev/null
-            sleep 2
-
-            echo ""
-            echo "Sanity check tabel users:"
-            PGPASSWORD="$PLM_DB_PASS" psql \
-              -h "$PLM_DB_HOST" -p "$PLM_DB_PORT" \
-              -U "$PLM_DB_USER" -d "$PLM_DB_NAME" \
-              -c "SELECT column_name FROM information_schema.columns WHERE table_name='users' ORDER BY ordinal_position;" \
-              2>&1 | sed 's/^/  /'
-
-            echo ""
-            echo "Sanity check users:"
-            PGPASSWORD="$PLM_DB_PASS" psql \
-              -h "$PLM_DB_HOST" -p "$PLM_DB_PORT" \
-              -U "$PLM_DB_USER" -d "$PLM_DB_NAME" \
-              -c "SELECT id, username, role FROM users WHERE deleted_at IS NULL;" \
-              2>&1 | sed 's/^/  /'
-
-            echo ""
-            echo "✓ Schema apply done"
-APPLY_EOF
+             bash -s"
 
       - name: Cleanup SSH key
         if: always()
