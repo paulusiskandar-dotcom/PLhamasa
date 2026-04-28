@@ -8,6 +8,7 @@ const TEMPLATES = {
     plat_bordest: require('./template_plat_bordest'),
     cnp_cash:     require('./template_cnp_cash'),
     cnp_kredit:   require('./template_cnp_kredit'),
+    inp:          require('./template_inp'),
 };
 
 let _catCache    = null;
