@@ -16,10 +16,20 @@ block content
           a(href="/settings")
             i.bi.bi-gear
             span  Settings
-        li
-          a(href="/logout")
-            i.bi.bi-box-arrow-left
-            span  Logout
+
+      div.sidebar-user
+        div.user-info
+          i.bi.bi-person-circle.user-avatar
+          div.user-meta
+            div.user-name {{ currentUser.full_name || currentUser.username }}
+            span.role-badge(ng-class="'role-' + currentUser.role") {{ currentUser.role | uppercase }}
+        div.user-actions
+          button.user-action-btn(ng-click="openChangePassword()")
+            i.bi.bi-key
+            |  Ubah Password
+          a.user-action-btn(href="/logout")
+            i.bi.bi-box-arrow-right
+            |  Logout
 
     main.main-content
 
@@ -362,3 +372,99 @@ block content
               i.bi.bi-plug
               |  Test
             button.btn-primary(ng-click="saveErp()") Simpan
+
+      //- Section 6: User Management (superadmin only)
+      div.settings-section(ng-if="isSuperadmin")
+        div.section-header
+          i.bi.bi-people
+          h3 User Management
+          span.role-badge Superadmin only
+        div.section-body
+          p.section-desc Kelola user yang bisa akses PLhamasa.
+          div.um-actions-top
+            button.btn-primary(ng-click="openAddUser()")
+              i.bi.bi-plus-circle
+              |  Tambah User
+          table.um-table
+            thead
+              tr
+                th Username
+                th Nama Lengkap
+                th(style="width:120px") Role
+                th(style="width:150px") Dibuat
+                th(style="width:120px") Aksi
+            tbody
+              tr(ng-repeat="u in usersList")
+                td.um-username
+                  strong {{ u.username }}
+                td {{ u.full_name }}
+                td
+                  span.role-badge(ng-class="'role-' + u.role") {{ u.role | uppercase }}
+                td.um-date {{ u.created_at | dateTimeFormat }}
+                td
+                  button.btn-ghost.btn-sm(ng-click="openEditUser(u)" title="Edit")
+                    i.bi.bi-pencil
+                  button.btn-ghost.btn-sm(ng-click="openResetPwd(u)" title="Reset Password")
+                    i.bi.bi-key
+                  button.btn-ghost.btn-sm.btn-danger(ng-click="confirmDeleteUser(u)" ng-disabled="u.id === currentUser.id" title="Hapus")
+                    i.bi.bi-trash
+
+      //- Modal: Tambah User
+      div.modal-overlay(ng-if="modalAddUser" ng-click="closeAddUser()")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Tambah User Baru
+            button.modal-close(ng-click="closeAddUser()") ×
+          div.modal-body
+            div.form-group
+              label Username
+              input.form-control(type="text" ng-model="modalAddUser.username" placeholder="3-50 karakter, huruf/angka/_/.")
+            div.form-group
+              label Nama Lengkap
+              input.form-control(type="text" ng-model="modalAddUser.full_name")
+            div.form-group
+              label Password
+              input.form-control(type="password" ng-model="modalAddUser.password" placeholder="Minimal 8 karakter")
+            div.form-group
+              label Role
+              select.form-control(ng-model="modalAddUser.role")
+                option(value="user") User
+                option(value="superadmin") Superadmin
+          div.modal-actions
+            button.btn-ghost(ng-click="closeAddUser()") Batal
+            button.btn-primary(ng-click="executeAddUser()") Tambah
+
+      //- Modal: Edit User
+      div.modal-overlay(ng-if="modalEditUser" ng-click="closeEditUser()")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Edit User: {{ modalEditUser.username }}
+            button.modal-close(ng-click="closeEditUser()") ×
+          div.modal-body
+            div.form-group
+              label Nama Lengkap
+              input.form-control(type="text" ng-model="modalEditUser.full_name")
+            div.form-group
+              label Role
+              select.form-control(ng-model="modalEditUser.role" ng-disabled="modalEditUser.id === currentUser.id")
+                option(value="user") User
+                option(value="superadmin") Superadmin
+              small.form-hint(ng-if="modalEditUser.id === currentUser.id") Tidak bisa ubah role akun sendiri
+          div.modal-actions
+            button.btn-ghost(ng-click="closeEditUser()") Batal
+            button.btn-primary(ng-click="executeEditUser()") Simpan
+
+      //- Modal: Reset Password
+      div.modal-overlay(ng-if="modalResetPwd" ng-click="closeResetPwd()")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Reset Password: {{ modalResetPwd.user.username }}
+            button.modal-close(ng-click="closeResetPwd()") ×
+          div.modal-body
+            p.section-desc User akan menggunakan password baru ini saat login berikutnya.
+            div.form-group
+              label Password Baru
+              input.form-control(type="password" ng-model="modalResetPwd.new_password" placeholder="Minimal 8 karakter")
+          div.modal-actions
+            button.btn-ghost(ng-click="closeResetPwd()") Batal
+            button.btn-primary(ng-click="executeResetPwd()") Reset Password

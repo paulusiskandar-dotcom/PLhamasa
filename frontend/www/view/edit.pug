@@ -17,10 +17,20 @@ block content
           a(href="/settings")
             i.bi.bi-gear
             span  Settings
-        li
-          a(href="/logout")
-            i.bi.bi-box-arrow-left
-            span  Logout
+
+      div.sidebar-user
+        div.user-info
+          i.bi.bi-person-circle.user-avatar
+          div.user-meta
+            div.user-name {{ currentUser.full_name || currentUser.username }}
+            span.role-badge(ng-class="'role-' + currentUser.role") {{ currentUser.role | uppercase }}
+        div.user-actions
+          button.user-action-btn(ng-click="openChangePassword()")
+            i.bi.bi-key
+            |  Ubah Password
+          a.user-action-btn(href="/logout")
+            i.bi.bi-box-arrow-right
+            |  Logout
 
     //- Inject priceListId from server
     script.

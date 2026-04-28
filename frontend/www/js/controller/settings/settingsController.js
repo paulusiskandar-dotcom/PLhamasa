@@ -1,4 +1,4 @@
-plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService) {
+plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService, userService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -390,6 +390,73 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
         });
     };
 
+    // ── User Management ─────────────────────────────────────────
+    $scope.usersList    = [];
+    $scope.modalAddUser = null;
+    $scope.modalEditUser = null;
+    $scope.modalResetPwd = null;
+
+    function loadUsers() {
+        if (!$scope.isSuperadmin) return;
+        userService.list().then(function (r) {
+            $scope.usersList = r.result || [];
+        }).catch(function () {});
+    }
+
+    $scope.openAddUser = function () {
+        $scope.modalAddUser = { username: '', password: '', full_name: '', role: 'user' };
+    };
+    $scope.closeAddUser = function () { $scope.modalAddUser = null; };
+    $scope.executeAddUser = function () {
+        var d = $scope.modalAddUser;
+        if (!d.username || !d.password) { showToast('Username dan password wajib diisi', 'danger'); return; }
+        if (d.password.length < 8)      { showToast('Password minimal 8 karakter', 'danger'); return; }
+        userService.create(d).then(function () {
+            showToast('User ditambahkan', 'success');
+            $scope.modalAddUser = null;
+            loadUsers();
+        }).catch(function (err) {
+            showToast((err.data && err.data.message) ? err.data.message : 'Gagal tambah user', 'danger');
+        });
+    };
+
+    $scope.openEditUser = function (u) { $scope.modalEditUser = Object.assign({}, u); };
+    $scope.closeEditUser = function () { $scope.modalEditUser = null; };
+    $scope.executeEditUser = function () {
+        var u = $scope.modalEditUser;
+        userService.update(u.id, { full_name: u.full_name, role: u.role }).then(function () {
+            showToast('User diupdate', 'success');
+            $scope.modalEditUser = null;
+            loadUsers();
+        }).catch(function (err) {
+            showToast((err.data && err.data.message) ? err.data.message : 'Gagal update', 'danger');
+        });
+    };
+
+    $scope.openResetPwd = function (u) { $scope.modalResetPwd = { user: u, new_password: '' }; };
+    $scope.closeResetPwd = function () { $scope.modalResetPwd = null; };
+    $scope.executeResetPwd = function () {
+        var d = $scope.modalResetPwd;
+        if (!d.new_password || d.new_password.length < 8) { showToast('Password minimal 8 karakter', 'danger'); return; }
+        userService.resetPassword(d.user.id, d.new_password).then(function () {
+            showToast('Password ' + d.user.username + ' di-reset', 'success');
+            $scope.modalResetPwd = null;
+        }).catch(function (err) {
+            showToast((err.data && err.data.message) ? err.data.message : 'Gagal reset', 'danger');
+        });
+    };
+
+    $scope.confirmDeleteUser = function (u) {
+        if (!confirm('Hapus user ' + u.username + '?')) return;
+        userService.delete(u.id).then(function () {
+            showToast('User dihapus', 'success');
+            loadUsers();
+        }).catch(function (err) {
+            showToast((err.data && err.data.message) ? err.data.message : 'Gagal hapus', 'danger');
+        });
+    };
+
     init();
     loadPdfTemplates();
+    loadUsers();
 });

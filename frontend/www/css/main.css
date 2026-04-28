@@ -2032,3 +2032,64 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .text-success { color: #2E7D32; }
 .text-warning { color: #E65100; }
 .text-danger  { color: #C62828; }
+
+/* ─── Role badges ─────────────────────────────────────────────── */
+.role-badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+}
+.role-superadmin { background: #F57C00; color: #fff; }
+.role-user       { background: #5A6C7E; color: #fff; }
+
+/* ─── User Management table ───────────────────────────────────── */
+.um-actions-top { margin-bottom: 14px; display: flex; justify-content: flex-end; }
+.um-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.um-table thead th {
+  background: #F5F7FA; padding: 10px; text-align: left;
+  font-weight: 600; color: #1E3A5F; font-size: 12px;
+  border-bottom: 1px solid #E8ECF0; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.um-table tbody td { padding: 8px 10px; border-bottom: 1px solid #F0F2F5; vertical-align: middle; }
+.um-table tbody tr:hover { background: #FAFBFC; }
+.um-username strong { color: #1E3A5F; }
+.um-date { color: #5A6C7E; font-size: 12px; }
+
+.btn-sm { padding: 4px 8px !important; font-size: 12px !important; }
+.btn-danger { color: #C62828 !important; }
+.btn-danger:hover { background: #FFEBEE !important; }
+.form-hint { display: block; font-size: 11px; color: #888; margin-top: 4px; }
+
+/* ─── Sidebar user info ───────────────────────────────────────── */
+.sidebar-user {
+  padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.12); margin-top: auto;
+}
+.sidebar-user .user-info {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.sidebar-user .user-avatar { font-size: 24px; color: rgba(255,255,255,0.8); }
+.sidebar-user .user-meta   { flex: 1; min-width: 0; }
+.sidebar-user .user-name {
+  color: #fff; font-size: 13px; font-weight: 500; margin-bottom: 3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sidebar-user .user-actions { display: flex; flex-direction: column; gap: 2px; }
+.user-action-btn {
+  width: 100%; text-align: left; padding: 6px 10px; background: transparent; border: none;
+  color: rgba(255,255,255,0.7); font-size: 12px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; border-radius: 4px;
+  transition: background 0.15s, color 0.15s; text-decoration: none;
+}
+.user-action-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+/* ─── Global toast (userController) ──────────────────────────── */
+.global-toast-container {
+  position: fixed; top: 16px; right: 16px; z-index: 9999;
+}
+.global-toast-container .toast-notification {
+  padding: 10px 18px; border-radius: 6px; font-size: 13px;
+  color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.global-toast-container .toast-success { background: #2E7D32; }
+.global-toast-container .toast-danger  { background: #C62828; }
+.global-toast-container .toast-info    { background: #1565C0; }
+.global-toast-container .toast-warning { background: #E65100; }

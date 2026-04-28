@@ -19,7 +19,32 @@ html(lang="id")
     script.
       var api = { url: "!{apiUrl}" };
 
-  body(ng-app="plmApp")
+  body(ng-app="plmApp" ng-controller="userController")
+
+    //- Global toast (from userController)
+    div.global-toast-container(ng-if="globalToast.show")
+      div.toast-notification(ng-class="'toast-' + globalToast.type") {{ globalToast.message }}
+
+    //- Change Password Modal (global — accessible from any page)
+    div.modal-overlay(ng-if="modalChangePwd" ng-click="closeChangePassword()")
+      div.modal-card(ng-click="$event.stopPropagation()")
+        div.modal-header
+          h3 Ubah Password
+          button.modal-close(ng-click="closeChangePassword()") ×
+        div.modal-body
+          div.form-group
+            label Password Lama
+            input.form-control(type="password" ng-model="modalChangePwd.old_password" placeholder="Password saat ini")
+          div.form-group
+            label Password Baru
+            input.form-control(type="password" ng-model="modalChangePwd.new_password" placeholder="Minimal 8 karakter")
+          div.form-group
+            label Konfirmasi Password Baru
+            input.form-control(type="password" ng-model="modalChangePwd.confirm_password" placeholder="Ulangi password baru")
+        div.modal-actions
+          button.btn-ghost(ng-click="closeChangePassword()") Batal
+          button.btn-primary(ng-click="executeChangePwd()") Ubah Password
+
     block content
 
     //- Vendor JS
@@ -29,6 +54,10 @@ html(lang="id")
 
     //- App JS
     script(src="/js/app.js")
+
+    //- Global: always load user service + controller
+    script(src="/js/services/user.js")
+    script(src="/js/controller/user/userController.js")
 
     if page.data
       each svc in page.data.services
