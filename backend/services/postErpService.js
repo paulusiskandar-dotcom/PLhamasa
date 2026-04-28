@@ -37,10 +37,10 @@ async function _loadContext(plId) {
     const ig_ids = [...new Set(items.map(i => i.ig_id))];
     const erpItems = ig_ids.length
         ? await dbERP().any(
-            `SELECT ig.ig_id, ig.ig_name, i.i_weight
-             FROM item_group ig
-             JOIN item i ON i.ig_id = ig.ig_id AND i.deleted_at IS NULL
-             WHERE ig.ig_id = ANY($1::int[])`,
+            `SELECT ig_id, i_name AS ig_name, i_weight
+             FROM item
+             WHERE ig_id = ANY($1::int[])
+               AND deleted_at IS NULL`,
             [ig_ids]
           )
         : [];
