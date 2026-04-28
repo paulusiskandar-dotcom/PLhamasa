@@ -33,7 +33,8 @@ jobs:
             cd /home/ubuntu/source/PLhamasa
 
             echo ""
-            echo "[1/5] Git pull latest changes..."
+            echo "[1/6] Git pull latest changes..."
+            echo "════════════════════════════════════════"
             git fetch origin main
             BEFORE_SHA=$(git rev-parse HEAD)
             git reset --hard origin/main
@@ -42,26 +43,58 @@ jobs:
             echo "  After:  $AFTER_SHA"
 
             echo ""
-            echo "[2/5] Backend dependencies..."
+            echo "[2/6] Backend dependencies..."
+            echo "════════════════════════════════════════"
             cd backend
             npm install --production
 
             echo ""
-            echo "[3/5] Frontend dependencies..."
+            echo "[3/6] Frontend dependencies..."
+            echo "════════════════════════════════════════"
             cd ../frontend
             npm install --production
 
             cd ..
 
             echo ""
-            echo "[4/5] Restart PM2 services..."
+            echo "[4/6] Apply DB schema..."
+            echo "════════════════════════════════════════"
+
+            if ! command -v psql &> /dev/null; then
+              echo "  psql not found, installing postgresql-client..."
+              sudo apt-get update -qq
+              sudo apt-get install -y postgresql-client
+            fi
+
+            set -a
+            source backend/.env
+            set +a
+
+            if [ ! -f backend/docs/schema.sql ]; then
+              echo "  schema.sql not found, skipping..."
+            else
+              echo "  Applying to $PLM_DB_HOST/$PLM_DB_NAME..."
+              PGPASSWORD="$PLM_DB_PASS" psql \
+                -h "$PLM_DB_HOST" \
+                -p "${PLM_DB_PORT:-5432}" \
+                -U "$PLM_DB_USER" \
+                -d "$PLM_DB_NAME" \
+                -v ON_ERROR_STOP=0 \
+                -f backend/docs/schema.sql 2>&1 | tail -40
+              echo "  Schema step done"
+            fi
+
+            echo ""
+            echo "[5/6] Restart PM2 services..."
+            echo "════════════════════════════════════════"
             pm2 restart PLhamasa-backend --update-env
             pm2 restart PLhamasa-frontend --update-env
 
             sleep 2
 
             echo ""
-            echo "[5/5] Verify status..."
+            echo "[6/6] Verify status..."
+            echo "════════════════════════════════════════"
             pm2 list
 
             echo ""
