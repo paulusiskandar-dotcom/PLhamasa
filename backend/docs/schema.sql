@@ -167,3 +167,18 @@ CREATE TABLE IF NOT EXISTS item_blacklist (
 );
 
 CREATE INDEX IF NOT EXISTS idx_blacklist_ig_id ON item_blacklist(ig_id);
+
+-- ── USER MANAGEMENT ENHANCEMENTS ──────────────────────────────
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS failed_login_attempts INTEGER DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ DEFAULT NOW();
+
+-- Demote existing 'admin' user to role 'user'
+UPDATE users SET role = 'user' WHERE username = 'admin' AND role = 'superadmin';
+
+-- Insert superadmin user (idempotent)
+INSERT INTO users (username, password_hash, full_name, role)
+SELECT 'superadmin', '$2b$10$3lMcPNJ3.6fQXtMQ5wWSRutvhktYkhafyXYoBfr1yxh5Df92eB.ay', 'Super Admin', 'superadmin'
+WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'superadmin');
