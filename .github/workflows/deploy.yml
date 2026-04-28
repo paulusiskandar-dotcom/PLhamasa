@@ -47,13 +47,13 @@ jobs:
             echo "════════════════════════════════════════"
             cd backend
             npm install --production
+            cd ..
 
             echo ""
             echo "[3/6] Frontend dependencies..."
             echo "════════════════════════════════════════"
-            cd ../frontend
+            cd frontend
             npm install --production
-
             cd ..
 
             echo ""
@@ -85,17 +85,43 @@ jobs:
             fi
 
             echo ""
-            echo "[5/6] Restart PM2 services..."
+            echo "[5/6] Restart PM2 services (delete + start from correct dir)..."
             echo "════════════════════════════════════════"
-            pm2 restart PLhamasa-backend --update-env
-            pm2 restart PLhamasa-frontend --update-env
 
-            sleep 2
+            # Backend: delete and re-start from backend/ so dotenvx finds .env
+            pm2 stop PLhamasa-backend 2>/dev/null || true
+            pm2 delete PLhamasa-backend 2>/dev/null || true
+            cd backend
+            pm2 start app.js --name PLhamasa-backend
+            cd ..
+
+            # Frontend: delete and re-start from frontend/ so dotenvx finds .env
+            pm2 stop PLhamasa-frontend 2>/dev/null || true
+            pm2 delete PLhamasa-frontend 2>/dev/null || true
+            cd frontend
+            pm2 start engine.js --name PLhamasa-frontend
+            cd ..
+
+            pm2 save
+
+            echo "  Waiting 5 seconds for startup..."
+            sleep 5
 
             echo ""
             echo "[6/6] Verify status..."
             echo "════════════════════════════════════════"
-            pm2 list
+            pm2 list | grep PLhamasa
+
+            echo ""
+            echo "  Ports listening:"
+            sudo ss -tlnp | grep -E ":(3000|3001)" || echo "  ❌ No ports found"
+
+            echo ""
+            echo "  Backend health:"
+            curl -s -m 5 -o /dev/null -w "  port 3001 → HTTP %{http_code}\n" http://localhost:3001/ || echo "  ❌ backend not responding"
+
+            echo "  Frontend health:"
+            curl -s -m 5 -o /dev/null -w "  port 3000 → HTTP %{http_code}\n" http://localhost:3000/ || echo "  ❌ frontend not responding"
 
             echo ""
             echo "════════════════════════════════════════"
