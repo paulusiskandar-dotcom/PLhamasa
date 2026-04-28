@@ -6,6 +6,8 @@ const TEMPLATES = {
     square_bar:   require('./template_square_bar'),
     rail:         require('./template_rail'),
     plat_bordest: require('./template_plat_bordest'),
+    cnp_cash:     require('./template_cnp_cash'),
+    cnp_kredit:   require('./template_cnp_kredit'),
 };
 
 let _catCache    = null;
