@@ -22,17 +22,24 @@ global.dbPLM = dbPLM;  // DB PLhamasa (read+write: item_price per kg, price_log)
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin) return callback(null, true);
-        const allowed = [
+        const allowedExact = [
+            'http://16.79.81.18:3000',
+        ];
+        const allowedPatterns = [
             /^http:\/\/localhost(:\d+)?$/,
             /^http:\/\/127\.0\.0\.1(:\d+)?$/,
             /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/,
             /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/,
             /^http:\/\/172\.(1[6-9]|2\d|3[01])\.\d+\.\d+(:\d+)?$/,
         ];
-        if (allowed.some(function (p) { return p.test(origin); })) return callback(null, true);
+        if (allowedExact.includes(origin) || allowedPatterns.some(function (p) { return p.test(origin); })) {
+            return callback(null, true);
+        }
         return callback(new Error('CORS: origin not allowed: ' + origin));
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
 }));
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));

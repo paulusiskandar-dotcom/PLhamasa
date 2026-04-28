@@ -22,7 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 // ─── No-cache for HTML pages + API URL ───────────────────────────────────────
 app.use(function (req, res, next) {
     res.set('Cache-Control', 'no-store');
-    res.locals.apiUrl = process.env.API_URL || "http://localhost:3001/";
+    res.locals.apiUrl = process.env.API_URL || "http://16.79.81.18:3001/";
     next();
 });
 
