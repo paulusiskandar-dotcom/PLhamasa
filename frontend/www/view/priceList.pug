@@ -105,7 +105,7 @@ block content
             button.btn-primary.btn-sm(ng-if="pl.status === 'OPEN' && pl.locked_status !== 'other_active'" ng-click="continueEdit(pl)")
               i.bi.bi-pencil
               |  {{ pl.locked_status === 'other_idle' ? 'Take Over & Edit' : 'Continue Edit' }}
-            button.btn-secondary.btn-sm(ng-if="pl.status === 'PUBLISHED'" ng-click="showDetail(pl)")
+            a.btn-secondary.btn-sm(ng-if="pl.status === 'PUBLISHED'" href="/view/{{ pl.id }}")
               i.bi.bi-eye
               |  Lihat Detail
             button.btn-ghost.btn-sm(ng-click="showLog(pl)")

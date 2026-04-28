@@ -1,0 +1,237 @@
+extends master
+
+block content
+  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="viewController")
+
+    nav.sidebar
+      div.sidebar-brand
+        span.brand-icon ⬡
+        span Price List Manager
+      ul.sidebar-nav
+        li
+          a(href="/price-list")
+            i.bi.bi-table
+            span  Price List
+        li
+          a(href="/settings")
+            i.bi.bi-gear
+            span  Settings
+
+      div.sidebar-user
+        div.user-info
+          i.bi.bi-person-circle.user-avatar
+          div.user-meta
+            div.user-name {{ currentUser.full_name || currentUser.username }}
+            span.role-badge(ng-class="'role-' + currentUser.role") {{ currentUser.role | uppercase }}
+        div.user-actions
+          button.user-action-btn(ng-click="openChangePassword()")
+            i.bi.bi-key
+            |  Ubah Password
+          a.user-action-btn(href="/logout")
+            i.bi.bi-box-arrow-right
+            |  Logout
+
+    main.main-content
+
+      button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
+        i.bi.bi-list
+
+      div.view-loading(ng-if="loading")
+        i.bi.bi-arrow-clockwise.spinning
+        span  Memuat...
+
+      div(ng-if="!loading && pl")
+
+        //- Header Info Card
+        div.view-header-card
+          div.view-header-top
+            div.view-header-title
+              h2.view-cat-name
+                | {{ pl.cat_name }}
+                span.view-rev  \##{{ pl.revision_no | padNumber:3 }}
+              span.pl-status.status-published PUBLISHED
+            button.btn-ghost(ng-click="goBack()" style="white-space:nowrap")
+              i.bi.bi-arrow-left
+              |  Kembali
+
+          div.view-header-meta
+            div.view-meta-item
+              i.bi.bi-person-fill.icon-orange
+              div
+                span.meta-label POSTED BY
+                strong.meta-value {{ pl.posted_by_name || '—' }}
+            div.view-meta-item
+              i.bi.bi-clock-fill.icon-orange
+              div
+                span.meta-label TIMESTAMP
+                strong.meta-value {{ pl.posted_at | dateTimeFormat }}
+            div.view-meta-item(ng-if="pl.target_erp_name")
+              i.bi.bi-cloud-upload-fill.icon-orange
+              div
+                span.meta-label TARGET ERP
+                strong.meta-value {{ pl.target_erp_name }}
+            div.view-meta-item
+              i.bi.bi-list-ul.icon-orange
+              div
+                span.meta-label TOTAL ITEM
+                strong.meta-value {{ items.length }} item
+
+        //- Toolbar: search + count
+        div.view-toolbar
+          div.search-wrapper
+            i.bi.bi-search
+            input.search-input(type="text" ng-model="searchQuery" placeholder="Cari nama barang...")
+            button.search-clear(ng-click="searchQuery = ''" ng-if="searchQuery")
+              i.bi.bi-x
+          div.view-toolbar-info
+            span(ng-if="searchQuery")
+              | {{ filteredItems.length }} dari {{ items.length }} item
+
+        //- Table
+        div.table-scroll
+          table.data-table
+
+            //- ── Standard header (2 price types) ──
+            thead(ng-if="!isExtended")
+              tr
+                th.spacer-left(rowspan="2")
+                th.spacer-left(rowspan="2")
+                th.sortable(rowspan="2" ng-click="sortBy('name')")
+                  | Nama Barang
+                  i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.sortable.text-right(rowspan="2" ng-click="sortBy('weight')")
+                  | Berat
+                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
+                th.group-header(colspan="2") CASH
+                th.group-header(colspan="2") KREDIT
+              tr
+                th.sortable.text-right(ng-click="sortBy('kg:cash_gudang')")
+                  | /KG
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:cash_gudang')")
+                th.sortable.text-right(ng-click="sortBy('lbr:cash_gudang')")
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:cash_gudang')")
+                th.sortable.text-right(ng-click="sortBy('kg:kredit_gudang')")
+                  | /KG
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:kredit_gudang')")
+                th.sortable.text-right(ng-click="sortBy('lbr:kredit_gudang')")
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:kredit_gudang')")
+
+            //- ── Extended header (4 price types) ──
+            thead(ng-if="isExtended")
+              tr
+                th.spacer-left(rowspan="3")
+                th.spacer-left(rowspan="3")
+                th.sortable(rowspan="3" ng-click="sortBy('name')")
+                  | Nama Barang
+                  i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.sortable.text-right(rowspan="3" ng-click="sortBy('weight')")
+                  | Berat
+                  i.sort-icon.bi(ng-class="getSortIcon('weight')")
+                th.group-header.group-gudang(colspan="4") GUDANG
+                th.group-header.group-pabrik(colspan="4") PABRIK
+              tr
+                th.subgroup-header.group-gudang(colspan="2") Cash
+                th.subgroup-header.group-gudang(colspan="2") Kredit
+                th.subgroup-header.group-pabrik(colspan="2") Cash
+                th.subgroup-header.group-pabrik(colspan="2") Kredit
+              tr
+                th.sortable.text-right.group-gudang(ng-click="sortBy('kg:cash_gudang')")
+                  | /KG
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:cash_gudang')")
+                th.sortable.text-right.group-gudang(ng-click="sortBy('lbr:cash_gudang')")
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:cash_gudang')")
+                th.sortable.text-right.group-gudang(ng-click="sortBy('kg:kredit_gudang')")
+                  | /KG
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:kredit_gudang')")
+                th.sortable.text-right.group-gudang(ng-click="sortBy('lbr:kredit_gudang')")
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:kredit_gudang')")
+                th.sortable.text-right.group-pabrik(ng-click="sortBy('kg:cash_pabrik')")
+                  | /KG
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:cash_pabrik')")
+                th.sortable.text-right.group-pabrik(ng-click="sortBy('lbr:cash_pabrik')")
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:cash_pabrik')")
+                th.sortable.text-right.group-pabrik(ng-click="sortBy('kg:kredit_pabrik')")
+                  | /KG
+                  i.sort-icon.bi(ng-class="getSortIcon('kg:kredit_pabrik')")
+                th.sortable.text-right.group-pabrik(ng-click="sortBy('lbr:kredit_pabrik')")
+                  | /LBR
+                  i.sort-icon.bi(ng-class="getSortIcon('lbr:kredit_pabrik')")
+
+            tbody
+              tr(ng-repeat="item in getFilteredItems() track by item.ig_id")
+                td.spacer-left
+                td.spacer-left
+                td(title="{{ item.name }}") {{ item.name }}
+                td.text-right.mono {{ item.weight | number:2 }}
+
+                //- Standard columns
+                td.text-right.mono(ng-if="!isExtended")
+                  | {{ item.prices.cash_gudang.current | number:0 }}
+                td.text-right.mono(ng-if="!isExtended")
+                  | {{ item.prices.cash_gudang.lbr | number:0 }}
+                td.text-right.mono(ng-if="!isExtended")
+                  | {{ item.prices.kredit_gudang.current | number:0 }}
+                td.text-right.mono(ng-if="!isExtended")
+                  | {{ item.prices.kredit_gudang.lbr | number:0 }}
+
+                //- Extended columns
+                td.text-right.mono.group-gudang(ng-if="isExtended")
+                  | {{ item.prices.cash_gudang.current | number:0 }}
+                td.text-right.mono.group-gudang(ng-if="isExtended")
+                  | {{ item.prices.cash_gudang.lbr | number:0 }}
+                td.text-right.mono.group-gudang(ng-if="isExtended")
+                  | {{ item.prices.kredit_gudang.current | number:0 }}
+                td.text-right.mono.group-gudang(ng-if="isExtended")
+                  | {{ item.prices.kredit_gudang.lbr | number:0 }}
+                td.text-right.mono.group-pabrik.group-divider-left(ng-if="isExtended")
+                  | {{ item.prices.cash_pabrik.current | number:0 }}
+                td.text-right.mono.group-pabrik(ng-if="isExtended")
+                  | {{ item.prices.cash_pabrik.lbr | number:0 }}
+                td.text-right.mono.group-pabrik(ng-if="isExtended")
+                  | {{ item.prices.kredit_pabrik.current | number:0 }}
+                td.text-right.mono.group-pabrik(ng-if="isExtended")
+                  | {{ item.prices.kredit_pabrik.lbr | number:0 }}
+
+        //- Bottom action bar
+        div.view-action-bar
+          button.btn-ghost(ng-click="goBack()")
+            i.bi.bi-arrow-left
+            |  Kembali
+          div.view-action-right
+            button.btn-secondary(ng-click="showPdfTemplateModal()")
+              i.bi.bi-file-pdf-fill
+              |  Export PDF
+            button.btn-secondary(ng-click="exportExcel()")
+              i.bi.bi-file-earmark-excel-fill
+              |  Export Excel
+
+      //- Modal PDF Template
+      div.modal-overlay(ng-if="modalPdfTemplate" ng-click="closePdfTemplateModal()")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Pilih Template PDF
+            button.modal-close(ng-click="closePdfTemplateModal()") ×
+          div.modal-body
+            div.empty-state(ng-if="!pdfTemplateOptions || pdfTemplateOptions.length === 0")
+              i.bi.bi-file-earmark-x
+              p Tidak ada template PDF untuk kategori ini.
+            div(ng-if="pdfTemplateOptions && pdfTemplateOptions.length > 0")
+              div.template-option(ng-repeat="tpl in pdfTemplateOptions"
+                                   ng-class="{'selected': modalPdfTemplate.selected === tpl.key}"
+                                   ng-click="modalPdfTemplate.selected = tpl.key")
+                i.bi.bi-file-pdf.template-icon
+                div.template-info
+                  div.template-name {{ tpl.name }}
+                  div.template-desc {{ tpl.description }}
+          div.modal-actions
+            button.btn-ghost(ng-click="closePdfTemplateModal()") Batal
+            button.btn-primary(ng-click="exportPdfWithTemplate()" ng-disabled="!modalPdfTemplate.selected") Export PDF
+
+      //- Toast
+      div.toast-container(ng-if="toast.show")
+        div.toast-notification(ng-class="'toast-' + toast.type") {{ toast.message }}

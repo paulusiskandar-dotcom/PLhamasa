@@ -127,11 +127,13 @@ module.exports.getById = async function (id, currentUserId) {
         SELECT pl.*,
                uc.username AS created_by_name,
                up.username AS posted_by_name,
-               ul.username AS locked_by_name
+               ul.username AS locked_by_name,
+               et.name     AS target_erp_name
         FROM price_list pl
-        LEFT JOIN users uc ON uc.id = pl.created_by
-        LEFT JOIN users up ON up.id = pl.posted_by
-        LEFT JOIN users ul ON ul.id = pl.locked_by
+        LEFT JOIN users uc      ON uc.id  = pl.created_by
+        LEFT JOIN users up      ON up.id  = pl.posted_by
+        LEFT JOIN users ul      ON ul.id  = pl.locked_by
+        LEFT JOIN erp_target et ON et.id  = pl.posted_to_erp_id
         WHERE pl.id = $1
     `, [id]);
     if (!pl) return null;
