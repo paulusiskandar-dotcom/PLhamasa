@@ -2,6 +2,34 @@
 
 Monorepo Price List Manager untuk export PL ERP & PL Manual.
 
+## Database
+
+PLhamasa pakai dual database, semua hosted di AWS / remote:
+
+| DB | Host | Akses |
+|----|------|-------|
+| PLhamasa (read+write) | EC2 `16.79.81.18` | credentials di `backend/.env` di EC2 |
+| ERP (read-only) | `167.99.68.20` | credentials di `backend/.env` di EC2 |
+
+> **Jangan buat file `.env` di Mac Mini lokal.** Semua perubahan DB lewat `schema.sql` + GitHub Actions auto-deploy ke EC2.
+
+### Update Schema DB
+
+1. Edit `backend/docs/schema.sql` — pakai `CREATE TABLE IF NOT EXISTS` / `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`
+2. Commit + push ke `main`
+3. GitHub Actions auto-apply ke DB AWS
+
+### Akses DB AWS Manual
+
+```bash
+ssh ubuntu@16.79.81.18
+# lalu:
+sudo -u postgres psql -d PLhamasa
+# atau pakai credentials dari .env:
+source /home/ubuntu/source/PLhamasa/backend/.env
+PGPASSWORD=$PLM_DB_PASS psql -h $PLM_DB_HOST -U $PLM_DB_USER -d $PLM_DB_NAME
+```
+
 ## Struktur
 - `backend/` — Node.js + Express + PostgreSQL
 - `frontend/` — Node.js + Express + Pug + AngularJS

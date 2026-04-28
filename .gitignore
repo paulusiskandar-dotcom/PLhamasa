@@ -1,4 +1,11 @@
 node_modules/
+
+# Environment files — NEVER commit credentials
 .env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
 *.log
 *.xlsx
