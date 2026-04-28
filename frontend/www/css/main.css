@@ -2093,3 +2093,53 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .global-toast-container .toast-danger  { background: #C62828; }
 .global-toast-container .toast-info    { background: #1565C0; }
 .global-toast-container .toast-warning { background: #E65100; }
+
+/* ─── Post-to-ERP preview modal ──────────────────────────────── */
+.post-preview-table {
+  width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed;
+}
+.post-preview-table thead th {
+  background: #1E3A5F; color: #fff; padding: 10px 8px;
+  font-weight: 600; font-size: 11px; letter-spacing: 0.5px;
+  text-transform: uppercase; border: none;
+}
+.post-preview-table tbody tr {
+  height: 44px; border-bottom: 1px solid #F0F2F5;
+}
+.post-preview-table tbody tr.diff-row-changed { background: #FFFDE7; }
+.post-preview-table tbody tr.diff-row-new     { background: #F1F8E9; }
+.post-preview-table tbody tr.diff-row-unchanged { background: #FAFBFC; opacity: 0.8; }
+.post-preview-table tbody tr:hover { filter: brightness(0.97); }
+.post-preview-table tbody td {
+  padding: 6px 8px; vertical-align: middle; border: none;
+}
+.post-preview-table .col-name {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0;
+}
+
+/* Modal actions — right-aligned, polished */
+.modal-actions-end {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 12px 20px; border-top: 1px solid #E8ECF0; background: #FAFBFC;
+}
+.modal-actions-end .btn-ghost {
+  background: transparent; border: 1px solid #C5CCD3; color: #5A6C7E;
+  padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+}
+.modal-actions-end .btn-ghost:hover {
+  border-color: #1E3A5F; color: #1E3A5F; background: #fff;
+}
+.modal-actions-end .btn-primary {
+  background: #F57C00; color: #fff; border: 1px solid #F57C00;
+  padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.modal-actions-end .btn-primary:hover:not(:disabled) {
+  background: #E66B00; border-color: #E66B00;
+  box-shadow: 0 2px 6px rgba(245,124,0,0.3);
+}
+.modal-actions-end .btn-primary:disabled {
+  background: #C5CCD3; border-color: #C5CCD3; cursor: not-allowed; opacity: 0.6;
+}

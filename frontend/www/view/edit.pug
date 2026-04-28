@@ -320,26 +320,26 @@ block content
                 span.post-stat.post-stat-total
                   strong {{ modalPostPreview.summary.total }}
                   |  total
-              table.log-table.post-diff-table(ng-if="modalPostPreview.rows.length > 0")
+              table.post-preview-table(ng-if="modalPostPreview.rows.length > 0")
                 thead
                   tr
-                    th Nama Barang
-                    th Jenis
-                    th.text-right Berat (kg)
-                    th.text-right PLM /kg
-                    th.text-right PLM /btg
-                    th.text-right ERP saat ini
-                    th Status
+                    th(style="width:38%; text-align:left") NAMA BARANG
+                    th(style="width:14%; text-align:center") JENIS
+                    th(style="width:9%; text-align:right") BERAT
+                    th(style="width:10%; text-align:right") PLM /KG
+                    th(style="width:10%; text-align:right") PLM /BTG
+                    th(style="width:11%; text-align:right") ERP SAAT INI
+                    th(style="width:8%; text-align:center") STATUS
                 tbody
                   tr(ng-repeat="r in modalPostPreview.rows | postFilter:modalPostPreview.diffFilter" ng-class="'diff-row-' + r.diff_status")
-                    td {{ r.ig_name }}
-                    td
+                    td.col-name(title="{{ r.ig_name }}") {{ r.ig_name }}
+                    td(style="text-align:center")
                       span.price-type-badge(ng-class="'badge-' + r.pr_id") {{ r.pr_id | priceTypeLabel }}
                     td.mono.text-right {{ r.weight | number:2 }}
                     td.mono.text-right {{ r.plm_per_kg | number:0 }}
                     td.mono.text-right {{ r.plm_per_unit | number:0 }}
                     td.mono.text-right {{ r.erp_current !== null ? (r.erp_current | number:0) : '—' }}
-                    td
+                    td(style="text-align:center")
                       span.diff-badge(ng-class="'diff-' + r.diff_status")
                         span(ng-if="r.diff_status === 'new'") BARU
                         span(ng-if="r.diff_status === 'changed'") BERUBAH
@@ -355,10 +355,11 @@ block content
                 label
                   input(type="checkbox" ng-model="modalPostPreview.diffFilter.unchanged")
                   |  Sama
-          div.modal-actions
+          div.modal-actions.modal-actions-end
             button.btn-ghost(ng-click="closePostPreview()") Batal
-            button.btn-success(ng-click="openPostConfirm()" ng-disabled="modalPostPreview.loading || !erpActive")
+            button.btn-primary(ng-click="openPostConfirm()" ng-disabled="modalPostPreview.loading || !erpActive")
               |  Lanjut: Konfirmasi Post
+              i.bi.bi-arrow-right(style="margin-left:4px")
 
       //- Modal Post to ERP — Step 2: Confirmation
       div.modal-overlay(ng-if="modalPostConfirm" ng-click="closePostConfirm()")
