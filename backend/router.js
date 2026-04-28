@@ -7,6 +7,15 @@ module.exports = function (app) {
     app.post("/auth/login",  require("./controllers/authentication")._login);
     app.post("/auth/logout", auth.verifyToken, require("./controllers/authentication")._logout);
 
+    // ─── User Management ───────────────────────────────────────────────────────
+    const userCtrl = require("./controllers/user");
+    app.get("/users",                     auth.verifyToken, requireSuperadmin, userCtrl._list);
+    app.post("/users",                    auth.verifyToken, requireSuperadmin, userCtrl._create);
+    app.put("/users/:id",                 auth.verifyToken, requireSuperadmin, userCtrl._update);
+    app.post("/users/:id/reset-password", auth.verifyToken, requireSuperadmin, userCtrl._resetPassword);
+    app.delete("/users/:id",              auth.verifyToken, requireSuperadmin, userCtrl._delete);
+    app.post("/me/change-password",       auth.verifyToken, userCtrl._changeOwnPassword);
+
     // ─── Items ─────────────────────────────────────────────────────────────────
     app.get("/items",        auth.verifyToken, require("./controllers/item")._getItems);
     app.get("/items/:ig_id", auth.verifyToken, require("./controllers/item")._getItemById);
