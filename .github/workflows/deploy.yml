@@ -1,0 +1,75 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H 16.79.81.18 >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@16.79.81.18 << 'EOF'
+            set -e
+
+            echo "════════════════════════════════════════"
+            echo "DEPLOYING PLhamasa TO EC2"
+            echo "════════════════════════════════════════"
+
+            cd /home/ubuntu/source/PLhamasa
+
+            echo ""
+            echo "[1/5] Git pull latest changes..."
+            git fetch origin main
+            BEFORE_SHA=$(git rev-parse HEAD)
+            git reset --hard origin/main
+            AFTER_SHA=$(git rev-parse HEAD)
+            echo "  Before: $BEFORE_SHA"
+            echo "  After:  $AFTER_SHA"
+
+            echo ""
+            echo "[2/5] Backend dependencies..."
+            cd backend
+            npm install --production
+
+            echo ""
+            echo "[3/5] Frontend dependencies..."
+            cd ../frontend
+            npm install --production
+
+            cd ..
+
+            echo ""
+            echo "[4/5] Restart PM2 services..."
+            pm2 restart PLhamasa-backend --update-env
+            pm2 restart PLhamasa-frontend --update-env
+
+            sleep 2
+
+            echo ""
+            echo "[5/5] Verify status..."
+            pm2 list
+
+            echo ""
+            echo "════════════════════════════════════════"
+            echo "DEPLOYMENT COMPLETE"
+            echo "════════════════════════════════════════"
+          EOF
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
