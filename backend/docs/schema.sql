@@ -186,3 +186,54 @@ WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'superadmin');
 -- ── POST REPORT PATH ───────────────────────────────────────────
 ALTER TABLE price_list
     ADD COLUMN IF NOT EXISTS post_report_path VARCHAR(500);
+
+-- ── GROUPING SYSTEM ────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS category_grouping_config (
+    cat_id        VARCHAR(50) PRIMARY KEY,
+    cat_name      VARCHAR(255),
+    is_enabled    BOOLEAN DEFAULT FALSE,
+    thickness_unit VARCHAR(10) DEFAULT 'mm',
+    enabled_by    INTEGER REFERENCES users(id),
+    enabled_at    TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS item_group_definition (
+    id              SERIAL PRIMARY KEY,
+    price_list_id   INTEGER NOT NULL REFERENCES price_list(id) ON DELETE CASCADE,
+    cat_id          VARCHAR(50) NOT NULL,
+    thickness_value NUMERIC(10, 3) NOT NULL,
+    thickness_label VARCHAR(50),
+    display_order   INTEGER DEFAULT 0,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (price_list_id, thickness_value)
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_def_pl ON item_group_definition(price_list_id);
+
+CREATE TABLE IF NOT EXISTS item_group_assignment (
+    id          SERIAL PRIMARY KEY,
+    group_id    INTEGER NOT NULL REFERENCES item_group_definition(id) ON DELETE CASCADE,
+    ig_id       INTEGER NOT NULL,
+    assigned_at TIMESTAMPTZ DEFAULT NOW(),
+    assigned_by INTEGER REFERENCES users(id),
+    UNIQUE (group_id, ig_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_group_assign_group ON item_group_assignment(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_assign_item  ON item_group_assignment(ig_id);
+
+CREATE TABLE IF NOT EXISTS item_pending_assignment (
+    id                 SERIAL PRIMARY KEY,
+    price_list_id      INTEGER NOT NULL REFERENCES price_list(id) ON DELETE CASCADE,
+    ig_id              INTEGER NOT NULL,
+    detected_thickness NUMERIC(10, 3),
+    suggested_group_id INTEGER REFERENCES item_group_definition(id),
+    is_confirmed       BOOLEAN DEFAULT FALSE,
+    confirmed_at       TIMESTAMPTZ,
+    confirmed_by       INTEGER REFERENCES users(id),
+    created_at         TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (price_list_id, ig_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_pl ON item_pending_assignment(price_list_id);
