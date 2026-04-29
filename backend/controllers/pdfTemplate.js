@@ -127,7 +127,7 @@ module.exports._render = async function (req, res) {
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item WHERE ig_id = ANY($1::int[])
              AND deleted_at IS NULL AND is_item = true
-             AND (i_group IS NULL OR i_group != 'NS')`,
+             AND (i_group IS NULL OR i_group != 'N')`,
             [igIds]
         ) : [];
 

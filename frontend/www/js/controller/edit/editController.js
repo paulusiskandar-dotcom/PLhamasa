@@ -32,8 +32,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.saveStatus = null;
 
     $scope.filter = { subcatId: '', brand: '', grade: '', group: '', name: '' };
-    $scope.activeFilters  = { subcategory: [], tebal: [], merk: [], grade: [] };
-    $scope.filterOpen     = { subcategory: false, tebal: false, merk: false, grade: false };
+    $scope.activeFilters  = { subcategory: [], tebal: [], merk: [], grade: [], golongan: [] };
+    $scope.filterOpen     = { subcategory: false, tebal: false, merk: false, grade: false, golongan: false };
     $scope.filterSearch   = { subcategory: '', tebal: '', merk: '' };
     $scope.filterOptions  = null;
     $scope.showDimColumns = false;
@@ -241,7 +241,16 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             if (b.is_unknown) return -1;
             return (a.label || '').localeCompare(b.label || '');
         });
-        return { subcategory: subcatArr, tebal: tebalArr, merk: merkArr, grade: gradeArr };
+        var golonganMap = {};
+        (srcItems || []).forEach(function (it) {
+            var raw = it.group;
+            var label = raw === 'N' ? 'Non-Standar (N)' : raw === 'U' ? 'Umum (U)' : '(tidak ada)';
+            if (!golonganMap[label]) golonganMap[label] = { label: label, value: raw || null, count: 0 };
+            golonganMap[label].count++;
+        });
+        var golOrder = { 'Umum (U)': 1, 'Non-Standar (N)': 2, '(tidak ada)': 3 };
+        var golonganArr = Object.values(golonganMap).sort(function (a, b) { return (golOrder[a.label] || 9) - (golOrder[b.label] || 9); });
+        return { subcategory: subcatArr, tebal: tebalArr, merk: merkArr, grade: gradeArr, golongan: golonganArr };
     }
 
     // ── Filter + Sort ─────────────────────────────────────────
@@ -270,6 +279,10 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             }
             if (af.grade.length > 0) {
                 if (af.grade.indexOf(it.grade || '(tidak ada)') < 0) return false;
+            }
+            if (af.golongan && af.golongan.length > 0) {
+                var golLabel = it.group === 'N' ? 'Non-Standar (N)' : it.group === 'U' ? 'Umum (U)' : '(tidak ada)';
+                if (af.golongan.indexOf(golLabel) < 0) return false;
             }
             return true;
         });
@@ -667,7 +680,7 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         applyFilter();
     };
     $scope.clearAllFilters = function () {
-        $scope.activeFilters = { subcategory: [], tebal: [], merk: [], grade: [] };
+        $scope.activeFilters = { subcategory: [], tebal: [], merk: [], grade: [], golongan: [] };
         applyFilter();
     };
     $scope.selectedFilterCount = function (dim) { return ($scope.activeFilters[dim] || []).length; };
@@ -675,7 +688,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         return $scope.selectedFilterCount('subcategory') +
                $scope.selectedFilterCount('tebal') +
                $scope.selectedFilterCount('merk') +
-               $scope.selectedFilterCount('grade') > 0;
+               $scope.selectedFilterCount('grade') +
+               $scope.selectedFilterCount('golongan') > 0;
     };
     $scope.filteredItemCount = function () { return ($scope.filteredItems || []).length; };
     $scope.totalItemCount    = function () { return ($scope.items || []).length; };
@@ -708,7 +722,7 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         }, 100);
     };
     $scope.closeFilterPanels = function () {
-        $scope.filterOpen = { subcategory: false, tebal: false, merk: false, grade: false };
+        $scope.filterOpen = { subcategory: false, tebal: false, merk: false, grade: false, golongan: false };
     };
 
     // Init

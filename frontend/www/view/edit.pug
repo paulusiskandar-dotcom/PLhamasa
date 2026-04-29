@@ -90,7 +90,7 @@ block content
 
         //- Sub Category dropdown
         div.filter-dropdown(ng-if="filterOptions.subcategory && filterOptions.subcategory.length > 0" ng-class="{open: filterOpen.subcategory}")
-          button.filter-trigger(ng-click="filterOpen.subcategory = !filterOpen.subcategory; filterOpen.tebal = false; filterOpen.merk = false; filterOpen.grade = false")
+          button.filter-trigger(ng-click="filterOpen.subcategory = !filterOpen.subcategory; filterOpen.tebal = false; filterOpen.merk = false; filterOpen.grade = false; filterOpen.golongan = false")
             span.filter-label Sub Category
             span.filter-badge(ng-if="selectedFilterCount('subcategory') > 0") {{ selectedFilterCount('subcategory') }}
             i.bi.bi-chevron-down
@@ -108,7 +108,7 @@ block content
 
         //- Tebal dropdown
         div.filter-dropdown(ng-class="{open: filterOpen.tebal}")
-          button.filter-trigger(ng-click="filterOpen.tebal = !filterOpen.tebal; filterOpen.subcategory = false; filterOpen.merk = false; filterOpen.grade = false")
+          button.filter-trigger(ng-click="filterOpen.tebal = !filterOpen.tebal; filterOpen.subcategory = false; filterOpen.merk = false; filterOpen.grade = false; filterOpen.golongan = false")
             span.filter-label Tebal
             span.filter-badge(ng-if="selectedFilterCount('tebal') > 0") {{ selectedFilterCount('tebal') }}
             i.bi.bi-chevron-down
@@ -126,7 +126,7 @@ block content
 
         //- Merk dropdown
         div.filter-dropdown(ng-class="{open: filterOpen.merk}")
-          button.filter-trigger(ng-click="filterOpen.merk = !filterOpen.merk; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.grade = false")
+          button.filter-trigger(ng-click="filterOpen.merk = !filterOpen.merk; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.grade = false; filterOpen.golongan = false")
             span.filter-label Merk
             span.filter-badge(ng-if="selectedFilterCount('merk') > 0") {{ selectedFilterCount('merk') }}
             i.bi.bi-chevron-down
@@ -144,7 +144,7 @@ block content
 
         //- Grade dropdown
         div.filter-dropdown(ng-class="{open: filterOpen.grade}")
-          button.filter-trigger(ng-click="filterOpen.grade = !filterOpen.grade; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.merk = false")
+          button.filter-trigger(ng-click="filterOpen.grade = !filterOpen.grade; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.merk = false; filterOpen.golongan = false")
             span.filter-label Grade
             span.filter-badge(ng-if="selectedFilterCount('grade') > 0") {{ selectedFilterCount('grade') }}
             i.bi.bi-chevron-down
@@ -155,6 +155,22 @@ block content
             div.filter-panel-options
               label.filter-option(ng-repeat="opt in filterOptions.grade")
                 input(type="checkbox" ng-checked="isFilterChecked('grade', opt.label)" ng-click="toggleFilter('grade', opt.label)")
+                span.opt-label {{ opt.label }}
+                span.opt-count {{ opt.count }}
+
+        //- Golongan dropdown
+        div.filter-dropdown(ng-class="{open: filterOpen.golongan}")
+          button.filter-trigger(ng-click="filterOpen.golongan = !filterOpen.golongan; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.merk = false; filterOpen.grade = false")
+            span.filter-label Golongan
+            span.filter-badge(ng-if="selectedFilterCount('golongan') > 0") {{ selectedFilterCount('golongan') }}
+            i.bi.bi-chevron-down
+          div.filter-panel(ng-if="filterOpen.golongan")
+            div.filter-panel-actions
+              button.filter-btn-link(ng-click="selectAllFilter('golongan')") Semua
+              button.filter-btn-link(ng-click="clearFilter('golongan')") Hapus
+            div.filter-panel-options
+              label.filter-option(ng-repeat="opt in filterOptions.golongan")
+                input(type="checkbox" ng-checked="isFilterChecked('golongan', opt.label)" ng-click="toggleFilter('golongan', opt.label)")
                 span.opt-label {{ opt.label }}
                 span.opt-count {{ opt.count }}
 
