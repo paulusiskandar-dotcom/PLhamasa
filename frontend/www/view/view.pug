@@ -203,6 +203,9 @@ block content
             i.bi.bi-arrow-left
             |  Kembali
           div.view-action-right
+            button.btn-secondary(ng-click="downloadPostReport()" ng-if="pl.post_report_path")
+              i.bi.bi-file-earmark-text-fill
+              |  Laporan Post ke ERP
             button.btn-secondary(ng-click="showPdfTemplateModal()")
               i.bi.bi-file-pdf-fill
               |  Export PDF

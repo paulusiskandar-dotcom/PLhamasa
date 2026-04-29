@@ -11,6 +11,8 @@ const $settingsModel  = require('../models/settings');
 const { generateErpExcel } = require('../utils/excel');
 const $blacklist      = require('../models/blacklist');
 const $postErp        = require('../services/postErpService');
+const path            = require('path');
+const fs              = require('fs');
 
 // Round ERP baseline per-kg price (same as existing roundERP in price.js)
 function roundERP(raw) {
@@ -492,6 +494,35 @@ module.exports._crossCheck = async function (req, res) {
             return response.error(res, result.error, null, code);
         }
         return response.success(res, result);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+// ── GET /price-list/:id/post-report ──────────────────────────────────────────
+
+module.exports._downloadPostReport = async function (req, res) {
+    try {
+        const plId = parseInt(req.params.id, 10);
+        if (isNaN(plId)) return response.error(res, 'invalid_id', null, 400);
+
+        const pl = await global.dbPLM.oneOrNone(
+            'SELECT post_report_path, cat_name, revision_no FROM price_list WHERE id = $1',
+            [plId]
+        );
+        if (!pl) return response.error(res, 'not_found', null, 404);
+        if (!pl.post_report_path) {
+            return response.error(res, 'report_not_available', null, 404);
+        }
+
+        const fullPath = path.join(__dirname, '..', pl.post_report_path);
+        if (!fs.existsSync(fullPath)) {
+            return response.error(res, 'report_file_missing', null, 404);
+        }
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'attachment; filename="' + path.basename(fullPath) + '"');
+        res.sendFile(fullPath);
     } catch (err) {
         return response.error(res, null, err);
     }

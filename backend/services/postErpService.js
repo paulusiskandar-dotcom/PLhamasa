@@ -118,7 +118,7 @@ module.exports.executePost = async function (plId, erpTargetId, userId) {
     const ctx = await _loadContext(plId);
     if (ctx.error) return { success: false, error: ctx.error };
 
-    const { pl, items, weightMap } = ctx;
+    const { pl, items, weightMap, nameMap } = ctx;
     if (pl.status !== 'OPEN')      return { success: false, error: 'not_open' };
     if (pl.locked_by !== userId)   return { success: false, error: 'lock_required' };
     if (!items.length)             return { success: false, error: 'no_items' };
@@ -158,6 +158,19 @@ module.exports.executePost = async function (plId, erpTargetId, userId) {
     });
 
     try {
+        // Capture ERP prices BEFORE post (harga_lama for report)
+        const ig_ids_for_snap = [...new Set(items.map(i => i.ig_id))];
+        const erpBefore = ig_ids_for_snap.length
+            ? await dbERP().any(
+                'SELECT ig_id, pr_id, i_price FROM item_price WHERE ig_id = ANY($1::int[])',
+                [ig_ids_for_snap]
+              )
+            : [];
+        const erpBeforeMap = {};
+        erpBefore.forEach(function (r) {
+            erpBeforeMap[r.ig_id + ':' + r.pr_id] = parseFloat(r.i_price) || 0;
+        });
+
         await erpTargetDb.tx(async t => {
             for (const item of items) {
                 const weight = weightMap[item.ig_id] || 0;
@@ -204,6 +217,46 @@ module.exports.executePost = async function (plId, erpTargetId, userId) {
             `UPDATE price_list_export SET post_status='success', duration_ms=$1 WHERE id=$2`,
             [duration, exportId]
         );
+
+        // ── Generate PDF Laporan Post ─────────────────────────────────
+        try {
+            const postReportPdf = require('./postReportPdf');
+            const postedPl = await dbPLM().oneOrNone(
+                `SELECT pl.*, u.username AS posted_by_name, et.name AS target_erp_name
+                 FROM price_list pl
+                 LEFT JOIN users u      ON u.id  = pl.posted_by
+                 LEFT JOIN erp_target et ON et.id = pl.posted_to_erp_id
+                 WHERE pl.id = $1`,
+                [plId]
+            );
+
+            const pdfItems = items.map(function (item) {
+                const weight    = weightMap[item.ig_id] || 0;
+                const hargaBaru = weight > 0
+                    ? roundSpecial(parseFloat(item.i_price) * weight)
+                    : parseFloat(item.i_price);
+                return {
+                    ig_id:      item.ig_id,
+                    ig_name:    nameMap[item.ig_id] || ('Item ' + item.ig_id),
+                    pr_id:      item.pr_id,
+                    harga_lama: erpBeforeMap[item.ig_id + ':' + item.pr_id] || 0,
+                    harga_baru: hargaBaru,
+                };
+            });
+
+            const relPath = await postReportPdf.generate({
+                priceList: postedPl,
+                items:     pdfItems,
+                summary:   { total: items.length, duration_ms: duration, mismatch_count: 0 },
+            });
+
+            await dbPLM().none(
+                `UPDATE price_list SET post_report_path = $2 WHERE id = $1`,
+                [plId, relPath]
+            );
+        } catch (pdfErr) {
+            console.error('[postErp] Gagal generate PDF report:', pdfErr.message);
+        }
 
         return {
             success:      true,

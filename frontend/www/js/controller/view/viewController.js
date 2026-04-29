@@ -114,6 +114,11 @@ plmApp.controller('viewController', function ($scope, $timeout, priceListService
     };
 
     // ── Export ───────────────────────────────────────────────────
+    $scope.downloadPostReport = function () {
+        var token = localStorage.getItem('accessToken');
+        window.location.href = api.url + 'price-list/' + plId + '/post-report?accessToken=' + encodeURIComponent(token || '');
+    };
+
     $scope.modalPdfTemplate = null;
     $scope.pdfTemplateOptions = [];
 

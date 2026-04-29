@@ -59,6 +59,7 @@ module.exports = function (app) {
     app.get("/price-list/:id/post-preview",       auth.verifyToken, require("./controllers/priceList")._postPreview);
     app.post("/price-list/:id/post",              auth.verifyToken, require("./controllers/priceList")._postExecute);
     app.get("/price-list/:id/cross-check",        auth.verifyToken, require("./controllers/priceList")._crossCheck);
+    app.get("/price-list/:id/post-report",        auth.verifyToken, require("./controllers/priceList")._downloadPostReport);
     app.get("/price-list/:id/export-excel",       auth.verifyToken, require("./controllers/priceList")._exportExcel);
 
     // ── SUBCATEGORY ────────────────────────────────────────────────────────────

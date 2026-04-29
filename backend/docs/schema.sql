@@ -182,3 +182,7 @@ UPDATE users SET role = 'user' WHERE username = 'admin' AND role = 'superadmin';
 INSERT INTO users (username, password_hash, full_name, role)
 SELECT 'superadmin', '$2b$10$3lMcPNJ3.6fQXtMQ5wWSRutvhktYkhafyXYoBfr1yxh5Df92eB.ay', 'Super Admin', 'superadmin'
 WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'superadmin');
+
+-- ── POST REPORT PATH ───────────────────────────────────────────
+ALTER TABLE price_list
+    ADD COLUMN IF NOT EXISTS post_report_path VARCHAR(500);
