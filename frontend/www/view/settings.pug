@@ -468,3 +468,141 @@ block content
           div.modal-actions
             button.btn-ghost(ng-click="closeResetPwd()") Batal
             button.btn-primary(ng-click="executeResetPwd()") Reset Password
+
+      //- Section 7: Group Management (superadmin only)
+      div.settings-section(ng-if="isSuperadmin")
+        div.section-header
+          i.bi.bi-collection
+          h3 Group Management (Plat / Coil)
+          span.role-badge Superadmin only
+        div.section-body
+          p.section-desc
+            | Enable grouping berdasarkan tebal untuk kategori Plat / Coil.
+            | Admin bisa edit harga per group, harga per lembar otomatis
+            | dihitung dari berat masing-masing item.
+
+          div.gm-categories
+            div.gm-section-title KATEGORI
+            div.empty-state(ng-if="categoryList.length === 0")
+              i.bi.bi-info-circle
+              |  Memuat daftar kategori...
+            table.gm-cat-table(ng-if="categoryList.length > 0")
+              thead
+                tr
+                  th Kategori
+                  th(style="width:120px") Status
+                  th(style="width:100px; text-align:center") Aksi
+              tbody
+                tr(ng-repeat="cat in categoryList")
+                  td
+                    strong {{ cat.cat_name }}
+                    small.muted(style="display:block; font-size:11px; margin-top:2px")
+                      | ID: {{ cat.cat_id }}
+                  td
+                    span.gm-status-badge(ng-class="cat.is_enabled ? 'enabled' : 'disabled'")
+                      i.bi(ng-class="cat.is_enabled ? 'bi-check-circle-fill' : 'bi-x-circle'")
+                      |  {{ cat.is_enabled ? 'Enabled' : 'Disabled' }}
+                  td(style="text-align:center")
+                    button.btn-toggle(ng-if="!cat.is_enabled" ng-click="enableGrouping(cat)")
+                      | Enable
+                    button.btn-toggle.btn-danger-soft(ng-if="cat.is_enabled" ng-click="disableGrouping(cat)")
+                      | Disable
+
+          div.gm-pricelist-section(ng-if="enabledCategories.length > 0")
+            div.gm-section-title PRICELIST OPEN — INIT GROUPS
+            p.section-desc.small
+              | Pilih pricelist yang ingin di-initialize groups. Auto-detect
+              | tebal dari nama item. Admin bisa preview sebelum confirm.
+            div.empty-state(ng-if="openPricelists.length === 0")
+              i.bi.bi-inbox
+              |  Tidak ada pricelist OPEN di kategori yang enabled
+            table.gm-pl-table(ng-if="openPricelists.length > 0")
+              thead
+                tr
+                  th Kategori
+                  th(style="width:80px") Revisi
+                  th(style="width:120px") Status Init
+                  th(style="width:140px; text-align:center") Aksi
+              tbody
+                tr(ng-repeat="pl in openPricelists")
+                  td {{ pl.cat_name }}
+                  td Rev.{{ pl.revision_no }}
+                  td
+                    span.gm-init-status(ng-if="pl.has_groups")
+                      i.bi.bi-check-circle-fill
+                      |  Initialized
+                    span.gm-init-status.pending(ng-if="!pl.has_groups")
+                      i.bi.bi-circle
+                      |  Belum
+                  td(style="text-align:center")
+                    button.btn-primary.btn-small(ng-if="!pl.has_groups" ng-click="openInitPreview(pl)")
+                      i.bi.bi-collection
+                      |  Init Groups
+                    button.btn-ghost.btn-small(ng-if="pl.has_groups" ng-click="goToEditGrouped(pl.id)")
+                      i.bi.bi-pencil-square
+                      |  Edit
+
+      //- Modal: Preview Init Groups
+      div.modal-overlay(ng-if="modalInitPreview" ng-click="closeInitPreview()")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3
+              | Preview Init Groups:
+              strong  {{ modalInitPreview.cat_name }}
+              |  Rev.{{ modalInitPreview.pl_revision }}
+            button.modal-close(ng-click="closeInitPreview()") ×
+          div.modal-body
+            div.loading-state(ng-if="modalInitPreview.loading")
+              i.bi.bi-arrow-clockwise.spinning
+              |  Memuat preview...
+            div(ng-if="!modalInitPreview.loading && modalInitPreview.data")
+              div.preview-summary
+                div.preview-stat
+                  strong.stat-num {{ modalInitPreview.data.total_items }}
+                  span.stat-label Total item
+                div.preview-stat.success
+                  strong.stat-num {{ modalInitPreview.data.grouped_count }}
+                  span.stat-label Auto-detected
+                div.preview-stat.warning(ng-if="modalInitPreview.data.undetected.length > 0")
+                  strong.stat-num {{ modalInitPreview.data.undetected.length }}
+                  span.stat-label Tidak terdeteksi
+                div.preview-stat
+                  strong.stat-num {{ modalInitPreview.data.groups.length }}
+                  span.stat-label Groups
+
+              div.preview-groups
+                div.preview-section-title GROUPS YANG AKAN DIBUAT
+                div.preview-group-card(ng-repeat="g in modalInitPreview.data.groups")
+                  div.pgc-header
+                    span.pgc-thickness {{ g.thickness_label }}
+                    span.pgc-count {{ g.items.length }} item
+                  div.pgc-items
+                    div.pgc-item(ng-repeat="it in g.items | limitTo:5")
+                      span {{ it.i_name }}
+                      small.muted ({{ it.i_weight }} kg)
+                    div.pgc-item.muted(ng-if="g.items.length > 5")
+                      em ...dan {{ g.items.length - 5 }} item lainnya
+
+              div.preview-undetected(ng-if="modalInitPreview.data.undetected.length > 0")
+                div.preview-section-title.warning
+                  i.bi.bi-exclamation-triangle-fill
+                  |  ITEM TIDAK TERDETEKSI ({{ modalInitPreview.data.undetected.length }})
+                p.section-desc.small
+                  | Tebal tidak bisa di-parse dari nama item ini.
+                  | Item akan tampil terpisah dan perlu di-assign manual nanti.
+                div.preview-undetected-list
+                  div.pul-item(ng-repeat="it in modalInitPreview.data.undetected | limitTo:10")
+                    span {{ it.i_name }}
+                    small.muted ({{ it.i_weight }} kg)
+                  div.pul-item.muted(ng-if="modalInitPreview.data.undetected.length > 10")
+                    em ...dan {{ modalInitPreview.data.undetected.length - 10 }} item lainnya
+
+          div.modal-actions
+            button.btn-ghost(ng-click="closeInitPreview()") Batal
+            button.btn-primary(
+              ng-click="executeInitApply()"
+              ng-disabled="modalInitPreview.executing || modalInitPreview.loading"
+            )
+              i.bi.bi-check-circle(ng-if="!modalInitPreview.executing")
+              i.bi.bi-arrow-clockwise.spinning(ng-if="modalInitPreview.executing")
+              |  {{ modalInitPreview.executing ? 'Menerapkan...' : 'Confirm & Apply' }}
