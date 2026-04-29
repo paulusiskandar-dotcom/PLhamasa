@@ -88,9 +88,27 @@ block content
       div.dim-filter-bar(ng-if="pl && !loading && filterOptions")
         span.filter-bar-label FILTER
 
+        //- Sub Category dropdown
+        div.filter-dropdown(ng-if="filterOptions.subcategory && filterOptions.subcategory.length > 0" ng-class="{open: filterOpen.subcategory}")
+          button.filter-trigger(ng-click="filterOpen.subcategory = !filterOpen.subcategory; filterOpen.tebal = false; filterOpen.merk = false; filterOpen.grade = false")
+            span.filter-label Sub Category
+            span.filter-badge(ng-if="selectedFilterCount('subcategory') > 0") {{ selectedFilterCount('subcategory') }}
+            i.bi.bi-chevron-down
+          div.filter-panel(ng-if="filterOpen.subcategory")
+            div.filter-panel-search(ng-if="filterOptions.subcategory.length > 5")
+              input(type="text" ng-model="filterSearch.subcategory" placeholder="Cari sub category...")
+            div.filter-panel-actions
+              button.filter-btn-link(ng-click="selectAllFilter('subcategory')") Semua
+              button.filter-btn-link(ng-click="clearFilter('subcategory')") Hapus
+            div.filter-panel-options
+              label.filter-option(ng-repeat="opt in filterOptions.subcategory | filter:{label: filterSearch.subcategory}")
+                input(type="checkbox" ng-checked="isFilterChecked('subcategory', opt.label)" ng-click="toggleFilter('subcategory', opt.label)")
+                span.opt-label {{ opt.label }}
+                span.opt-count {{ opt.count }}
+
         //- Tebal dropdown
         div.filter-dropdown(ng-class="{open: filterOpen.tebal}")
-          button.filter-trigger(ng-click="filterOpen.tebal = !filterOpen.tebal; filterOpen.merk = false; filterOpen.grade = false")
+          button.filter-trigger(ng-click="filterOpen.tebal = !filterOpen.tebal; filterOpen.subcategory = false; filterOpen.merk = false; filterOpen.grade = false")
             span.filter-label Tebal
             span.filter-badge(ng-if="selectedFilterCount('tebal') > 0") {{ selectedFilterCount('tebal') }}
             i.bi.bi-chevron-down
@@ -108,7 +126,7 @@ block content
 
         //- Merk dropdown
         div.filter-dropdown(ng-class="{open: filterOpen.merk}")
-          button.filter-trigger(ng-click="filterOpen.merk = !filterOpen.merk; filterOpen.tebal = false; filterOpen.grade = false")
+          button.filter-trigger(ng-click="filterOpen.merk = !filterOpen.merk; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.grade = false")
             span.filter-label Merk
             span.filter-badge(ng-if="selectedFilterCount('merk') > 0") {{ selectedFilterCount('merk') }}
             i.bi.bi-chevron-down
@@ -126,7 +144,7 @@ block content
 
         //- Grade dropdown
         div.filter-dropdown(ng-class="{open: filterOpen.grade}")
-          button.filter-trigger(ng-click="filterOpen.grade = !filterOpen.grade; filterOpen.tebal = false; filterOpen.merk = false")
+          button.filter-trigger(ng-click="filterOpen.grade = !filterOpen.grade; filterOpen.subcategory = false; filterOpen.tebal = false; filterOpen.merk = false")
             span.filter-label Grade
             span.filter-badge(ng-if="selectedFilterCount('grade') > 0") {{ selectedFilterCount('grade') }}
             i.bi.bi-chevron-down
