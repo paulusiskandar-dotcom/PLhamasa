@@ -147,7 +147,7 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
     };
 
     $scope.assignUndetected = function (item) {
-        if (!item._selectedGroup) return;
+        if (!item._selectedGroup || item._selectedGroup === '__new__') return;
         var groupId = parseInt(item._selectedGroup, 10);
         $http.post(api.url + 'price-list/' + plId + '/group/confirm-new-item', {
             ig_id: item.ig_id, group_id: groupId
@@ -155,6 +155,39 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
             showToast('Item di-assign ke group', 'success');
             loadAll();
         }).catch(function (err) {
+            showToast('Gagal: ' + ((err.data && err.data.message) || ''), 'danger');
+        });
+    };
+
+    $scope.onUndetectedGroupChange = function (it) {
+        if (it._selectedGroup && it._selectedGroup !== '__new__') {
+            $scope.assignUndetected(it);
+        }
+    };
+
+    $scope.cancelCreateNew = function (it) {
+        it._selectedGroup  = '';
+        it._newThickness   = '';
+    };
+
+    $scope.executeCreateAndAssign = function (it) {
+        var thickness = parseFloat(it._newThickness);
+        if (!thickness || isNaN(thickness)) {
+            showToast('Tebal tidak valid', 'warning');
+            return;
+        }
+        it._creating = true;
+        groupService.createGroup(plId, thickness).then(function (r) {
+            var newGroupId = r.result.id;
+            return $http.post(api.url + 'price-list/' + plId + '/group/confirm-new-item', {
+                ig_id: it.ig_id, group_id: newGroupId
+            });
+        }).then(function () {
+            showToast('Group ' + thickness + ' mm dibuat & item di-assign', 'success');
+            it._creating = false;
+            loadAll();
+        }).catch(function (err) {
+            it._creating = false;
             showToast('Gagal: ' + ((err.data && err.data.message) || ''), 'danger');
         });
     };

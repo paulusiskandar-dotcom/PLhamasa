@@ -2555,3 +2555,21 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .validation-item ul { margin: 4px 0 0; padding-left: 18px; font-size: 12px; color: #5A6C7E; }
 .validation-item p.muted { margin: 2px 0 0; font-size: 12px; color: #5A6C7E; }
 .validation-actions { margin-top: 8px; text-align: center; }
+
+/* ── Undetected items inline create ────────────────────────────────────────── */
+.und-select {
+  min-width: 200px; padding: 5px 8px;
+  border: 1px solid #C5CCD3; border-radius: 4px; font-size: 12px;
+}
+.und-create-form {
+  display: flex; align-items: center; gap: 6px; margin-left: 8px;
+}
+.und-create-form input {
+  width: 100px; padding: 5px 8px;
+  border: 1px solid #F57C00; border-radius: 4px;
+  font-size: 12px; text-align: right;
+}
+.und-create-form input:focus {
+  outline: none; border-color: #1E3A5F; box-shadow: 0 0 0 2px rgba(30,58,95,0.1);
+}
+.und-create-form .btn-small { padding: 5px 10px; font-size: 11px; }

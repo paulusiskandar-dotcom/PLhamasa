@@ -148,9 +148,24 @@ block content
           div.und-item(ng-repeat="it in undetectedItems")
             span.und-name {{ it.i_name }}
             small.muted  ({{ it.i_weight | number:2 }} kg)
-            select(ng-model="it._selectedGroup" ng-change="assignUndetected(it)")
-              option(value="") Pilih group...
+            select.und-select(ng-model="it._selectedGroup" ng-change="onUndetectedGroupChange(it)")
+              option(value="") -- Pilih group --
               option(ng-repeat="g in groups" value="{{ g.id }}") {{ g.thickness_label }}
+              option(value="__new__" style="color:#F57C00; font-weight:600;") + Buat group baru...
+            div.und-create-form(ng-if="it._selectedGroup === '__new__'")
+              input(
+                type="number"
+                step="0.01"
+                placeholder="Tebal mm"
+                ng-model="it._newThickness"
+                ng-keyup="$event.key === 'Enter' && executeCreateAndAssign(it)")
+              button.btn-primary.btn-small(
+                ng-click="executeCreateAndAssign(it)"
+                ng-disabled="!it._newThickness || it._creating")
+                i.bi.bi-arrow-clockwise.spinning(ng-if="it._creating")
+                i.bi.bi-check(ng-if="!it._creating")
+                |  Buat & Assign
+              button.btn-ghost.btn-small(ng-click="cancelCreateNew(it)") Batal
 
     //- Modal: Create group
     div.modal-overlay(ng-if="modalCreateGroup" ng-click="closeCreateGroupModal()")
