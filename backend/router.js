@@ -105,5 +105,6 @@ module.exports = function (app) {
     app.get("/price-list/:id/group/new-items",           auth.verifyToken, groupCtrl._detectNewItems);
     app.post("/price-list/:id/group/confirm-new-item",   auth.verifyToken, groupCtrl._confirmNewItem);
     app.post("/price-list/:id/group/create",             auth.verifyToken, groupCtrl._createGroup);
+    app.put('/group/:group_id/price',                    auth.verifyToken, groupCtrl._updateGroupPrice);
 
 };

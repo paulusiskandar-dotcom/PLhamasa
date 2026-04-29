@@ -29,5 +29,9 @@ plmApp.factory('groupService', function ($http) {
                 thickness_value: thicknessValue
             }).then(function (r) { return r.data; });
         },
+        updatePrice: function (groupId, prices) {
+            return $http.put(api.url + 'group/' + groupId + '/price', prices)
+                .then(function (r) { return r.data; });
+        },
     };
 });

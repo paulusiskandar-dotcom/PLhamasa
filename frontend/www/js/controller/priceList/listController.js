@@ -1,4 +1,4 @@
-plmApp.controller('priceListListController', function ($scope, $timeout, priceListService, $masterService, pdfTemplateService) {
+plmApp.controller('priceListListController', function ($scope, $timeout, priceListService, $masterService, pdfTemplateService, groupService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -140,7 +140,12 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     };
 
     $scope.continueEdit = function (pl) {
-        window.location.href = '/edit/' + pl.id;
+        groupService.getGroups(pl.id).then(function (r) {
+            var hasGroups = (r.result || []).length > 0;
+            window.location.href = hasGroups ? '/edit-grouped/' + pl.id : '/edit/' + pl.id;
+        }).catch(function () {
+            window.location.href = '/edit/' + pl.id;
+        });
     };
 
     $scope.showDetail = function (pl) {

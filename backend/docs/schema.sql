@@ -237,3 +237,12 @@ CREATE TABLE IF NOT EXISTS item_pending_assignment (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pending_pl ON item_pending_assignment(price_list_id);
+
+-- ── GROUPING PHASE 3 — Price columns on group definition ──────────────────────
+ALTER TABLE item_group_definition
+  ADD COLUMN IF NOT EXISTS cash_gudang_kg    NUMERIC(15, 2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS cash_pabrik_kg    NUMERIC(15, 2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS kredit_gudang_kg  NUMERIC(15, 2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS kredit_pabrik_kg  NUMERIC(15, 2) DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS last_modified_by  INTEGER REFERENCES users(id),
+  ADD COLUMN IF NOT EXISTS last_modified_at  TIMESTAMPTZ;

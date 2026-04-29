@@ -5,6 +5,12 @@
 const dbPLM = () => global.dbPLM;
 const dbERP = () => global.dbERP;
 
+function roundSpecial(raw) {
+    if (!raw || raw <= 0) return 0;
+    const sisa = Math.round(raw) % 100;
+    return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
+}
+
 // ── Thickness parsing ─────────────────────────────────────────────────────────
 
 function parseThickness(itemName) {
@@ -165,6 +171,25 @@ async function applyInitGroups(priceListId, userId) {
                  RETURNING id`,
                 [priceListId, pl.cat_id, g.thickness, g.thickness + ' mm', order++]
             );
+            // Seed default group prices from first item's existing prices
+            if (g.items.length > 0) {
+                const firstIgId = g.items[0];
+                const existingPrices = await t.any(
+                    'SELECT pr_id, i_price FROM price_list_item WHERE price_list_id = $1 AND ig_id = $2',
+                    [priceListId, firstIgId]
+                );
+                if (existingPrices.length > 0) {
+                    const prMap = {};
+                    existingPrices.forEach(function (p) { prMap[Number(p.pr_id)] = parseFloat(p.i_price) || 0; });
+                    await t.none(
+                        `UPDATE item_group_definition
+                         SET cash_pabrik_kg = $2, cash_gudang_kg = $3,
+                             kredit_pabrik_kg = $4, kredit_gudang_kg = $5
+                         WHERE id = $1`,
+                        [def.id, prMap[1] || 0, prMap[2] || 0, prMap[3] || 0, prMap[4] || 0]
+                    );
+                }
+            }
             for (const igId of g.items) {
                 await t.none(
                     'INSERT INTO item_group_assignment (group_id, ig_id, assigned_by) VALUES ($1, $2, $3)',
@@ -181,7 +206,8 @@ async function applyInitGroups(priceListId, userId) {
 
 async function getGroupsWithItems(priceListId) {
     const groups = await dbPLM().any(
-        `SELECT id, thickness_value, thickness_label, display_order
+        `SELECT id, thickness_value, thickness_label, display_order,
+                cash_gudang_kg, cash_pabrik_kg, kredit_gudang_kg, kredit_pabrik_kg
          FROM item_group_definition
          WHERE price_list_id = $1
          ORDER BY display_order, thickness_value`,
@@ -207,22 +233,39 @@ async function getGroupsWithItems(priceListId) {
     itemDetails.forEach(function (it) { itemMap[it.ig_id] = it; });
 
     return groups.map(function (g) {
+        const cgKg = parseFloat(g.cash_gudang_kg)   || 0;
+        const cpKg = parseFloat(g.cash_pabrik_kg)   || 0;
+        const kgKg = parseFloat(g.kredit_gudang_kg) || 0;
+        const kpKg = parseFloat(g.kredit_pabrik_kg) || 0;
+
+        const items = assignments
+            .filter(function (a) { return a.group_id === g.id; })
+            .map(function (a) {
+                const it     = itemMap[a.ig_id] || {};
+                const weight = parseFloat(it.i_weight) || 0;
+                return {
+                    ig_id:             a.ig_id,
+                    i_name:            it.i_name  || ('Item ' + a.ig_id),
+                    i_weight:          weight,
+                    un_name:           it.un_name || '',
+                    cash_gudang_lbr:   roundSpecial(cgKg * weight),
+                    cash_pabrik_lbr:   roundSpecial(cpKg * weight),
+                    kredit_gudang_lbr: roundSpecial(kgKg * weight),
+                    kredit_pabrik_lbr: roundSpecial(kpKg * weight),
+                };
+            })
+            .sort(function (a, b) { return a.i_weight - b.i_weight; });
+
         return {
-            id:              g.id,
-            thickness_value: parseFloat(g.thickness_value),
-            thickness_label: g.thickness_label,
-            display_order:   g.display_order,
-            items: assignments
-                .filter(function (a) { return a.group_id === g.id; })
-                .map(function (a) {
-                    const it = itemMap[a.ig_id] || {};
-                    return {
-                        ig_id:    a.ig_id,
-                        i_name:   it.i_name  || ('Item ' + a.ig_id),
-                        i_weight: parseFloat(it.i_weight) || 0,
-                        un_name:  it.un_name || '',
-                    };
-                }),
+            id:               g.id,
+            thickness_value:  parseFloat(g.thickness_value),
+            thickness_label:  g.thickness_label,
+            display_order:    g.display_order,
+            cash_gudang_kg:   cgKg,
+            cash_pabrik_kg:   cpKg,
+            kredit_gudang_kg: kgKg,
+            kredit_pabrik_kg: kpKg,
+            items:            items,
         };
     });
 }
@@ -331,6 +374,78 @@ async function createGroup(priceListId, thicknessValue, userId) {
     );
 }
 
+async function updateGroupPrice(groupId, prices, userId) {
+    return dbPLM().tx(async function (t) {
+        const group = await t.oneOrNone(
+            'SELECT id, price_list_id, cat_id FROM item_group_definition WHERE id = $1',
+            [groupId]
+        );
+        if (!group) throw new Error('Group tidak ditemukan');
+
+        const fields = ['cash_gudang_kg', 'cash_pabrik_kg', 'kredit_gudang_kg', 'kredit_pabrik_kg'];
+        const updates = [];
+        const vals    = [groupId, userId];
+        let idx = 3;
+        fields.forEach(function (key) {
+            if (prices[key] !== undefined) {
+                updates.push(key + ' = $' + idx++);
+                vals.push(parseFloat(prices[key]) || 0);
+            }
+        });
+        if (!updates.length) return { ok: true, cascaded: 0 };
+
+        await t.none(
+            'UPDATE item_group_definition SET ' + updates.join(', ') +
+            ', last_modified_by = $2, last_modified_at = NOW() WHERE id = $1',
+            vals
+        );
+
+        const assignments = await t.any(
+            'SELECT ig_id FROM item_group_assignment WHERE group_id = $1',
+            [groupId]
+        );
+        if (!assignments.length) return { ok: true, cascaded: 0 };
+
+        const igIds = assignments.map(function (a) { return a.ig_id; });
+        const erpItems = await dbERP().any(
+            'SELECT ig_id, i_weight FROM item WHERE ig_id = ANY($1) AND deleted_at IS NULL',
+            [igIds]
+        );
+        const weightMap = {};
+        erpItems.forEach(function (it) { weightMap[it.ig_id] = parseFloat(it.i_weight) || 0; });
+
+        const groupNow = await t.one(
+            'SELECT cash_gudang_kg, cash_pabrik_kg, kredit_gudang_kg, kredit_pabrik_kg FROM item_group_definition WHERE id = $1',
+            [groupId]
+        );
+
+        // pr_id: 1=cash_pabrik, 2=cash_gudang, 3=kredit_pabrik, 4=kredit_gudang
+        const prPriceMap = [
+            [1, parseFloat(groupNow.cash_pabrik_kg)   || 0],
+            [2, parseFloat(groupNow.cash_gudang_kg)   || 0],
+            [3, parseFloat(groupNow.kredit_pabrik_kg) || 0],
+            [4, parseFloat(groupNow.kredit_gudang_kg) || 0],
+        ];
+
+        let cascaded = 0;
+        for (const igId of igIds) {
+            for (const pair of prPriceMap) {
+                const prId    = pair[0];
+                const priceKg = pair[1];
+                await t.none(
+                    `INSERT INTO price_list_item (price_list_id, ig_id, pr_id, i_price, updated_by, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, NOW())
+                     ON CONFLICT (price_list_id, ig_id, pr_id) DO UPDATE SET
+                       i_price = EXCLUDED.i_price, updated_by = EXCLUDED.updated_by, updated_at = NOW()`,
+                    [group.price_list_id, igId, prId, priceKg, userId]
+                );
+                cascaded++;
+            }
+        }
+        return { ok: true, cascaded, group_id: groupId };
+    });
+}
+
 module.exports = {
     parseThickness,
     autoDetectGroups,
@@ -345,4 +460,5 @@ module.exports = {
     detectNewItems,
     confirmNewItemAssignment,
     createGroup,
+    updateGroupPrice,
 };

@@ -570,7 +570,7 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
     };
 
     $scope.goToEditGrouped = function (plId) {
-        showToast('Edit grouped page belum tersedia (Phase 3)', 'info');
+        window.location.href = '/edit-grouped/' + plId;
     };
 
     init();

@@ -1,14 +1,13 @@
 module.exports = function (req, res) {
-    res.render("priceList", {
+    res.render("editGrouped", {
         page: {
-            title: "Price List — PLhamasa",
+            title: "Edit Grouped — PLhamasa",
             data: {
-                controller: "/js/controller/priceList/listController.js",
+                priceListId: parseInt(req.params.id),
+                controller: "/js/controller/editGrouped/editGroupedController.js",
                 services: [
                     "/js/services/auth.js",
                     "/js/services/priceList.js",
-                    "/js/services/master.js",
-                    "/js/services/pdfTemplate.js",
                     "/js/services/group.js",
                 ]
             }

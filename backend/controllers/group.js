@@ -117,3 +117,14 @@ module.exports._createGroup = async function (req, res) {
         return response.error(res, err.message, null, 400);
     }
 };
+
+module.exports._updateGroupPrice = async function (req, res) {
+    try {
+        const groupId = parseInt(req.params.group_id, 10);
+        if (isNaN(groupId)) return response.error(res, 'invalid_group_id', null, 400);
+        const result = await groupService.updateGroupPrice(groupId, req.body, res.locals.user.id);
+        return response.success(res, result, 'Group price updated');
+    } catch (err) {
+        return response.error(res, err.message, null, 400);
+    }
+};

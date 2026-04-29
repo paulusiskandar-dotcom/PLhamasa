@@ -118,3 +118,27 @@ plmApp.filter("priceTypeLabel", function () {
         return labels[prId] || ('PR ' + prId);
     };
 });
+
+plmApp.filter('groupSort', function () {
+    return function (groups, mode) {
+        if (!groups) return [];
+        var sorted = groups.slice();
+        if (mode === 'thickness_desc') {
+            sorted.sort(function (a, b) { return b.thickness_value - a.thickness_value; });
+        } else {
+            sorted.sort(function (a, b) { return a.thickness_value - b.thickness_value; });
+        }
+        return sorted;
+    };
+});
+
+plmApp.filter('itemNameFilter', function () {
+    return function (items, query) {
+        if (!items) return [];
+        if (!query) return items;
+        var q = query.toLowerCase();
+        return items.filter(function (it) {
+            return (it.i_name || '').toLowerCase().indexOf(q) >= 0;
+        });
+    };
+});
