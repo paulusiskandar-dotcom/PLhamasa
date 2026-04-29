@@ -19,7 +19,7 @@ function parseTebal(itemName) {
 
 function formatTebalLabel(tebal) {
     if (tebal === null || tebal === undefined) return '(tidak terdeteksi)';
-    const s = String(parseFloat(tebal.toFixed(3))).replace(/\.?0+$/, '');
+    const s = String(parseFloat(tebal.toFixed(3)));
     return s + ' mm';
 }
 
