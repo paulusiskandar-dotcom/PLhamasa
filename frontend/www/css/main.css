@@ -1520,7 +1520,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   box-shadow: 0 1px 3px rgba(245,124,0,.35);
 }
 .btn-toolbar-primary:hover:not(:disabled) { background: var(--orange-light); border-color: var(--orange-light); }
-.btn-toolbar-primary:disabled { background: rgba(245,124,0,.4) !important; border-color: rgba(245,124,0,.4) !important; box-shadow: none; }
+.btn-toolbar-primary:disabled { background: rgba(245,124,0,.4) !important; border-color: rgba(245,124,0,.4) !important; box-shadow: none; cursor: not-allowed; }
 .toolbar-divider {
   width: 1px;
   height: 28px;

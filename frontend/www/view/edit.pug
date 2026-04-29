@@ -381,9 +381,19 @@ block content
 
       //- Bottom toolbar — OPEN
       div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")
-        button.btn-toolbar.btn-toolbar-primary(ng-click="confirmPostToErp()" ng-disabled="lockState !== 'mine'")
-          i.bi.bi-cloud-upload
-          |  Post to ERP
+        div(style="display:inline-flex; align-items:center; gap:6px")
+          button.btn-toolbar.btn-toolbar-primary(
+            ng-click="confirmPostToErp()"
+            ng-disabled="lockState !== 'mine' || (requireTebal && unassignedCount > 0)"
+            title="{{ (requireTebal && unassignedCount > 0) ? (unassignedCount + ' item belum di-assign tebal — assign dulu sebelum post') : 'Post pricelist ke ERP' }}"
+          )
+            i.bi.bi-cloud-upload
+            |  Post to ERP
+          i.bi.bi-exclamation-triangle-fill(
+            ng-if="requireTebal && unassignedCount > 0"
+            title="{{ unassignedCount }} item belum di-assign tebal"
+            style="color:#E65100; font-size:16px; cursor:default; flex-shrink:0"
+          )
         div.toolbar-divider
         button.btn-toolbar(ng-click="showPdfTemplateModal()")
           i.bi.bi-file-pdf
