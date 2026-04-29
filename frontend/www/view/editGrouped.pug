@@ -49,6 +49,9 @@ block content
           button.search-clear(ng-click="searchQuery = ''" ng-if="searchQuery")
             i.bi.bi-x
         div.eg-toolbar-actions
+          button.btn-ghost.btn-small(ng-click="toggleSelectAllGroups()")
+            i.bi(ng-class="allGroupsChecked() ? 'bi-check-square' : 'bi-square'")
+            |  {{ allGroupsChecked() ? 'Uncheck Semua' : 'Pilih Semua' }}
           button.btn-ghost.btn-small(
             ng-click="sortGroup = 'thickness_asc'"
             ng-class="{active: sortGroup === 'thickness_asc'}")
@@ -60,6 +63,34 @@ block content
           button.btn-secondary.btn-small(ng-click="openCreateGroupModal()")
             i.bi.bi-plus-circle
             |  Group Manual
+
+      //- Modifier bar
+      div.modifier-bar(ng-if="groups.length > 0")
+        div.modifier-title
+          i.bi.bi-magic
+          |  Pengubah Harga
+        div.modifier-row
+          div.modifier-targets
+            span.mod-target-label Target:
+            label.mod-checkbox(ng-repeat="pt in priceTypes")
+              input(type="checkbox" ng-model="modifier.targets[pt.code]")
+              span  {{ pt.label }}
+              span.text-muted(ng-if="isExtendedCategory")  ({{ pt.group }})
+            button.btn-ghost.btn-sm(ng-click="selectAllTargets()") Semua
+            button.btn-ghost.btn-sm(ng-if="isExtendedCategory" ng-click="selectGudangTargets()") Gudang
+            button.btn-ghost.btn-sm(ng-if="isExtendedCategory" ng-click="selectPabrikTargets()") Pabrik
+          div.modifier-input-row
+            select.mod-type.form-control(ng-model="modifier.type" ng-options="m.id as m.label for m in modifierTypes")
+            input.mod-value.form-control(
+              type="text"
+              ng-model="modifier.value"
+              placeholder="Nilai")
+            button.btn-generate-gold(
+              ng-click="applyModifier()"
+              ng-disabled="!hasSelectedGroups() || !modifier.value")
+              i.bi.bi-lightning-fill
+              |  Generate
+            span.mod-summary(ng-if="selectedGroupCount() > 0") {{ selectedGroupCount() }} group dipilih
 
       //- Detection banner
       div.eg-detection-banner(ng-if="detection.new_items.length > 0 || detection.removed_items.length > 0")
@@ -85,6 +116,8 @@ block content
           div.eg-group-header(
             ng-class="{expanded: g._expanded}")
             div.egh-left
+              div.egh-checkbox
+                input(type="checkbox" ng-model="g._checked" ng-click="$event.stopPropagation()")
               button.btn-toggle-expand(ng-click="toggleGroup(g)")
                 i.bi(ng-class="g._expanded ? 'bi-chevron-down' : 'bi-chevron-right'")
               span.egh-thickness {{ g.thickness_label }}

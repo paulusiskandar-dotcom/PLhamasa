@@ -2573,3 +2573,12 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   outline: none; border-color: #1E3A5F; box-shadow: 0 0 0 2px rgba(30,58,95,0.1);
 }
 .und-create-form .btn-small { padding: 5px 10px; font-size: 11px; }
+
+/* Group checkbox + modifier summary */
+.egh-checkbox {
+  display: inline-flex; align-items: center; margin-right: 4px;
+}
+.egh-checkbox input[type="checkbox"] {
+  width: 16px; height: 16px; cursor: pointer; accent-color: #F57C00; margin: 0;
+}
+.mod-summary { font-size: 11px; color: #F5C06A; margin-left: 8px; font-style: italic; }

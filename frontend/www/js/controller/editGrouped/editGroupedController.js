@@ -18,6 +18,16 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
     $scope.modalReview    = null;
     $scope.modalValidation = null;
 
+    $scope.priceTypes   = [];
+    $scope.modifierTypes = [
+        { id: 'plus_nominal',  label: '+ Rp'    },
+        { id: 'minus_nominal', label: '- Rp'    },
+        { id: 'plus_percent',  label: '+ %'     },
+        { id: 'minus_percent', label: '- %'     },
+        { id: 'set_price',     label: '= Harga' },
+    ];
+    $scope.modifier = { type: 'plus_nominal', value: '', targets: {} };
+
     var saveTimers = {};
 
     function showToast(msg, type, dur) {
@@ -35,7 +45,10 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
         $scope.loading = true;
         priceListService.get(plId).then(function (r) {
             $scope.pl = r.result;
-            $scope.isExtendedCategory = (r.result.priceTypes || []).length > 2;
+            $scope.priceTypes = r.result.priceTypes || [];
+            $scope.isExtendedCategory = $scope.priceTypes.length > 2;
+            $scope.modifier.targets = {};
+            $scope.priceTypes.forEach(function (pt) { $scope.modifier.targets[pt.code] = false; });
             return groupService.getGroups(plId);
         }).then(function (r) {
             var groups = r.result || [];
@@ -193,6 +206,83 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
     };
 
     $scope.goBack = function () { window.location.href = '/price-list'; };
+
+    // ── Modifier ──────────────────────────────────────────────
+    $scope.selectAllTargets = function () {
+        $scope.priceTypes.forEach(function (pt) { $scope.modifier.targets[pt.code] = true; });
+    };
+
+    $scope.selectGudangTargets = function () {
+        $scope.priceTypes.forEach(function (pt) {
+            $scope.modifier.targets[pt.code] = pt.group === 'Gudang';
+        });
+    };
+
+    $scope.selectPabrikTargets = function () {
+        $scope.priceTypes.forEach(function (pt) {
+            $scope.modifier.targets[pt.code] = pt.group === 'Pabrik';
+        });
+    };
+
+    $scope.toggleSelectAllGroups = function () {
+        var newState = !$scope.allGroupsChecked();
+        $scope.groups.forEach(function (g) { g._checked = newState; });
+    };
+
+    $scope.allGroupsChecked = function () {
+        return $scope.groups.length > 0 && $scope.groups.every(function (g) { return g._checked; });
+    };
+
+    $scope.selectedGroupCount = function () {
+        return $scope.groups.filter(function (g) { return g._checked; }).length;
+    };
+
+    $scope.hasSelectedGroups = function () { return $scope.selectedGroupCount() > 0; };
+
+    function parseModifierValue(str) {
+        if (!str || str === '') return null;
+        var n = parseFloat(String(str).replace(/\./g, '').replace(',', '.'));
+        return isNaN(n) ? null : n;
+    }
+
+    function computeModifiedPrice(type, current, value) {
+        var result;
+        switch (type) {
+            case 'plus_nominal':  result = current + value; break;
+            case 'minus_nominal': result = Math.max(0, current - value); break;
+            case 'plus_percent':  result = current * (1 + value / 100); break;
+            case 'minus_percent': result = Math.max(0, current * (1 - value / 100)); break;
+            case 'set_price':     result = value; break;
+            default:              result = current;
+        }
+        return Math.round(result);
+    }
+
+    $scope.applyModifier = function () {
+        var targets = $scope.priceTypes.filter(function (pt) { return $scope.modifier.targets[pt.code]; });
+        if (!targets.length) { showToast('Pilih minimal 1 target harga', 'warning'); return; }
+
+        var rawVal = parseModifierValue($scope.modifier.value);
+        if (rawVal === null) { showToast('Masukkan nilai modifier yang valid', 'warning'); return; }
+
+        var selectedGroups = $scope.groups.filter(function (g) { return g._checked; });
+        if (!selectedGroups.length) { showToast('Pilih minimal 1 group', 'warning'); return; }
+
+        selectedGroups.forEach(function (g) {
+            targets.forEach(function (pt) {
+                var fieldKey = pt.code + '_kg';
+                var current  = parseFloat(g[fieldKey]) || 0;
+                g[fieldKey]  = computeModifiedPrice($scope.modifier.type, current, rawVal);
+            });
+            $scope.onGroupPriceChange(g);
+        });
+
+        showToast(
+            'Diterapkan ke ' + selectedGroups.length + ' group (' + targets.length + ' target)',
+            'success'
+        );
+        $scope.modifier.value = '';
+    };
 
     $scope.loadDetection = function () {
         groupService.detectChanges(plId).then(function (r) {
