@@ -33,5 +33,22 @@ plmApp.factory('groupService', function ($http) {
             return $http.put(api.url + 'group/' + groupId + '/price', prices)
                 .then(function (r) { return r.data; });
         },
+        detectChanges: function (priceListId) {
+            return $http.get(api.url + 'price-list/' + priceListId + '/group/detect-changes')
+                .then(function (r) { return r.data; });
+        },
+        confirmBatch: function (priceListId, assignments) {
+            return $http.post(api.url + 'price-list/' + priceListId + '/group/confirm-batch', {
+                assignments: assignments
+            }).then(function (r) { return r.data; });
+        },
+        validatePost: function (priceListId) {
+            return $http.get(api.url + 'price-list/' + priceListId + '/group/validate-post')
+                .then(function (r) { return r.data; });
+        },
+        deleteEmptyGroup: function (groupId) {
+            return $http.delete(api.url + 'group/' + groupId)
+                .then(function (r) { return r.data; });
+        },
     };
 });

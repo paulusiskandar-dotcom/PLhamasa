@@ -27,9 +27,12 @@ block content
               span.eg-rev  Rev.{{ pl.revision_no | padNumber:3 }}
             span.status-badge.status-open OPEN
           div.eg-header-actions
-            button.btn-primary(ng-click="goBack()")
+            button.btn-secondary(ng-click="goBack()")
               i.bi.bi-check-circle
               |  Selesai Edit
+            button.btn-primary(ng-click="initiatePostToErp()")
+              i.bi.bi-cloud-upload
+              |  Post to ERP
         div.eg-header-info
           span.info-item
             i.bi.bi-collection
@@ -58,6 +61,21 @@ block content
             i.bi.bi-plus-circle
             |  Group Manual
 
+      //- Detection banner
+      div.eg-detection-banner(ng-if="detection.new_items.length > 0 || detection.removed_items.length > 0")
+        div.banner-content
+          i.bi.bi-bell-fill
+          div.banner-text
+            strong(ng-if="detection.new_items.length > 0") {{ detection.new_items.length }} item baru terdeteksi
+            span(ng-if="detection.new_items.length > 0 && detection.removed_items.length > 0")  ·
+            strong.text-danger(ng-if="detection.removed_items.length > 0") {{ detection.removed_items.length }} item dihapus dari ERP
+          button.btn-primary.btn-small(ng-if="detection.new_items.length > 0" ng-click="openReviewModal()")
+            i.bi.bi-list-check
+            |  Review & Assign
+          button.btn-ghost.btn-small(ng-click="loadDetection()")
+            i.bi.bi-arrow-clockwise
+            |  Refresh
+
       //- Groups list
       div.eg-groups-wrapper
         div.eg-empty-state(ng-if="groups.length === 0")
@@ -84,6 +102,11 @@ block content
               div.egh-price-input
                 label Kredit Gudang
                 input(type="number" ng-model="g.kredit_gudang_kg" ng-change="onGroupPriceChange(g)" placeholder="0")
+              button.btn-icon-mini.btn-danger(
+                ng-if="g.items.length === 0"
+                ng-click="$event.stopPropagation(); deleteGroup(g)"
+                title="Hapus group kosong")
+                i.bi.bi-trash
               span.save-indicator(ng-if="g._saving")
                 i.bi.bi-arrow-clockwise.spinning
               span.save-indicator.saved(ng-if="!g._saving && g._saved")
@@ -169,3 +192,106 @@ block content
           button.btn-ghost(ng-click="closeMoveItemModal()") Batal
           button.btn-primary(ng-click="executeMoveItem()" ng-disabled="!modalMoveItem.toGroupId")
             | Pindahkan
+
+    //- Modal: Review new items
+    div.modal-overlay(ng-if="modalReview" ng-click="closeReviewModal()")
+      div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+        div.modal-header
+          h3
+            i.bi.bi-list-check
+            |  Review Item Baru ({{ modalReview.items.length }})
+          button.modal-close(ng-click="closeReviewModal()") ×
+        div.modal-body
+          p.section-desc
+            | Sistem auto-detect tebal dari nama item dan suggest group.
+            | Anda bisa override pilihan group atau buat group baru.
+          div.review-summary
+            div.review-stat
+              strong.stat-num {{ modalReview.items.length }}
+              span.stat-label Total item baru
+            div.review-stat.success
+              strong.stat-num {{ countAutoSuggested() }}
+              span.stat-label Auto-suggested
+            div.review-stat.warning(ng-if="countNeedManual() > 0")
+              strong.stat-num {{ countNeedManual() }}
+              span.stat-label Perlu manual
+          div.review-table-wrapper
+            table.review-table
+              thead
+                tr
+                  th(style="width:40%") NAMA ITEM
+                  th(style="width:10%") BERAT
+                  th(style="width:12%") TEBAL
+                  th(style="width:30%") ASSIGN KE GROUP
+                  th(style="width:60px")
+              tbody
+                tr(ng-repeat="it in modalReview.items" ng-class="{'row-skipped': it._skipped}")
+                  td
+                    span.it-name {{ it.i_name }}
+                  td.text-right.mono {{ it.i_weight | number:2 }}
+                  td.text-center
+                    span.thickness-tag(ng-if="it.detected_thickness !== null") {{ it.detected_thickness }} mm
+                    span.thickness-tag.unknown(ng-if="it.detected_thickness === null") tidak terdeteksi
+                  td
+                    select(ng-model="it._selectedGroupId" ng-disabled="it._skipped || it._createNew")
+                      option(value="") -- Pilih group --
+                      option(ng-repeat="g in modalReview.available_groups" value="{{ g.id }}") {{ g.thickness_label }}
+                    div.create-new-option(ng-if="it.can_create_group")
+                      label
+                        input(type="checkbox" ng-model="it._createNew" ng-change="onCreateNewToggle(it)")
+                        |  Buat group baru ({{ it.detected_thickness }} mm)
+                  td.text-center
+                    button.btn-icon-mini(ng-click="toggleSkip(it)" title="Skip")
+                      i.bi(ng-class="it._skipped ? 'bi-arrow-counterclockwise' : 'bi-x-circle'")
+        div.modal-actions
+          button.btn-ghost(ng-click="closeReviewModal()") Batal
+          button.btn-primary(
+            ng-click="executeBatchConfirm()"
+            ng-disabled="modalReview.executing || !canConfirm()")
+            i.bi.bi-check-circle(ng-if="!modalReview.executing")
+            i.bi.bi-arrow-clockwise.spinning(ng-if="modalReview.executing")
+            |  Konfirmasi {{ countToConfirm() }} Item
+
+    //- Modal: Post validation
+    div.modal-overlay(ng-if="modalValidation" ng-click="closeValidationModal()")
+      div.modal-card.modal-medium(ng-click="$event.stopPropagation()")
+        div.modal-header
+          h3
+            i.bi.bi-shield-exclamation
+            |  Validasi Sebelum Post to ERP
+          button.modal-close(ng-click="closeValidationModal()") ×
+        div.modal-body
+          div(ng-if="modalValidation.blockers.length > 0")
+            div.validation-section.danger
+              h4
+                i.bi.bi-x-octagon-fill
+                |  TIDAK BISA POST
+              div.validation-item.danger(ng-repeat="b in modalValidation.blockers")
+                i.bi.bi-exclamation-triangle-fill
+                div
+                  strong {{ b.message }}
+                  p.muted Item baru harus di-assign group dulu.
+            div.validation-actions
+              button.btn-primary(ng-click="closeValidationModal(); openReviewModal()")
+                | Buka Review Item Baru
+          div(ng-if="modalValidation.blockers.length === 0")
+            div.validation-section.success
+              i.bi.bi-check-circle-fill
+              strong Siap di-post
+            div.validation-section.warning(ng-if="modalValidation.warnings.length > 0")
+              h4
+                i.bi.bi-exclamation-circle-fill
+                |  Peringatan
+              div.validation-item.warning(ng-repeat="w in modalValidation.warnings")
+                div
+                  strong {{ w.message }}
+                  ul(ng-if="w.groups && w.groups.length > 0")
+                    li(ng-repeat="g in w.groups | limitTo:5") {{ g }}
+                    li(ng-if="w.groups.length > 5") ...dan {{ w.groups.length - 5 }} lainnya
+        div.modal-actions
+          button.btn-ghost(ng-click="closeValidationModal()") Tutup
+          button.btn-primary(
+            ng-if="modalValidation.blockers.length === 0"
+            ng-click="proceedToPost()")
+            i.bi.bi-cloud-upload
+            |  Lanjut Post to ERP

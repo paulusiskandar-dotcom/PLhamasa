@@ -128,3 +128,51 @@ module.exports._updateGroupPrice = async function (req, res) {
         return response.error(res, err.message, null, 400);
     }
 };
+
+module.exports._detectChanges = async function (req, res) {
+    try {
+        const plId = parseInt(req.params.id, 10);
+        if (isNaN(plId)) return response.error(res, 'invalid_id', null, 400);
+        const result = await groupService.detectChanges(plId);
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, err.message, null, 500);
+    }
+};
+
+module.exports._confirmBatch = async function (req, res) {
+    try {
+        const plId = parseInt(req.params.id, 10);
+        if (isNaN(plId)) return response.error(res, 'invalid_id', null, 400);
+        const { assignments } = req.body;
+        if (!Array.isArray(assignments) || assignments.length === 0) {
+            return response.error(res, 'assignments wajib (array)', null, 400);
+        }
+        const result = await groupService.confirmNewItemsBatch(plId, assignments, res.locals.user.id);
+        return response.success(res, result, 'Items assigned');
+    } catch (err) {
+        return response.error(res, err.message, null, 400);
+    }
+};
+
+module.exports._validatePostReadiness = async function (req, res) {
+    try {
+        const plId = parseInt(req.params.id, 10);
+        if (isNaN(plId)) return response.error(res, 'invalid_id', null, 400);
+        const result = await groupService.validatePostReadiness(plId);
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, err.message, null, 500);
+    }
+};
+
+module.exports._deleteEmptyGroup = async function (req, res) {
+    try {
+        const groupId = parseInt(req.params.group_id, 10);
+        if (isNaN(groupId)) return response.error(res, 'invalid_group_id', null, 400);
+        await groupService.deleteEmptyGroup(groupId);
+        return response.success(res, { ok: true }, 'Group deleted');
+    } catch (err) {
+        return response.error(res, err.message, null, 400);
+    }
+};

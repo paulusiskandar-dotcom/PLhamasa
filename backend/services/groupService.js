@@ -446,6 +446,185 @@ async function updateGroupPrice(groupId, prices, userId) {
     });
 }
 
+async function detectChanges(priceListId) {
+    const pl = await dbPLM().oneOrNone(
+        'SELECT cat_id FROM price_list WHERE id = $1',
+        [priceListId]
+    );
+    if (!pl) return { new_items: [], removed_items: [], available_groups: [] };
+
+    const erpItems = await dbERP().any(
+        `SELECT ig_id, i_name, i_weight FROM item
+         WHERE cat_id = $1 AND deleted_at IS NULL AND is_item = true`,
+        [pl.cat_id]
+    );
+    const erpIdSet = new Set(erpItems.map(function (it) { return it.ig_id; }));
+
+    const assigned = await dbPLM().any(
+        `SELECT iga.ig_id, iga.group_id, igd.thickness_label
+         FROM item_group_assignment iga
+         JOIN item_group_definition igd ON igd.id = iga.group_id
+         WHERE igd.price_list_id = $1`,
+        [priceListId]
+    );
+    const assignedSet = new Set(assigned.map(function (a) { return a.ig_id; }));
+
+    const newItems = erpItems.filter(function (it) { return !assignedSet.has(it.ig_id); });
+    const removedItems = assigned.filter(function (a) { return !erpIdSet.has(a.ig_id); });
+
+    const groups = await dbPLM().any(
+        `SELECT id, thickness_value, thickness_label FROM item_group_definition
+         WHERE price_list_id = $1 ORDER BY thickness_value`,
+        [priceListId]
+    );
+
+    const newItemsEnriched = newItems.map(function (it) {
+        const detected = parseThickness(it.i_name);
+        const suggested = detected !== null
+            ? groups.find(function (g) { return Math.abs(parseFloat(g.thickness_value) - detected) < 0.01; })
+            : null;
+        return {
+            ig_id:               it.ig_id,
+            i_name:              it.i_name,
+            i_weight:            parseFloat(it.i_weight) || 0,
+            detected_thickness:  detected,
+            suggested_group_id:  suggested ? suggested.id : null,
+            suggested_thickness: suggested ? parseFloat(suggested.thickness_value) : null,
+            suggested_label:     suggested ? suggested.thickness_label : null,
+            can_create_group:    detected !== null && !suggested,
+        };
+    });
+
+    const removedItemsEnriched = removedItems.map(function (r) {
+        return {
+            ig_id:           r.ig_id,
+            group_id:        r.group_id,
+            thickness_label: r.thickness_label,
+            i_name:          '(item ' + r.ig_id + ' — sudah dihapus dari ERP)',
+        };
+    });
+
+    return {
+        new_items:       newItemsEnriched,
+        removed_items:   removedItemsEnriched,
+        available_groups: groups.map(function (g) {
+            return { id: g.id, thickness_value: parseFloat(g.thickness_value), thickness_label: g.thickness_label };
+        }),
+    };
+}
+
+async function confirmNewItemsBatch(priceListId, assignments, userId) {
+    return dbPLM().tx(async function (t) {
+        let assignedCount = 0;
+        let createdGroups = 0;
+
+        for (const a of assignments) {
+            let groupId = a.group_id;
+
+            if (!groupId && a.create_new_thickness) {
+                const pl = await t.one('SELECT cat_id FROM price_list WHERE id = $1', [priceListId]);
+                const existing = await t.oneOrNone(
+                    'SELECT id FROM item_group_definition WHERE price_list_id = $1 AND thickness_value = $2',
+                    [priceListId, a.create_new_thickness]
+                );
+                if (existing) {
+                    groupId = existing.id;
+                } else {
+                    const max = await t.oneOrNone(
+                        'SELECT COALESCE(MAX(display_order), 0) AS max_order FROM item_group_definition WHERE price_list_id = $1',
+                        [priceListId]
+                    );
+                    const newGroup = await t.one(
+                        `INSERT INTO item_group_definition
+                           (price_list_id, cat_id, thickness_value, thickness_label, display_order)
+                         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+                        [priceListId, pl.cat_id, a.create_new_thickness, a.create_new_thickness + ' mm', max.max_order + 1]
+                    );
+                    groupId = newGroup.id;
+                    createdGroups++;
+                }
+            }
+
+            if (groupId) {
+                await t.none(
+                    `INSERT INTO item_group_assignment (group_id, ig_id, assigned_by)
+                     VALUES ($1, $2, $3) ON CONFLICT (group_id, ig_id) DO NOTHING`,
+                    [groupId, a.ig_id, userId]
+                );
+                assignedCount++;
+            }
+        }
+
+        return { ok: true, assigned_count: assignedCount, created_groups: createdGroups };
+    });
+}
+
+async function validatePostReadiness(priceListId) {
+    const changes = await detectChanges(priceListId);
+    const blockers = [];
+    const warnings = [];
+
+    if (changes.new_items.length > 0) {
+        blockers.push({
+            type:     'unassigned_items',
+            severity: 'block',
+            count:    changes.new_items.length,
+            message:  changes.new_items.length + ' item baru belum di-assign group',
+        });
+    }
+
+    const zeroGroups = await dbPLM().any(
+        `SELECT id, thickness_label FROM item_group_definition
+         WHERE price_list_id = $1 AND cash_gudang_kg = 0 AND kredit_gudang_kg = 0`,
+        [priceListId]
+    );
+    if (zeroGroups.length > 0) {
+        warnings.push({
+            type:     'zero_price_groups',
+            severity: 'warn',
+            count:    zeroGroups.length,
+            groups:   zeroGroups.map(function (g) { return g.thickness_label; }),
+            message:  zeroGroups.length + ' group masih harga 0',
+        });
+    }
+
+    const emptyGroups = await dbPLM().any(
+        `SELECT igd.id, igd.thickness_label FROM item_group_definition igd
+         LEFT JOIN item_group_assignment iga ON iga.group_id = igd.id
+         WHERE igd.price_list_id = $1
+         GROUP BY igd.id, igd.thickness_label HAVING COUNT(iga.id) = 0`,
+        [priceListId]
+    );
+    if (emptyGroups.length > 0) {
+        warnings.push({
+            type:     'empty_groups',
+            severity: 'info',
+            count:    emptyGroups.length,
+            groups:   emptyGroups.map(function (g) { return g.thickness_label; }),
+            message:  emptyGroups.length + ' group kosong (tidak ada item)',
+        });
+    }
+
+    return {
+        can_post:             blockers.length === 0,
+        blockers,
+        warnings,
+        new_items_count:      changes.new_items.length,
+        removed_items_count:  changes.removed_items.length,
+    };
+}
+
+async function deleteEmptyGroup(groupId) {
+    return dbPLM().tx(async function (t) {
+        const cnt = await t.one(
+            'SELECT COUNT(*) AS c FROM item_group_assignment WHERE group_id = $1',
+            [groupId]
+        );
+        if (parseInt(cnt.c) > 0) throw new Error('Group tidak kosong, tidak bisa dihapus');
+        await t.none('DELETE FROM item_group_definition WHERE id = $1', [groupId]);
+    });
+}
+
 module.exports = {
     parseThickness,
     autoDetectGroups,
@@ -461,4 +640,8 @@ module.exports = {
     confirmNewItemAssignment,
     createGroup,
     updateGroupPrice,
+    detectChanges,
+    confirmNewItemsBatch,
+    validatePostReadiness,
+    deleteEmptyGroup,
 };

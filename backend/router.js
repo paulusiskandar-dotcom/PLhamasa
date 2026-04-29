@@ -106,5 +106,9 @@ module.exports = function (app) {
     app.post("/price-list/:id/group/confirm-new-item",   auth.verifyToken, groupCtrl._confirmNewItem);
     app.post("/price-list/:id/group/create",             auth.verifyToken, groupCtrl._createGroup);
     app.put('/group/:group_id/price',                    auth.verifyToken, groupCtrl._updateGroupPrice);
+    app.get('/price-list/:id/group/detect-changes',  auth.verifyToken, groupCtrl._detectChanges);
+    app.post('/price-list/:id/group/confirm-batch',  auth.verifyToken, groupCtrl._confirmBatch);
+    app.get('/price-list/:id/group/validate-post',   auth.verifyToken, groupCtrl._validatePostReadiness);
+    app.delete('/group/:group_id',                   auth.verifyToken, groupCtrl._deleteEmptyGroup);
 
 };

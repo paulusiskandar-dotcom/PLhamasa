@@ -1,6 +1,7 @@
 plmApp.controller('editGroupedController', function ($scope, $http, $timeout, priceListService, groupService) {
 
     var plId = window.plmPageData && window.plmPageData.priceListId;
+    $scope.priceListId = plId;
 
     $scope.pl               = {};
     $scope.groups           = [];
@@ -13,6 +14,9 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
     $scope.modalCreateGroup = null;
     $scope.modalMoveItem    = null;
     $scope.toast            = { show: false, message: '', type: 'info' };
+    $scope.detection      = { new_items: [], removed_items: [], available_groups: [] };
+    $scope.modalReview    = null;
+    $scope.modalValidation = null;
 
     var saveTimers = {};
 
@@ -48,6 +52,7 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
             $scope.undetectedItems = (r.data.result || []).filter(function (it) {
                 return it.suggested_group_id === null;
             });
+            $scope.loadDetection();
             $scope.loading = false;
         }).catch(function (err) {
             $scope.loading = false;
@@ -155,6 +160,115 @@ plmApp.controller('editGroupedController', function ($scope, $http, $timeout, pr
     };
 
     $scope.goBack = function () { window.location.href = '/price-list'; };
+
+    $scope.loadDetection = function () {
+        groupService.detectChanges(plId).then(function (r) {
+            $scope.detection = r.result || { new_items: [], removed_items: [], available_groups: [] };
+        }).catch(function () {});
+    };
+
+    $scope.openReviewModal = function () {
+        var items = ($scope.detection.new_items || []).map(function (it) {
+            return {
+                ig_id:              it.ig_id,
+                i_name:             it.i_name,
+                i_weight:           it.i_weight,
+                detected_thickness: it.detected_thickness,
+                suggested_group_id: it.suggested_group_id,
+                can_create_group:   it.can_create_group,
+                _selectedGroupId:   it.suggested_group_id ? String(it.suggested_group_id) : '',
+                _createNew:         false,
+                _skipped:           false,
+            };
+        });
+        $scope.modalReview = {
+            items:            items,
+            available_groups: $scope.detection.available_groups || [],
+            executing:        false,
+        };
+    };
+
+    $scope.closeReviewModal = function () {
+        if ($scope.modalReview && $scope.modalReview.executing) return;
+        $scope.modalReview = null;
+    };
+
+    $scope.toggleSkip = function (it) {
+        it._skipped = !it._skipped;
+        if (it._skipped) { it._selectedGroupId = ''; it._createNew = false; }
+    };
+
+    $scope.onCreateNewToggle = function (it) {
+        if (it._createNew) { it._selectedGroupId = ''; }
+    };
+
+    $scope.countAutoSuggested = function () {
+        if (!$scope.modalReview) return 0;
+        return $scope.modalReview.items.filter(function (it) { return it.suggested_group_id !== null; }).length;
+    };
+
+    $scope.countNeedManual = function () {
+        if (!$scope.modalReview) return 0;
+        return $scope.modalReview.items.filter(function (it) { return it.suggested_group_id === null; }).length;
+    };
+
+    $scope.countToConfirm = function () {
+        if (!$scope.modalReview) return 0;
+        return $scope.modalReview.items.filter(function (it) {
+            return !it._skipped && (it._selectedGroupId || it._createNew);
+        }).length;
+    };
+
+    $scope.canConfirm = function () { return $scope.countToConfirm() > 0; };
+
+    $scope.executeBatchConfirm = function () {
+        $scope.modalReview.executing = true;
+        var assignments = $scope.modalReview.items
+            .filter(function (it) { return !it._skipped && (it._selectedGroupId || it._createNew); })
+            .map(function (it) {
+                return {
+                    ig_id:                it.ig_id,
+                    group_id:             it._selectedGroupId ? parseInt(it._selectedGroupId, 10) : null,
+                    create_new_thickness: it._createNew ? it.detected_thickness : null,
+                };
+            });
+        groupService.confirmBatch(plId, assignments).then(function (r) {
+            var msg = 'Berhasil assign ' + r.result.assigned_count + ' item';
+            if (r.result.created_groups > 0) msg += ' (' + r.result.created_groups + ' group baru)';
+            showToast(msg, 'success');
+            $scope.modalReview = null;
+            loadAll();
+        }).catch(function (err) {
+            $scope.modalReview.executing = false;
+            showToast('Gagal: ' + ((err.data && err.data.message) || ''), 'danger');
+        });
+    };
+
+    $scope.deleteGroup = function (g) {
+        if (g.items.length > 0) { showToast('Group tidak kosong, tidak bisa dihapus', 'warning'); return; }
+        if (!confirm('Hapus group ' + g.thickness_label + '?')) return;
+        groupService.deleteEmptyGroup(g.id).then(function () {
+            showToast('Group dihapus', 'success');
+            loadAll();
+        }).catch(function (err) {
+            showToast('Gagal: ' + ((err.data && err.data.message) || ''), 'danger');
+        });
+    };
+
+    $scope.initiatePostToErp = function () {
+        groupService.validatePost(plId).then(function (r) {
+            $scope.modalValidation = r.result;
+        }).catch(function (err) {
+            showToast('Gagal validasi: ' + ((err.data && err.data.message) || ''), 'danger');
+        });
+    };
+
+    $scope.closeValidationModal = function () { $scope.modalValidation = null; };
+
+    $scope.proceedToPost = function () {
+        $scope.modalValidation = null;
+        window.location.href = '/edit/' + plId;
+    };
 
     loadAll();
 });
