@@ -73,12 +73,13 @@ module.exports._getById = async function (req, res) {
         const priceTypes = isExtended ? EXTENDED_PRICE_TYPES : STANDARD_PRICE_TYPES;
 
         // Auto-sync new ERP items for OPEN price lists
-        let syncInfo = { synced_count: 0, newly_synced_items: [] };
+        let syncInfo = { synced_count: 0, newly_synced_items: [], removed_count: 0 };
         if (pl.status === 'OPEN') {
             const validPrIds = isExtended ? [1, 2, 3, 4] : [2, 4];
             const syncResult = await $model.syncItemsFromErp(plId, validPrIds);
-            syncInfo.synced_count     = syncResult.synced;
+            syncInfo.synced_count       = syncResult.synced;
             syncInfo.newly_synced_items = syncResult.items;
+            syncInfo.removed_count      = syncResult.removed || 0;
 
             if (syncResult.synced > 0) {
                 const newIgIds = syncResult.items.map(function (i) { return i.ig_id; });

@@ -30,9 +30,30 @@ module.exports.syncItemsFromErp = async function (plId, validPrIds) {
 
     // 3. Get cat_id for this price list
     const pl = await dbPLM().oneOrNone('SELECT cat_id FROM price_list WHERE id = $1', [plId]);
-    if (!pl) return { synced: 0, items: [] };
+    if (!pl) return { synced: 0, removed: 0, items: [], removed_items: [] };
 
-    // 4. Find new items in ERP not yet in the price list and not blacklisted
+    // 4. Cleanup: remove items that are no longer active in ERP (deleted or is_item=false)
+    let removedCount = 0;
+    let removedItems = [];
+    if (existingIds.length > 0) {
+        const activeInErp = await dbERP().any(
+            `SELECT ig_id FROM item WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL AND is_item = true`,
+            [existingIds]
+        );
+        const activeSet = new Set(activeInErp.map(function (it) { return it.ig_id; }));
+        const toRemove = existingIds.filter(function (id) { return !activeSet.has(id); });
+        if (toRemove.length > 0) {
+            const result = await dbPLM().result(
+                `DELETE FROM price_list_item WHERE price_list_id = $1 AND ig_id = ANY($2::int[])`,
+                [plId, toRemove]
+            );
+            removedCount = result.rowCount;
+            removedItems = toRemove;
+            console.log(`[syncItemsFromErp] pl=${plId}: removed ${removedCount} rows for ${toRemove.length} ig_ids deleted/inactive in ERP`);
+        }
+    }
+
+    // 5. Find new items in ERP not yet in the price list and not blacklisted
     const exclude = [...new Set([...existingIds, ...blIds])];
     let q = `
         SELECT i.ig_id, i.i_name, i.i_weight
@@ -47,16 +68,16 @@ module.exports.syncItemsFromErp = async function (plId, validPrIds) {
     q += ' ORDER BY i.i_name ASC';
 
     const newItems = await dbERP().any(q, params);
-    if (!newItems.length) return { synced: 0, items: [] };
+    if (!newItems.length) return { synced: 0, removed: removedCount, items: [], removed_items: removedItems };
 
-    // 5. Get ERP unit prices for new items
+    // 6. Get ERP unit prices for new items
     const newIgIds = newItems.map(function (i) { return i.ig_id; });
     const erpPrices = await dbERP().any(
         'SELECT ig_id, pr_id, i_price FROM item_price WHERE ig_id = ANY($1::int[])',
         [newIgIds]
     );
 
-    // 6. Insert per-kg prices for each new item × each pr_id
+    // 7. Insert per-kg prices for each new item × each pr_id
     for (const item of newItems) {
         const weight = parseFloat(item.i_weight) || 0;
         for (const prId of validPrIds) {
@@ -74,7 +95,9 @@ module.exports.syncItemsFromErp = async function (plId, validPrIds) {
 
     return {
         synced: newItems.length,
+        removed: removedCount,
         items:  newItems.map(function (i) { return { ig_id: i.ig_id, i_name: i.i_name }; }),
+        removed_items: removedItems,
     };
 };
 

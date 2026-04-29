@@ -133,6 +133,9 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
                 $scope.syncNotification = { count: si.synced_count, items: si.newly_synced_items || [] };
                 $timeout(function () { $scope.syncNotification = null; }, 30000);
             }
+            if (si && si.removed_count > 0) {
+                showToast(si.removed_count + ' item dihapus dari pricelist (sudah tidak aktif di ERP)', 'warning', 8000);
+            }
 
             buildFilterOptions();
             applyFilter();
