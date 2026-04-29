@@ -35,8 +35,6 @@ app.get("/view/:id",    require("./middleware/auth"), require("./router/view"));
 app.get("/settings",    require("./middleware/auth"), require("./router/settings"));
 app.get("/logout",      require("./router/logout"));
 
-app.get("/edit-grouped/:id", require("./middleware/auth"), require("./router/editGrouped"));
-
 // ─── 404 ──────────────────────────────────────────────────────────────────────
 app.use(function (req, res) {
     res.status(404).send("Halaman tidak ditemukan");

@@ -1,3 +1,9 @@
+-- ── DROP GROUPING SYSTEM (Phase 1-4 removed) ───────────────────────────────
+DROP TABLE IF EXISTS item_pending_assignment CASCADE;
+DROP TABLE IF EXISTS item_group_assignment CASCADE;
+DROP TABLE IF EXISTS item_group_definition CASCADE;
+DROP TABLE IF EXISTS category_grouping_config CASCADE;
+
 -- ═══════════════════════════════════════════════════════════════
 -- PLhamasa v2 — Database Schema
 -- ═══════════════════════════════════════════════════════════════
@@ -187,62 +193,15 @@ WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'superadmin');
 ALTER TABLE price_list
     ADD COLUMN IF NOT EXISTS post_report_path VARCHAR(500);
 
--- ── GROUPING SYSTEM ────────────────────────────────────────────
-
-CREATE TABLE IF NOT EXISTS category_grouping_config (
-    cat_id        VARCHAR(50) PRIMARY KEY,
-    cat_name      VARCHAR(255),
-    is_enabled    BOOLEAN DEFAULT FALSE,
-    thickness_unit VARCHAR(10) DEFAULT 'mm',
-    enabled_by    INTEGER REFERENCES users(id),
-    enabled_at    TIMESTAMPTZ
+-- ── ITEM DIMENSIONS (Tebal filter system) ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS item_dimensions (
+    ig_id           INTEGER PRIMARY KEY,
+    tebal           NUMERIC(10, 3),
+    tebal_label     VARCHAR(50),
+    is_tebal_manual BOOLEAN DEFAULT FALSE,
+    detected_at     TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_by      INTEGER REFERENCES users(id)
 );
 
-CREATE TABLE IF NOT EXISTS item_group_definition (
-    id              SERIAL PRIMARY KEY,
-    price_list_id   INTEGER NOT NULL REFERENCES price_list(id) ON DELETE CASCADE,
-    cat_id          VARCHAR(50) NOT NULL,
-    thickness_value NUMERIC(10, 3) NOT NULL,
-    thickness_label VARCHAR(50),
-    display_order   INTEGER DEFAULT 0,
-    created_at      TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (price_list_id, thickness_value)
-);
-
-CREATE INDEX IF NOT EXISTS idx_group_def_pl ON item_group_definition(price_list_id);
-
-CREATE TABLE IF NOT EXISTS item_group_assignment (
-    id          SERIAL PRIMARY KEY,
-    group_id    INTEGER NOT NULL REFERENCES item_group_definition(id) ON DELETE CASCADE,
-    ig_id       INTEGER NOT NULL,
-    assigned_at TIMESTAMPTZ DEFAULT NOW(),
-    assigned_by INTEGER REFERENCES users(id),
-    UNIQUE (group_id, ig_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_group_assign_group ON item_group_assignment(group_id);
-CREATE INDEX IF NOT EXISTS idx_group_assign_item  ON item_group_assignment(ig_id);
-
-CREATE TABLE IF NOT EXISTS item_pending_assignment (
-    id                 SERIAL PRIMARY KEY,
-    price_list_id      INTEGER NOT NULL REFERENCES price_list(id) ON DELETE CASCADE,
-    ig_id              INTEGER NOT NULL,
-    detected_thickness NUMERIC(10, 3),
-    suggested_group_id INTEGER REFERENCES item_group_definition(id),
-    is_confirmed       BOOLEAN DEFAULT FALSE,
-    confirmed_at       TIMESTAMPTZ,
-    confirmed_by       INTEGER REFERENCES users(id),
-    created_at         TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (price_list_id, ig_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_pending_pl ON item_pending_assignment(price_list_id);
-
--- ── GROUPING PHASE 3 — Price columns on group definition ──────────────────────
-ALTER TABLE item_group_definition
-  ADD COLUMN IF NOT EXISTS cash_gudang_kg    NUMERIC(15, 2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS cash_pabrik_kg    NUMERIC(15, 2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS kredit_gudang_kg  NUMERIC(15, 2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS kredit_pabrik_kg  NUMERIC(15, 2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS last_modified_by  INTEGER REFERENCES users(id),
-  ADD COLUMN IF NOT EXISTS last_modified_at  TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_item_dim_tebal ON item_dimensions(tebal);

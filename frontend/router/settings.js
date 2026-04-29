@@ -12,7 +12,6 @@ module.exports = function (req, res) {
                     "/js/services/pdfTemplate.js",
                     "/js/services/blacklist.js",
                     "/js/services/priceList.js",
-                    "/js/services/group.js",
                 ]
             }
         }

@@ -84,27 +84,80 @@ block content
         button.sync-close(ng-click="dismissSyncNotification()")
           i.bi.bi-x-lg
 
-      //- Filter Bar
-      div.filter-bar(ng-if="pl && !loading")
-        div.filter-group
-          label Subkategori
-          select.form-control(ng-model="filter.subcatId" ng-options="s.id as s.name for s in subcategories")
-            option(value="") Semua
-        div.filter-group
-          label Merek
-          select.form-control(ng-model="filter.brand" ng-options="b for b in availableBrands")
-            option(value="") Semua
-        div.filter-group
-          label Grade
-          select.form-control(ng-model="filter.grade" ng-options="g for g in availableGrades")
-            option(value="") Semua
-        div.filter-group
-          label Golongan
-          select.form-control(ng-model="filter.group" ng-options="g for g in availableGroups")
-            option(value="") Semua
-        div.filter-group.filter-group-grow
-          label Nama Barang
-          input.form-control(type="text" ng-model="filter.name" placeholder="Cari nama barang...")
+      //- Multi-select filter bar
+      div.dim-filter-bar(ng-if="pl && !loading && filterOptions")
+        span.filter-bar-label FILTER
+
+        //- Tebal dropdown
+        div.filter-dropdown(ng-class="{open: filterOpen.tebal}")
+          button.filter-trigger(ng-click="filterOpen.tebal = !filterOpen.tebal; filterOpen.merk = false; filterOpen.grade = false")
+            span.filter-label Tebal
+            span.filter-badge(ng-if="selectedFilterCount('tebal') > 0") {{ selectedFilterCount('tebal') }}
+            i.bi.bi-chevron-down
+          div.filter-panel(ng-if="filterOpen.tebal")
+            div.filter-panel-search
+              input(type="text" ng-model="filterSearch.tebal" placeholder="Cari tebal...")
+            div.filter-panel-actions
+              button.filter-btn-link(ng-click="selectAllFilter('tebal')") Semua
+              button.filter-btn-link(ng-click="clearFilter('tebal')") Hapus
+            div.filter-panel-options
+              label.filter-option(ng-repeat="opt in filterOptions.tebal | filter:{label: filterSearch.tebal}")
+                input(type="checkbox" ng-checked="isFilterChecked('tebal', opt.label)" ng-click="toggleFilter('tebal', opt.label)")
+                span.opt-label {{ opt.label }}
+                span.opt-count {{ opt.count }}
+
+        //- Merk dropdown
+        div.filter-dropdown(ng-class="{open: filterOpen.merk}")
+          button.filter-trigger(ng-click="filterOpen.merk = !filterOpen.merk; filterOpen.tebal = false; filterOpen.grade = false")
+            span.filter-label Merk
+            span.filter-badge(ng-if="selectedFilterCount('merk') > 0") {{ selectedFilterCount('merk') }}
+            i.bi.bi-chevron-down
+          div.filter-panel(ng-if="filterOpen.merk")
+            div.filter-panel-search
+              input(type="text" ng-model="filterSearch.merk" placeholder="Cari merk...")
+            div.filter-panel-actions
+              button.filter-btn-link(ng-click="selectAllFilter('merk')") Semua
+              button.filter-btn-link(ng-click="clearFilter('merk')") Hapus
+            div.filter-panel-options
+              label.filter-option(ng-repeat="opt in filterOptions.merk | filter:{label: filterSearch.merk}")
+                input(type="checkbox" ng-checked="isFilterChecked('merk', opt.label)" ng-click="toggleFilter('merk', opt.label)")
+                span.opt-label {{ opt.label }}
+                span.opt-count {{ opt.count }}
+
+        //- Grade dropdown
+        div.filter-dropdown(ng-class="{open: filterOpen.grade}")
+          button.filter-trigger(ng-click="filterOpen.grade = !filterOpen.grade; filterOpen.tebal = false; filterOpen.merk = false")
+            span.filter-label Grade
+            span.filter-badge(ng-if="selectedFilterCount('grade') > 0") {{ selectedFilterCount('grade') }}
+            i.bi.bi-chevron-down
+          div.filter-panel(ng-if="filterOpen.grade")
+            div.filter-panel-actions
+              button.filter-btn-link(ng-click="selectAllFilter('grade')") Semua
+              button.filter-btn-link(ng-click="clearFilter('grade')") Hapus
+            div.filter-panel-options
+              label.filter-option(ng-repeat="opt in filterOptions.grade")
+                input(type="checkbox" ng-checked="isFilterChecked('grade', opt.label)" ng-click="toggleFilter('grade', opt.label)")
+                span.opt-label {{ opt.label }}
+                span.opt-count {{ opt.count }}
+
+        //- Name search (keep as-is)
+        div.filter-name-wrap
+          input.form-control(type="text" ng-model="filter.name" placeholder="Cari nama..." ng-change="applyFilters()")
+
+        //- Active filters summary + clear
+        div.filter-summary-row(ng-if="hasActiveFilters()")
+          span.filter-active-info {{ filteredItemCount() }}/{{ totalItemCount() }} item
+          button.filter-clear-all(ng-click="clearAllFilters()")
+            i.bi.bi-x-circle
+            |  Hapus filter
+          button.btn-secondary.btn-small(ng-click="checkAllFiltered()")
+            i.bi.bi-check2-square
+            |  Pilih {{ filteredItemCount() }}
+
+        //- Toggle dim columns
+        button.btn-ghost.btn-small.filter-dim-toggle(ng-click="showDimColumns = !showDimColumns")
+          i.bi(ng-class="showDimColumns ? 'bi-eye-fill' : 'bi-eye'")
+          |  {{ showDimColumns ? 'Sembunyikan' : 'Dimensi' }}
 
       //- Modifier Bar
       div.modifier-bar(ng-if="pl && pl.status === 'OPEN' && lockState === 'mine' && !loading")
@@ -181,6 +234,9 @@ block content
                 )
                   | /LBR
                   i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
+                th(ng-show="showDimColumns" style="width:80px") Tebal
+                th(ng-show="showDimColumns" style="width:60px") Merk
+                th(ng-show="showDimColumns" style="width:40px") Gr.
 
             //- Extended header (4 price types)
             thead(ng-if="hasGudangPabrik")
@@ -227,6 +283,9 @@ block content
                 )
                   | /LBR
                   i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
+                th(ng-show="showDimColumns" style="width:80px") Tebal
+                th(ng-show="showDimColumns" style="width:60px") Merk
+                th(ng-show="showDimColumns" style="width:40px") Gr.
 
             tbody
               tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked}")
@@ -256,6 +315,18 @@ block content
                   ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}"
                 )
                   | {{ item.new_unit[pt.code] | number }}
+                td(ng-show="showDimColumns")
+                  span(ng-if="!item._editingTebal" ng-click="toggleEditTebal(item)" style="cursor:pointer; white-space:nowrap")
+                    | {{ item.tebal_label || '-' }}
+                    i.bi.bi-pencil-fill(ng-if="item.is_tebal_manual" style="font-size:9px; color:#F57C00; margin-left:3px")
+                  div.tebal-inline-edit(ng-if="item._editingTebal")
+                    input(type="number" step="0.01" ng-model="item._tebalDraft" style="width:60px")
+                    button.btn-icon-mini(ng-click="saveTebal(item)")
+                      i.bi.bi-check
+                    button.btn-icon-mini(ng-click="item._editingTebal = false")
+                      i.bi.bi-x
+                td.text-center(ng-show="showDimColumns" style="font-size:11px") {{ item.brand || '-' }}
+                td.text-center(ng-show="showDimColumns" style="font-size:11px") {{ item.grade || '-' }}
 
       //- Bottom toolbar — OPEN
       div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")

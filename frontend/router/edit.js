@@ -12,6 +12,7 @@ module.exports = function (req, res) {
                     "/js/services/subcategory.js",
                     "/js/services/erpTarget.js",
                     "/js/services/pdfTemplate.js",
+                    "/js/services/itemDimensions.js",
                 ]
             }
         }

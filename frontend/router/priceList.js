@@ -9,7 +9,6 @@ module.exports = function (req, res) {
                     "/js/services/priceList.js",
                     "/js/services/master.js",
                     "/js/services/pdfTemplate.js",
-                    "/js/services/group.js",
                 ]
             }
         }

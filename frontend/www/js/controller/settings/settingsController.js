@@ -1,4 +1,4 @@
-plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService, userService, priceListService, groupService) {
+plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService, userService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -35,7 +35,6 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
         $masterService.getCategories().then(function (r) {
             $scope.categories = r.result || [];
             loadExtendedSetting();
-            if ($scope.isSuperadmin) { loadGroupingConfigs(); }
         }).catch(function () {
             showToast('Gagal memuat kategori', 'danger');
         });
@@ -455,122 +454,6 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
         }).catch(function (err) {
             showToast((err.data && err.data.message) ? err.data.message : 'Gagal hapus', 'danger');
         });
-    };
-
-    // ── Group Management ────────────────────────────────────────
-    $scope.categoryList      = [];
-    $scope.enabledCategories = [];
-    $scope.openPricelists    = [];
-    $scope.modalInitPreview  = null;
-
-    function loadGroupingConfigs() {
-        if (!$scope.isSuperadmin) return;
-
-        groupService.listConfigs().then(function (r) {
-            var configs = r.result || [];
-            var configMap = {};
-            configs.forEach(function (c) { configMap[c.cat_id] = c; });
-
-            $scope.categoryList = $scope.categories.map(function (c) {
-                return {
-                    cat_id:     c.id,
-                    cat_name:   c.name,
-                    is_enabled: configMap[c.id] ? configMap[c.id].is_enabled : false
-                };
-            }).sort(function (a, b) { return a.cat_name.localeCompare(b.cat_name); });
-
-            $scope.enabledCategories = $scope.categoryList.filter(function (c) { return c.is_enabled; });
-
-            loadOpenPricelists();
-        }).catch(function () {
-            showToast('Gagal load grouping config', 'danger');
-        });
-    }
-
-    function loadOpenPricelists() {
-        if (!$scope.enabledCategories.length) {
-            $scope.openPricelists = [];
-            return;
-        }
-        var enabledCatIds = $scope.enabledCategories.map(function (c) { return c.cat_id; });
-        priceListService.list().then(function (r) {
-            var filtered = (r.result || []).filter(function (pl) {
-                return pl.status === 'OPEN' && enabledCatIds.indexOf(pl.cat_id) >= 0;
-            });
-            var checkPromises = filtered.map(function (pl) {
-                return groupService.getGroups(pl.id).then(function (gr) {
-                    pl.has_groups = (gr.result || []).length > 0;
-                    return pl;
-                }).catch(function () {
-                    pl.has_groups = false;
-                    return pl;
-                });
-            });
-            Promise.all(checkPromises).then(function (results) {
-                $scope.$apply(function () { $scope.openPricelists = results; });
-            });
-        });
-    }
-
-    $scope.enableGrouping = function (cat) {
-        if (!confirm('Enable grouping untuk kategori ' + cat.cat_name + '?')) return;
-        groupService.enable(cat.cat_id, cat.cat_name).then(function () {
-            showToast('Grouping enabled untuk ' + cat.cat_name, 'success');
-            loadGroupingConfigs();
-        }).catch(function (err) {
-            showToast((err.data && err.data.message) || 'Gagal enable', 'danger');
-        });
-    };
-
-    $scope.disableGrouping = function (cat) {
-        if (!confirm('Disable grouping untuk kategori ' + cat.cat_name + '?\n\n' +
-                     'Pricelist yang sudah di-init akan tetap punya groups, ' +
-                     'tapi pricelist baru tidak akan auto-create groups.')) return;
-        groupService.disable(cat.cat_id).then(function () {
-            showToast('Grouping disabled untuk ' + cat.cat_name, 'success');
-            loadGroupingConfigs();
-        }).catch(function (err) {
-            showToast((err.data && err.data.message) || 'Gagal disable', 'danger');
-        });
-    };
-
-    $scope.openInitPreview = function (pl) {
-        $scope.modalInitPreview = {
-            pl_id:       pl.id,
-            cat_name:    pl.cat_name,
-            pl_revision: pl.revision_no,
-            loading:     true,
-            data:        null,
-            executing:   false
-        };
-        groupService.previewInit(pl.id).then(function (r) {
-            $scope.modalInitPreview.loading = false;
-            $scope.modalInitPreview.data    = r.result;
-        }).catch(function (err) {
-            $scope.modalInitPreview = null;
-            showToast((err.data && err.data.message) || 'Gagal preview', 'danger');
-        });
-    };
-
-    $scope.closeInitPreview = function () {
-        if ($scope.modalInitPreview && $scope.modalInitPreview.executing) return;
-        $scope.modalInitPreview = null;
-    };
-
-    $scope.executeInitApply = function () {
-        $scope.modalInitPreview.executing = true;
-        groupService.applyInit($scope.modalInitPreview.pl_id).then(function (r) {
-            showToast('Groups created: ' + r.result.groups_created, 'success');
-            $scope.modalInitPreview = null;
-            loadGroupingConfigs();
-        }).catch(function (err) {
-            $scope.modalInitPreview.executing = false;
-            showToast((err.data && err.data.message) || 'Gagal apply', 'danger');
-        });
-    };
-
-    $scope.goToEditGrouped = function (plId) {
-        window.location.href = '/edit-grouped/' + plId;
     };
 
     init();

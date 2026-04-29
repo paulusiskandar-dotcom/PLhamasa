@@ -93,22 +93,9 @@ module.exports = function (app) {
     app.delete("/erp-target/:id",           auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._delete);
     app.post("/erp-target/:id/activate",    auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._activate);
 
-    // ── GROUPING ───────────────────────────────────────────────────────────────
-    const groupCtrl = require("./controllers/group");
-    app.get("/group/category-config",                    auth.verifyToken, requireSuperadmin, groupCtrl._listConfigs);
-    app.post("/group/enable",                            auth.verifyToken, requireSuperadmin, groupCtrl._enableGrouping);
-    app.delete("/group/disable/:cat_id",                 auth.verifyToken, requireSuperadmin, groupCtrl._disableGrouping);
-    app.get("/price-list/:id/group/preview-init",        auth.verifyToken, groupCtrl._previewInit);
-    app.post("/price-list/:id/group/init",               auth.verifyToken, groupCtrl._applyInit);
-    app.get("/price-list/:id/group",                     auth.verifyToken, groupCtrl._getGroups);
-    app.post("/price-list/:id/group/move-item",          auth.verifyToken, groupCtrl._moveItem);
-    app.get("/price-list/:id/group/new-items",           auth.verifyToken, groupCtrl._detectNewItems);
-    app.post("/price-list/:id/group/confirm-new-item",   auth.verifyToken, groupCtrl._confirmNewItem);
-    app.post("/price-list/:id/group/create",             auth.verifyToken, groupCtrl._createGroup);
-    app.put('/group/:group_id/price',                    auth.verifyToken, groupCtrl._updateGroupPrice);
-    app.get('/price-list/:id/group/detect-changes',  auth.verifyToken, groupCtrl._detectChanges);
-    app.post('/price-list/:id/group/confirm-batch',  auth.verifyToken, groupCtrl._confirmBatch);
-    app.get('/price-list/:id/group/validate-post',   auth.verifyToken, groupCtrl._validatePostReadiness);
-    app.delete('/group/:group_id',                   auth.verifyToken, groupCtrl._deleteEmptyGroup);
+    // ── Item Dimensions ───────────────────────────────────────────────────────
+    const dimsCtrl = require('./controllers/itemDimensions');
+    app.get('/price-list/:id/tebal-map', auth.verifyToken, dimsCtrl._getTebalMap);
+    app.put('/item/:ig_id/tebal',        auth.verifyToken, dimsCtrl._updateTebal);
 
 };

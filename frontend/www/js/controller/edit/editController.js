@@ -1,4 +1,4 @@
-plmApp.controller('editController', function ($scope, $timeout, $window, priceListService, $masterService, subcategoryService, erpTargetService, pdfTemplateService) {
+plmApp.controller('editController', function ($scope, $timeout, $window, priceListService, $masterService, subcategoryService, erpTargetService, pdfTemplateService, itemDimensionsService) {
 
     // Get price list ID from server-injected data
     var plId = (window.plmPageData && window.plmPageData.priceListId) ? window.plmPageData.priceListId : null;
@@ -32,6 +32,11 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.saveStatus = null;
 
     $scope.filter = { subcatId: '', brand: '', grade: '', group: '', name: '' };
+    $scope.activeFilters  = { tebal: [], merk: [], grade: [] };
+    $scope.filterOpen     = { tebal: false, merk: false, grade: false };
+    $scope.filterSearch   = { tebal: '', merk: '' };
+    $scope.filterOptions  = null;
+    $scope.showDimColumns = false;
     $scope.sort = { field: 'weight', dir: 'asc' };
     $scope.selection = { all: false };
 
@@ -129,6 +134,25 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             buildFilterOptions();
             applyFilter();
 
+            // Load tebal dimensions
+            itemDimensionsService.getTebalMap(plId).then(function (r) {
+                var tebalMap = r.result || {};
+                $scope.items.forEach(function (it) {
+                    var d = tebalMap[it.ig_id];
+                    if (d) {
+                        it.tebal          = d.tebal !== null ? parseFloat(d.tebal) : null;
+                        it.tebal_label    = d.tebal_label || '(tidak terdeteksi)';
+                        it.is_tebal_manual = d.is_tebal_manual || false;
+                    } else {
+                        it.tebal          = null;
+                        it.tebal_label    = '(tidak terdeteksi)';
+                        it.is_tebal_manual = false;
+                    }
+                });
+                $scope.filterOptions = buildFilterOptions($scope.items);
+                applyFilter();
+            }).catch(function () {});
+
             // Load side data
             if (data.cat_id) {
                 subcategoryService.getByCategory(data.cat_id).then(function (r) {
@@ -156,9 +180,10 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         });
     }
 
-    function buildFilterOptions() {
+    function buildFilterOptions(items) {
+        var srcItems = items || $scope.items;
         var brands = {}, grades = {}, groups = {};
-        $scope.items.forEach(function (it) {
+        srcItems.forEach(function (it) {
             if (it.brand) brands[it.brand] = true;
             if (it.grade) grades[it.grade] = true;
             if (it.group) groups[it.group] = true;
@@ -166,6 +191,28 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         $scope.availableBrands = Object.keys(brands).sort();
         $scope.availableGrades = Object.keys(grades).sort();
         $scope.availableGroups = Object.keys(groups).sort();
+
+        // Build multi-select filter options
+        var tebalMap = {}, merkMap = {}, gradeMap = {};
+        (srcItems || []).forEach(function (it) {
+            var tk = it.tebal_label || '(tidak terdeteksi)';
+            if (!tebalMap[tk]) tebalMap[tk] = { label: tk, value: it.tebal, count: 0, is_unknown: it.tebal === null };
+            tebalMap[tk].count++;
+            var mk = it.brand || '(tidak ada)';
+            if (!merkMap[mk]) merkMap[mk] = { label: mk, value: it.brand, count: 0 };
+            merkMap[mk].count++;
+            var gk = it.grade || '(tidak ada)';
+            if (!gradeMap[gk]) gradeMap[gk] = { label: gk, value: it.grade, count: 0 };
+            gradeMap[gk].count++;
+        });
+        var tebalArr = Object.values(tebalMap).sort(function (a, b) {
+            if (a.is_unknown) return 1;
+            if (b.is_unknown) return -1;
+            return (a.value || 0) - (b.value || 0);
+        });
+        var merkArr  = Object.values(merkMap).sort(function (a, b) { return b.count - a.count; });
+        var gradeArr = Object.values(gradeMap).sort(function (a, b) { return (a.label || '').localeCompare(b.label || ''); });
+        return { tebal: tebalArr, merk: merkArr, grade: gradeArr };
     }
 
     // ── Filter + Sort ─────────────────────────────────────────
@@ -181,6 +228,16 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             if (f.grade && it.grade !== f.grade) return false;
             if (f.group && it.group !== f.group) return false;
             if (f.name && it.name.toLowerCase().indexOf(f.name.toLowerCase()) < 0) return false;
+            var af = $scope.activeFilters;
+            if (af.tebal.length > 0) {
+                if (af.tebal.indexOf(it.tebal_label || '(tidak terdeteksi)') < 0) return false;
+            }
+            if (af.merk.length > 0) {
+                if (af.merk.indexOf(it.brand || '(tidak ada)') < 0) return false;
+            }
+            if (af.grade.length > 0) {
+                if (af.grade.indexOf(it.grade || '(tidak ada)') < 0) return false;
+            }
             return true;
         });
 
@@ -549,6 +606,58 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     };
 
     $scope.closeLog = function () { $scope.modalLog = null; };
+
+    $scope.isFilterChecked = function (dim, label) {
+        return ($scope.activeFilters[dim] || []).indexOf(label) >= 0;
+    };
+    $scope.toggleFilter = function (dim, label) {
+        var arr = $scope.activeFilters[dim];
+        var idx = arr.indexOf(label);
+        if (idx >= 0) arr.splice(idx, 1); else arr.push(label);
+        applyFilter();
+    };
+    $scope.selectAllFilter = function (dim) {
+        $scope.activeFilters[dim] = ($scope.filterOptions[dim] || []).map(function (o) { return o.label; });
+        applyFilter();
+    };
+    $scope.clearFilter = function (dim) {
+        $scope.activeFilters[dim] = [];
+        applyFilter();
+    };
+    $scope.clearAllFilters = function () {
+        $scope.activeFilters = { tebal: [], merk: [], grade: [] };
+        applyFilter();
+    };
+    $scope.selectedFilterCount = function (dim) { return ($scope.activeFilters[dim] || []).length; };
+    $scope.hasActiveFilters = function () {
+        return $scope.selectedFilterCount('tebal') + $scope.selectedFilterCount('merk') + $scope.selectedFilterCount('grade') > 0;
+    };
+    $scope.filteredItemCount = function () { return ($scope.filteredItems || []).length; };
+    $scope.totalItemCount    = function () { return ($scope.items || []).length; };
+    $scope.checkAllFiltered  = function () {
+        ($scope.filteredItems || []).forEach(function (it) { it._checked = true; });
+        $scope.selection.all = $scope.filteredItems.every(function (i) { return i._checked; });
+    };
+    $scope.toggleEditTebal = function (item) {
+        item._editingTebal = !item._editingTebal;
+        if (item._editingTebal) item._tebalDraft = item.tebal;
+    };
+    $scope.saveTebal = function (item) {
+        itemDimensionsService.updateTebal(item.ig_id, item._tebalDraft || null).then(function () {
+            item.tebal          = item._tebalDraft ? parseFloat(item._tebalDraft) : null;
+            item.tebal_label    = item.tebal ? String(parseFloat(item.tebal.toFixed(3))).replace(/\.?0+$/, '') + ' mm' : '(tidak terdeteksi)';
+            item.is_tebal_manual = true;
+            item._editingTebal  = false;
+            $scope.filterOptions = buildFilterOptions($scope.items);
+            applyFilter();
+            showToast('Tebal disimpan', 'success');
+        }).catch(function (err) {
+            showToast('Gagal: ' + ((err.data && err.data.message) || ''), 'danger');
+        });
+    };
+    $scope.closeFilterPanels = function () {
+        $scope.filterOpen = { tebal: false, merk: false, grade: false };
+    };
 
     // Init
     loadData();
