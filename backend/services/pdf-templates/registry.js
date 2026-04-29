@@ -9,6 +9,7 @@ const TEMPLATES = {
     cnp_cash:     require('./template_cnp_cash'),
     cnp_kredit:   require('./template_cnp_kredit'),
     inp:          require('./template_inp'),
+    unp:          require('./template_unp'),
 };
 
 let _catCache    = null;
