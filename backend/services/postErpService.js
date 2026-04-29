@@ -114,6 +114,7 @@ module.exports.calculateDiff = async function (plId) {
 // ── executePost ───────────────────────────────────────────────────────────────
 module.exports.executePost = async function (plId, erpTargetId, userId) {
     const { pgp } = require('../configs/database');
+    const dimsService = require('./itemDimensionsService');
 
     const ctx = await _loadContext(plId);
     if (ctx.error) return { success: false, error: ctx.error };
@@ -122,6 +123,16 @@ module.exports.executePost = async function (plId, erpTargetId, userId) {
     if (pl.status !== 'OPEN')      return { success: false, error: 'not_open' };
     if (pl.locked_by !== userId)   return { success: false, error: 'lock_required' };
     if (!items.length)             return { success: false, error: 'no_items' };
+
+    // Validate wajib-tebal requirement
+    const tebalValidation = await dimsService.validateTebalRequirement(plId);
+    if (!tebalValidation.ok) {
+        return {
+            success: false,
+            error: 'tebal_required',
+            message: `Tidak bisa post: ${tebalValidation.unassigned_count} item belum di-assign tebal. Assign dulu di edit page sebelum post.`
+        };
+    }
 
     const erpTarget = await dbPLM().oneOrNone('SELECT * FROM erp_target WHERE id=$1', [erpTargetId]);
     if (!erpTarget) return { success: false, error: 'erp_target_not_found' };

@@ -29,3 +29,45 @@ module.exports._updateTebal = async function (req, res) {
         return response.error(res, err.message, null, 400);
     }
 };
+
+module.exports._listCategoryStats = async function (req, res) {
+    try {
+        const result = await service.listCategoryStats();
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, err.message, null, 500);
+    }
+};
+
+module.exports._forceReparse = async function (req, res) {
+    try {
+        const { cat_id } = req.body;
+        if (!cat_id) return response.error(res, 'cat_id wajib', null, 400);
+        const result = await service.forceReparseCategory(cat_id);
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, err.message, null, 500);
+    }
+};
+
+module.exports._getCategoryConfig = async function (req, res) {
+    try {
+        const catId = req.params.cat_id;
+        if (!catId) return response.error(res, 'cat_id wajib', null, 400);
+        const result = await service.getCategoryConfig(catId);
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, err.message, null, 500);
+    }
+};
+
+module.exports._setRequireTebal = async function (req, res) {
+    try {
+        const { cat_id, cat_name, require_tebal } = req.body;
+        if (!cat_id) return response.error(res, 'cat_id wajib', null, 400);
+        await service.setRequireTebal(cat_id, cat_name || cat_id, !!require_tebal, res.locals.user.id);
+        return response.success(res, { ok: true });
+    } catch (err) {
+        return response.error(res, err.message, null, 500);
+    }
+};

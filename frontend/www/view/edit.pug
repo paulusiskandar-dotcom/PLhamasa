@@ -205,6 +205,17 @@ block content
               i.bi.bi-lightning-fill
               |  Generate
 
+      //- Wajib-tebal warning banner
+      div.eg-detection-banner.banner-warning(ng-if="requireTebal && unassignedCount > 0")
+        div.banner-content
+          i.bi.bi-exclamation-triangle-fill
+          div.banner-text
+            strong {{ unassignedCount }} item belum di-assign tebal
+            span.muted  · Klik tampilkan dimensi → klik tebal item untuk assign
+          button.btn-secondary.btn-small(ng-click="showDimColumns = true; scrollToFirstUnassigned()")
+            i.bi.bi-arrow-down-circle
+            |  Lihat
+
       //- Table area
       div.table-wrapper(ng-if="pl && !loading")
         div.table-info(ng-if="filteredItems.length > 0")
@@ -225,6 +236,9 @@ block content
               tr
                 th.spacer-left
                 th.spacer-left
+                th.spacer-left(ng-show="showDimColumns")
+                th.spacer-left(ng-show="showDimColumns")
+                th.spacer-left(ng-show="showDimColumns")
                 th.spacer-left
                 th.group-header(colspan="3") CASH
                 th.group-header(colspan="3") KREDIT
@@ -234,6 +248,15 @@ block content
                 th.sortable(ng-click="sortBy('name')")
                   | Nama Barang
                   i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.sortable(ng-show="showDimColumns" ng-click="sortBy('tebal')" style="width:80px")
+                  | Tebal
+                  i.sort-icon.bi(ng-class="getSortIcon('tebal')")
+                th.sortable(ng-show="showDimColumns" ng-click="sortBy('i_brand')" style="width:60px")
+                  | Merk
+                  i.sort-icon.bi(ng-class="getSortIcon('i_brand')")
+                th.sortable(ng-show="showDimColumns" ng-click="sortBy('grade')" style="width:40px")
+                  | Gr.
+                  i.sort-icon.bi(ng-class="getSortIcon('grade')")
                 th.sortable.text-right(ng-click="sortBy('weight')")
                   | Berat
                   i.sort-icon.bi(ng-class="getSortIcon('weight')")
@@ -252,21 +275,24 @@ block content
                 )
                   | /LBR
                   i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
-                th(ng-show="showDimColumns" style="width:80px") Tebal
-                th(ng-show="showDimColumns" style="width:60px") Merk
-                th(ng-show="showDimColumns" style="width:40px") Gr.
 
             //- Extended header (4 price types)
             thead(ng-if="hasGudangPabrik")
               tr
                 th.spacer-left
                 th.spacer-left
+                th.spacer-left(ng-show="showDimColumns")
+                th.spacer-left(ng-show="showDimColumns")
+                th.spacer-left(ng-show="showDimColumns")
                 th.spacer-left
                 th.group-header.group-gudang(colspan="6") GUDANG
                 th.group-header.group-pabrik(colspan="6") PABRIK
               tr
                 th.spacer-left
                 th.spacer-left
+                th.spacer-left(ng-show="showDimColumns")
+                th.spacer-left(ng-show="showDimColumns")
+                th.spacer-left(ng-show="showDimColumns")
                 th.spacer-left
                 th.subgroup-header.group-gudang(colspan="3") Cash
                 th.subgroup-header.group-gudang(colspan="3") Kredit
@@ -278,6 +304,15 @@ block content
                 th.sortable(ng-click="sortBy('name')")
                   | Nama Barang
                   i.sort-icon.bi(ng-class="getSortIcon('name')")
+                th.sortable(ng-show="showDimColumns" ng-click="sortBy('tebal')" style="width:80px")
+                  | Tebal
+                  i.sort-icon.bi(ng-class="getSortIcon('tebal')")
+                th.sortable(ng-show="showDimColumns" ng-click="sortBy('i_brand')" style="width:60px")
+                  | Merk
+                  i.sort-icon.bi(ng-class="getSortIcon('i_brand')")
+                th.sortable(ng-show="showDimColumns" ng-click="sortBy('grade')" style="width:40px")
+                  | Gr.
+                  i.sort-icon.bi(ng-class="getSortIcon('grade')")
                 th.sortable.text-right(ng-click="sortBy('weight')")
                   | Berat
                   i.sort-icon.bi(ng-class="getSortIcon('weight')")
@@ -301,17 +336,27 @@ block content
                 )
                   | /LBR
                   i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
-                th(ng-show="showDimColumns" style="width:80px") Tebal
-                th(ng-show="showDimColumns" style="width:60px") Merk
-                th(ng-show="showDimColumns" style="width:40px") Gr.
 
             tbody
-              tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked}")
+              tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked, 'row-needs-tebal': requireTebal && !item.tebal}")
                 td.th-check
                   input(type="checkbox" ng-model="item._checked" ng-change="onItemCheckedChange()")
                 td(ng-class="{'item-new': item.newly_synced}")
                   span.new-badge(ng-if="item.newly_synced") BARU
                   | {{ item.name }}
+                  i.bi.bi-exclamation-triangle-fill(ng-if="requireTebal && !item.tebal" title="Item belum di-assign tebal" style="color:#E65100; font-size:11px; margin-left:5px; vertical-align:middle")
+                td.dim-cell(ng-show="showDimColumns")
+                  span(ng-if="!item._editingTebal" ng-click="toggleEditTebal(item)" style="cursor:pointer; white-space:nowrap")
+                    | {{ item.tebal_label || '-' }}
+                    i.bi.bi-pencil-fill(ng-if="item.is_tebal_manual" style="font-size:9px; color:#F57C00; margin-left:3px")
+                  div.tebal-inline-edit(ng-if="item._editingTebal")
+                    input(type="number" step="0.01" ng-model="item._tebalDraft" style="width:60px")
+                    button.btn-icon-mini(ng-click="saveTebal(item)")
+                      i.bi.bi-check
+                    button.btn-icon-mini(ng-click="item._editingTebal = false")
+                      i.bi.bi-x
+                td.text-center.dim-cell(ng-show="showDimColumns" style="font-size:11px") {{ item.brand || '-' }}
+                td.text-center.dim-cell(ng-show="showDimColumns" style="font-size:11px") {{ item.grade || '-' }}
                 td.text-right.mono {{ item.weight }}
                 td.text-right.mono(
                   ng-repeat-start="pt in priceTypes track by pt.code"
@@ -324,7 +369,7 @@ block content
                     inputmode="numeric"
                     ng-model="item.new_display[pt.code]"
                     ng-change="onCellChange(item, pt)"
-                    ng-disabled="lockState !== 'mine' || pl.status !== 'OPEN'"
+                    ng-disabled="lockState !== 'mine' || pl.status !== 'OPEN' || (requireTebal && !item.tebal)"
                     placeholder="—"
                   )
                   span.cell-saved-indicator(ng-if="item._saved && item._saved[pt.code]") ✓
@@ -333,18 +378,6 @@ block content
                   ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}"
                 )
                   | {{ item.new_unit[pt.code] | number }}
-                td(ng-show="showDimColumns")
-                  span(ng-if="!item._editingTebal" ng-click="toggleEditTebal(item)" style="cursor:pointer; white-space:nowrap")
-                    | {{ item.tebal_label || '-' }}
-                    i.bi.bi-pencil-fill(ng-if="item.is_tebal_manual" style="font-size:9px; color:#F57C00; margin-left:3px")
-                  div.tebal-inline-edit(ng-if="item._editingTebal")
-                    input(type="number" step="0.01" ng-model="item._tebalDraft" style="width:60px")
-                    button.btn-icon-mini(ng-click="saveTebal(item)")
-                      i.bi.bi-check
-                    button.btn-icon-mini(ng-click="item._editingTebal = false")
-                      i.bi.bi-x
-                td.text-center(ng-show="showDimColumns" style="font-size:11px") {{ item.brand || '-' }}
-                td.text-center(ng-show="showDimColumns" style="font-size:11px") {{ item.grade || '-' }}
 
       //- Bottom toolbar — OPEN
       div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")

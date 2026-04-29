@@ -38,6 +38,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.filterOptions  = null;
     $scope.showDimColumns = false;
     $scope.toggleDimColumns = function () { $scope.showDimColumns = !$scope.showDimColumns; };
+    $scope.requireTebal = false;
+    $scope.unassignedCount = 0;
     $scope.sort = { field: 'weight', dir: 'asc' };
     $scope.selection = { all: false };
 
@@ -135,7 +137,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             buildFilterOptions();
             applyFilter();
 
-            // Load tebal dimensions
+            // Load tebal dimensions + requireTebal flag
+            var catId = data.cat_id;
             itemDimensionsService.getTebalMap(plId).then(function (r) {
                 var tebalMap = r.result || {};
                 $scope.items.forEach(function (it) {
@@ -152,6 +155,12 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
                 });
                 $scope.filterOptions = buildFilterOptions($scope.items);
                 applyFilter();
+                if (catId) {
+                    itemDimensionsService.getCategoryConfig(catId).then(function (cfg) {
+                        $scope.requireTebal = (cfg.result && cfg.result.require_tebal) || false;
+                        $scope.unassignedCount = $scope.items.filter(function (it) { return !it.tebal && it.tebal !== 0; }).length;
+                    }).catch(function () {});
+                }
             }).catch(function () {});
 
             // Load side data
@@ -287,6 +296,15 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
                 var lbrCode = sf.slice(4);
                 av = (a.new_unit && a.new_unit[lbrCode]) || (a.prices[lbrCode] && a.prices[lbrCode].current_unit) || 0;
                 bv = (b.new_unit && b.new_unit[lbrCode]) || (b.prices[lbrCode] && b.prices[lbrCode].current_unit) || 0;
+            } else if (sf === 'tebal') {
+                av = a.tebal || 0;
+                bv = b.tebal || 0;
+            } else if (sf === 'i_brand') {
+                av = (a.brand || '').toLowerCase();
+                bv = (b.brand || '').toLowerCase();
+            } else if (sf === 'grade') {
+                av = (a.grade || '').toLowerCase();
+                bv = (b.grade || '').toLowerCase();
             } else {
                 av = 0; bv = 0;
             }
@@ -675,12 +693,19 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             item.tebal_label    = item.tebal ? String(parseFloat(item.tebal.toFixed(3))).replace(/\.?0+$/, '') + ' mm' : '(tidak terdeteksi)';
             item.is_tebal_manual = true;
             item._editingTebal  = false;
+            $scope.unassignedCount = $scope.items.filter(function (it) { return !it.tebal && it.tebal !== 0; }).length;
             $scope.filterOptions = buildFilterOptions($scope.items);
             applyFilter();
             showToast('Tebal disimpan', 'success');
         }).catch(function (err) {
             showToast('Gagal: ' + ((err.data && err.data.message) || ''), 'danger');
         });
+    };
+    $scope.scrollToFirstUnassigned = function () {
+        $timeout(function () {
+            var row = document.querySelector('.row-needs-tebal');
+            if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
     };
     $scope.closeFilterPanels = function () {
         $scope.filterOpen = { subcategory: false, tebal: false, merk: false, grade: false };

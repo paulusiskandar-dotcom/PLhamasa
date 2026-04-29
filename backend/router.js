@@ -95,7 +95,11 @@ module.exports = function (app) {
 
     // ── Item Dimensions ───────────────────────────────────────────────────────
     const dimsCtrl = require('./controllers/itemDimensions');
-    app.get('/price-list/:id/tebal-map', auth.verifyToken, dimsCtrl._getTebalMap);
-    app.put('/item/:ig_id/tebal',        auth.verifyToken, dimsCtrl._updateTebal);
+    app.get('/price-list/:id/tebal-map',          auth.verifyToken,                    dimsCtrl._getTebalMap);
+    app.put('/item/:ig_id/tebal',                 auth.verifyToken,                    dimsCtrl._updateTebal);
+    app.get('/item-dimensions/categories-stats',  auth.verifyToken, requireSuperadmin, dimsCtrl._listCategoryStats);
+    app.post('/item-dimensions/reparse',          auth.verifyToken, requireSuperadmin, dimsCtrl._forceReparse);
+    app.get('/item-dimensions/category/:cat_id',  auth.verifyToken,                    dimsCtrl._getCategoryConfig);
+    app.post('/item-dimensions/require-tebal',    auth.verifyToken, requireSuperadmin, dimsCtrl._setRequireTebal);
 
 };

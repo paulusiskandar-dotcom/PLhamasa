@@ -2657,3 +2657,17 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   width: 60px; padding: 3px 5px; border: 1px solid #F57C00;
   border-radius: 3px; font-size: 12px; text-align: right;
 }
+
+/* Wajib-tebal row highlight */
+.row-needs-tebal td { background: #FFF8E1 !important; }
+.row-needs-tebal:hover td { background: #FFF3CD !important; }
+
+/* Dim cell (Tebal/Merk/Grade) */
+.dim-cell { font-size: 12px; white-space: nowrap; }
+
+/* Banner warning exclamation icon */
+.banner-content > .bi-exclamation-triangle-fill { color: #E65100; font-size: 18px; flex-shrink: 0; }
+
+/* btn-danger-soft standalone (settings Opsional button) */
+.btn-danger-soft { background: #FFEBEE !important; color: #C62828 !important; border-color: #FFCDD2 !important; }
+.btn-danger-soft:hover { background: #FFCDD2 !important; }

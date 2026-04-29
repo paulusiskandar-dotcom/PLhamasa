@@ -286,6 +286,54 @@ block content
               i.bi.bi-plus-lg
               |  Tambah ERP Target
 
+      //- Section 6: Item Dimensions (superadmin only)
+      div.settings-section(ng-if="isSuperadmin")
+        div.section-header
+          i.bi.bi-rulers
+          h3 Item Dimensions — Tebal Parser
+          span.role-badge Superadmin only
+        div.section-body
+          p.section-desc
+            | Parser otomatis extract tebal dari nama item Plat / Coil.
+            | Klik #[strong Re-parse] jika ada perubahan item baru atau update regex.
+            | Tebal yang di-assign manual tidak akan di-override.
+          div.empty-state(ng-if="!dimCategories")
+            i.bi.bi-hourglass-split
+            |  Memuat...
+          div.empty-state(ng-if="dimCategories && dimCategories.length === 0")
+            i.bi.bi-info-circle
+            |  Tidak ada kategori Plat / Coil ditemukan
+          table.gm-cat-table(ng-if="dimCategories && dimCategories.length > 0")
+            thead
+              tr
+                th Kategori
+                th(style="width:140px; text-align:center") Total Item
+                th(style="width:140px; text-align:center") Ke-detect Tebal
+                th(style="width:140px; text-align:center") Wajib Tebal
+                th(style="width:130px; text-align:center") Aksi
+            tbody
+              tr(ng-repeat="cat in dimCategories")
+                td
+                  strong {{ cat.cat_name }}
+                  small.muted(style="display:block; font-size:11px") ID: {{ cat.cat_id }}
+                td(style="text-align:center") {{ cat.total }}
+                td(style="text-align:center")
+                  span(ng-class="cat.detected === cat.total ? 'text-success' : 'text-warning'")
+                    | {{ cat.detected }} / {{ cat.total }}
+                td(style="text-align:center")
+                  span.gm-status-badge(ng-class="cat.require_tebal ? 'enabled' : 'disabled'")
+                    i.bi(ng-class="cat.require_tebal ? 'bi-check-circle-fill' : 'bi-x-circle'")
+                    |  {{ cat.require_tebal ? 'Wajib' : 'Opsional' }}
+                td(style="text-align:center")
+                  div(style="display:flex; gap:6px; justify-content:center")
+                    button.btn-secondary.btn-small(ng-click="reparseCategory(cat)" ng-disabled="cat._loading")
+                      i.bi(ng-class="cat._loading ? 'bi-arrow-clockwise spinning' : 'bi-arrow-clockwise'")
+                      |  {{ cat._loading ? 'Re-parsing...' : 'Re-parse' }}
+                    button.btn-secondary.btn-small(ng-if="!cat.require_tebal" ng-click="enableRequireTebal(cat)")
+                      | Wajibkan
+                    button.btn-secondary.btn-small.btn-danger-soft(ng-if="cat.require_tebal" ng-click="disableRequireTebal(cat)")
+                      | Opsional
+
       //- Modal: Add/Edit Subcategory
       div.modal-overlay(ng-if="modalSubcat" ng-click="modalSubcat = null")
         div.modal-card(ng-click="$event.stopPropagation()")

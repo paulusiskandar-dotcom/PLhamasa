@@ -174,6 +174,25 @@ CREATE TABLE IF NOT EXISTS item_blacklist (
 
 CREATE INDEX IF NOT EXISTS idx_blacklist_ig_id ON item_blacklist(ig_id);
 
+-- ── ITEM DIMENSIONS ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS item_dimensions (
+    ig_id           INTEGER PRIMARY KEY,
+    tebal           NUMERIC(10,3),
+    tebal_label     VARCHAR(50),
+    is_tebal_manual BOOLEAN DEFAULT FALSE,
+    updated_by      INTEGER REFERENCES users(id),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── CATEGORY DIMENSION CONFIG ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS category_dimension_config (
+    cat_id          VARCHAR(50) PRIMARY KEY,
+    cat_name        VARCHAR(255),
+    require_tebal   BOOLEAN DEFAULT FALSE,
+    enabled_by      INTEGER REFERENCES users(id),
+    enabled_at      TIMESTAMPTZ
+);
+
 -- ── USER MANAGEMENT ENHANCEMENTS ──────────────────────────────
 
 ALTER TABLE users

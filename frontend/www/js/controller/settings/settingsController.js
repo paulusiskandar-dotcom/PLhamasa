@@ -1,4 +1,4 @@
-plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService, userService) {
+plmApp.controller('settingsController', function ($scope, $http, $timeout, $masterService, subcategoryService, erpTargetService, pdfTemplateService, blacklistService, userService, itemDimensionsService) {
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
@@ -456,7 +456,55 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
         });
     };
 
+    // ── Item Dimensions ────────────────────────────────────────
+    $scope.dimCategories = null;
+
+    function loadDimCategories() {
+        if (!$scope.isSuperadmin) return;
+        itemDimensionsService.listCategoryStats().then(function (r) {
+            $scope.dimCategories = r.result || [];
+        }).catch(function () {
+            $scope.dimCategories = [];
+            showToast('Gagal memuat kategori dimensi', 'danger');
+        });
+    }
+
+    $scope.reparseCategory = function (cat) {
+        if (!confirm('Re-parse tebal untuk ' + cat.cat_name + '?\nItem dengan tebal manual tidak akan di-override.')) return;
+        cat._loading = true;
+        itemDimensionsService.reparseCategory(cat.cat_id).then(function (r) {
+            cat._loading = false;
+            var res = r.result || r;
+            showToast('Re-parse selesai: ' + (res.detected || 0) + ' / ' + (res.total || 0) + ' ke-detect', 'success');
+            loadDimCategories();
+        }).catch(function (err) {
+            cat._loading = false;
+            showToast('Gagal: ' + ((err.data && err.data.message) || err.message || 'Error'), 'danger');
+        });
+    };
+
+    $scope.enableRequireTebal = function (cat) {
+        if (!confirm('Aktifkan rule "wajib tebal" untuk ' + cat.cat_name + '?\nItem tanpa tebal tidak bisa di-edit harganya dan tidak bisa di-post ke ERP.')) return;
+        itemDimensionsService.setRequireTebal(cat.cat_id, cat.cat_name, true).then(function () {
+            showToast('Wajib tebal aktif untuk ' + cat.cat_name, 'success');
+            loadDimCategories();
+        }).catch(function (err) {
+            showToast('Gagal: ' + ((err.data && err.data.message) || 'Error'), 'danger');
+        });
+    };
+
+    $scope.disableRequireTebal = function (cat) {
+        if (!confirm('Nonaktifkan rule wajib tebal untuk ' + cat.cat_name + '?')) return;
+        itemDimensionsService.setRequireTebal(cat.cat_id, cat.cat_name, false).then(function () {
+            showToast('Wajib tebal non-aktif untuk ' + cat.cat_name, 'success');
+            loadDimCategories();
+        }).catch(function (err) {
+            showToast('Gagal: ' + ((err.data && err.data.message) || 'Error'), 'danger');
+        });
+    };
+
     init();
     loadPdfTemplates();
     loadUsers();
+    loadDimCategories();
 });
