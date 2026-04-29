@@ -10,6 +10,7 @@ const TEMPLATES = {
     cnp_kredit:   require('./template_cnp_kredit'),
     inp:          require('./template_inp'),
     unp:          require('./template_unp'),
+    sheetpile:    require('./template_sheetpile'),
 };
 
 let _catCache    = null;
