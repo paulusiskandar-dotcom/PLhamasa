@@ -173,7 +173,7 @@ block content
             |  Pilih {{ filteredItemCount() }}
 
         //- Toggle dim columns
-        button.btn-ghost.btn-small.filter-dim-toggle(ng-click="showDimColumns = !showDimColumns")
+        button.btn-ghost.btn-small.filter-dim-toggle(ng-click="toggleDimColumns()")
           i.bi(ng-class="showDimColumns ? 'bi-eye-fill' : 'bi-eye'")
           |  {{ showDimColumns ? 'Sembunyikan' : 'Dimensi' }}
 

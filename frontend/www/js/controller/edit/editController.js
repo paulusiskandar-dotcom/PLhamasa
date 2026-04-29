@@ -37,6 +37,7 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.filterSearch   = { subcategory: '', tebal: '', merk: '' };
     $scope.filterOptions  = null;
     $scope.showDimColumns = false;
+    $scope.toggleDimColumns = function () { $scope.showDimColumns = !$scope.showDimColumns; };
     $scope.sort = { field: 'weight', dir: 'asc' };
     $scope.selection = { all: false };
 
