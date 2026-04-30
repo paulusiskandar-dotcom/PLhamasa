@@ -35,6 +35,7 @@ module.exports._getTemplateItems = async function (req, res) {
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item
              WHERE cat_id = $1 AND deleted_at IS NULL AND is_item = true
+               AND (i_group IS NULL OR i_group != 'N')
              ORDER BY i_name ASC`,
             [catId]
         );
