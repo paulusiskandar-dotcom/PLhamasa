@@ -114,9 +114,8 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         });
     };
 
-    $scope.showStartModal = function () {
-        $scope.modalStart = { catId: '' };
-    };
+    $scope.showStartModal  = function () { $scope.modalStart = { catId: '' }; };
+    $scope.closeStartModal = function () { $scope.modalStart = null; };
 
     $scope.startNew = function (catId, catName) {
         $scope.loading = true;

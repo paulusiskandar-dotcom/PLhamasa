@@ -119,14 +119,14 @@ block content
               |  Excel
 
       //- Modal Start New
-      div.modal-overlay(ng-if="modalStart")
+      div.modal-overlay(ng-if="modalStart" ng-click="closeStartModal()")
         div.modal-card(ng-click="$event.stopPropagation()")
           h3 Mulai Price List Baru
           p Pilih kategori ERP:
           select.form-control(ng-model="modalStart.catId" ng-options="c.id as c.name for c in categoriesAvailable")
             option(value="") Pilih kategori...
           div.modal-actions
-            button.btn-ghost(ng-click="modalStart = null") Batal
+            button.btn-ghost(ng-click="closeStartModal()") Batal
             button.btn-primary(ng-click="confirmStartNew()" ng-disabled="!modalStart.catId")
               i.bi.bi-check2
               |  Mulai
