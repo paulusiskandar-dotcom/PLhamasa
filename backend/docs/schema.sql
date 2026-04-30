@@ -1,3 +1,6 @@
+-- pgcrypto needed for sensitive field encryption helpers (not used in SQL; kept for extension hygiene)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- ── DROP GROUPING SYSTEM (Phase 1-4 removed) ───────────────────────────────
 DROP TABLE IF EXISTS item_pending_assignment CASCADE;
 DROP TABLE IF EXISTS item_group_assignment CASCADE;

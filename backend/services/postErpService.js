@@ -136,6 +136,10 @@ module.exports.executePost = async function (plId, erpTargetId, userId) {
 
     const erpTarget = await dbPLM().oneOrNone('SELECT * FROM erp_target WHERE id=$1', [erpTargetId]);
     if (!erpTarget) return { success: false, error: 'erp_target_not_found' };
+    const { decrypt, isEncrypted } = require('../utils/crypto');
+    if (erpTarget.db_password && isEncrypted(erpTarget.db_password)) {
+        erpTarget.db_password = decrypt(erpTarget.db_password);
+    }
 
     // Snapshot for audit
     const snapshot = items.map(item => ({

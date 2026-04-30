@@ -438,6 +438,10 @@ module.exports.postToErp = async function (plId, userId, erpTargetId) {
     // 3. Get ERP target
     const erpTarget = await dbPLM().oneOrNone('SELECT * FROM erp_target WHERE id=$1', [erpTargetId]);
     if (!erpTarget) return { success: false, error: 'erp_target_not_found' };
+    const { decrypt: _dec, isEncrypted: _isEnc } = require('../utils/crypto');
+    if (erpTarget.db_password && _isEnc(erpTarget.db_password)) {
+        erpTarget.db_password = _dec(erpTarget.db_password);
+    }
 
     // 4. Get item weights from ERP for per-unit price calculation
     const ig_ids = [...new Set(items.map(i => i.ig_id))];
