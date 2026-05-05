@@ -12,20 +12,7 @@ const fonts = {
     },
 };
 
-// ── constants ─────────────────────────────────────────────────────────────────
-
-const GRAY  = '#E8E8E8';
-const HFILL = '#E0E7EF';
-
-const BULLET = '•';
-
-const FOOTER = {
-    note1: 'Untuk pesanan panjang lebih atau kurang dari 6 mtr, harga ditambah Rp 50/kg & pesanan min. 25 btg.',
-    note2: 'Untuk tebal Non Standard, harga ditambah Rp 100/kg dan pesanan minimum 200 btg.',
-    note3: 'CNP KW2 Rp 9.500,-/kg dari berat timbangan',
-};
-
-// ── number helpers ────────────────────────────────────────────────────────────
+// ── helpers ─────────────────────────────────────────────────────────────────
 
 function roundSpecial(raw) {
     if (!raw) return 0;
@@ -46,67 +33,55 @@ function fmtBerat(b) {
     }).format(b);
 }
 
-function formatTimestamp(d) {
-    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-    return String(d.getDate()).padStart(2, '0') + ' ' +
-           months[d.getMonth()] + ' ' +
-           d.getFullYear() + ' ' +
-           String(d.getHours()).padStart(2, '0') + ':' +
-           String(d.getMinutes()).padStart(2, '0');
+function extractBaseSize(name) {
+    // "CNP 100 x 50 x 2.1 mm x 6 m" → "100 x 50"
+    const m = name.match(/CNP\s+(\d+)\s*x\s*(\d+)/i);
+    return m ? m[1] + ' x ' + m[2] : name.replace(/^CNP\s+/i, '');
 }
-
-// ── string helpers ────────────────────────────────────────────────────────────
 
 function shortenUkuran(name) {
     // "CNP 100 x 50 x 2.1 mm x 6 m"   → "100 x 50 x 2,1"
-    // "CNP 100 x 50 x 3.2 mm x 6 m F" → "100 x 50 x 3,2"
-    return String(name)
+    // "CNP 100 x 50 x 3.2 mm x 6 m F" → "100 x 50 x 3,2"  (strip trailing F + x N m)
+    return name
         .replace(/^CNP\s+/i, '')
-        .replace(/[\s\n]+F\s*$/i, '')
-        .replace(/\s*x\s*\d+\s*m\s*$/i, '')
-        .replace(/\s*mm\b/gi, '')
+        .replace(/[\s\n]+F\s*$/i, '')       // strip trailing " F" or "\nF" before other ops
+        .replace(/\s*x\s*\d+\s*m\s*$/i, '') // strip " x 6 m" (or any length)
+        .replace(/\s*mm\b/gi, '')            // strip all "mm" occurrences
         .replace(/\./g, ',')
         .replace(/\s+/g, ' ')
         .trim();
 }
 
 function cleanBahan(raw) {
-    // "1.80 mm" → "1,80"   "3,20" → "3,20"
+    // "1.80 mm" → "1,80"   "3,20" → "3,20"   null → ""
     if (!raw) return '';
-    return String(raw).replace(/\s*mm\b/gi, '').replace(/\./g, ',').trim();
+    return String(raw)
+        .replace(/\s*mm\b/gi, '')
+        .replace(/\./g, ',')
+        .trim();
 }
 
-function isRowF(rawBahan) {
-    const v = parseFloat(String(rawBahan || '').replace(/\s*mm\b/gi, '').replace(',', '.'));
+function isRowF(bahan) {
+    // Works on raw value (with or without "mm" suffix, dot or comma)
+    const v = parseFloat(String(bahan || '').replace(',', '.'));
     return !isNaN(v) && Math.abs(v - 3.20) < 0.01;
 }
 
-function extractBaseSize(name) {
-    const m = String(name).match(/CNP\s+(\d+)\s*x\s*(\d+)/i);
-    return m ? m[1] + ' x ' + m[2] : String(name).replace(/^CNP\s+/i, '');
-}
+// ── grouping ─────────────────────────────────────────────────────────────────
 
-function extractThickness(ukuran) {
-    const clean = String(ukuran).replace(/\s*F\s*$/i, '');
-    const parts = clean.split(/\s*x\s*/);
-    return parseFloat(String(parts[parts.length - 1]).replace(',', '.')) || 0;
-}
-
-// ── data grouping + sort ──────────────────────────────────────────────────────
-
-function buildRows(items, customValues, priceKey) {
-    const groupMap   = {};
+function buildGroups(items, customValues, priceKey) {
+    const groupMap  = {};
     const groupOrder = [];
 
     for (const item of items) {
-        const cv      = customValues[item.ig_id] || {};
-        const rawBahan = cv.bahan || '';
-        const f        = isRowF(rawBahan);
-        const base     = shortenUkuran(item.name);
-        const ukuran   = f ? base + ' F' : base;
-        const bahan    = cleanBahan(rawBahan);
+        const cv       = customValues[item.ig_id] || {};
+        const rawBahan  = cv.bahan || '';
+        const bahan     = cleanBahan(rawBahan);
         const beratAsli = (cv.berat_asli || '').trim();
+        const f         = isRowF(rawBahan);
         const baseSize  = extractBaseSize(item.name);
+        const base      = shortenUkuran(item.name);       // F already stripped from name
+        const ukuran    = f ? base + ' F' : base;         // append F only when detected
 
         const weight = parseFloat(item.weight) || 0;
         const kg     = (item.prices && item.prices[priceKey] && item.prices[priceKey].current) || 0;
@@ -116,132 +91,183 @@ function buildRows(items, customValues, priceKey) {
             groupMap[baseSize] = [];
             groupOrder.push(baseSize);
         }
-        groupMap[baseSize].push({
-            ukuran, bahan, weight, kg, btg, beratAsli,
-            isF:        f,
-            _thickness: extractThickness(ukuran),
-        });
+
+        groupMap[baseSize].push({ ukuran, bahan, weight, kg, btg, beratAsli, isF: f });
     }
 
-    // sort groups numerically: 75x45, 100x50, 125x50, …
+    // Sort groups by numeric base size (75x45, 100x50, 125x50, ...)
     groupOrder.sort(function (a, b) {
         const pa = a.split(' x ').map(Number);
         const pb = b.split(' x ').map(Number);
         return (pa[0] - pb[0]) || (pa[1] - pb[1]);
     });
 
-    // within each group: F last, then thickness asc, then weight asc
+    // Within each group: thickness ascending, then weight ascending; F always last
+    function getThickness(ukuran) {
+        const parts = String(ukuran).split(/\s*x\s*/);
+        return parseFloat(String(parts[parts.length - 1]).replace(',', '.')) || 0;
+    }
+
     groupOrder.forEach(function (key) {
         groupMap[key].sort(function (a, b) {
             if (a.isF && !b.isF) return 1;
             if (!a.isF && b.isF) return -1;
-            const dt = a._thickness - b._thickness;
-            return dt !== 0 ? dt : a.weight - b.weight;
+            const dt = getThickness(a.ukuran) - getThickness(b.ukuran);
+            if (dt !== 0) return dt;
+            return a.weight - b.weight;
         });
     });
 
-    // flatten
-    const all = [];
-    groupOrder.forEach(function (key) {
-        groupMap[key].forEach(function (r) { all.push(r); });
+    return groupOrder.map(function (key) {
+        return { baseSize: key, rows: groupMap[key] };
     });
-    return all;
 }
 
-// ── strict 50/50 split ────────────────────────────────────────────────────────
+// ── strict 50/50 split with pagination ───────────────────────────────────────
 
-function splitFiftyFifty(rows) {
-    const mid   = Math.ceil(rows.length / 2);
-    const left  = rows.slice(0, mid);
-    const right = rows.slice(mid);
-    // pad right with null so both columns share same height
-    while (right.length < left.length) right.push(null);
-    return { left, right };
+// ~29 rows per column × 2 = 58 rows per page at fontSize 8
+const ROWS_PER_PAGE = 58;
+
+function flattenAndPaginate(groups) {
+    const allRows = [];
+    for (const g of groups) {
+        for (const r of g.rows) allRows.push(r);
+    }
+
+    const pages = [];
+    for (let i = 0; i < allRows.length; i += ROWS_PER_PAGE) {
+        const pageRows = allRows.slice(i, i + ROWS_PER_PAGE);
+        const mid = Math.ceil(pageRows.length / 2);
+        pages.push({
+            leftRows:  pageRows.slice(0, mid),
+            rightRows: pageRows.slice(mid),
+        });
+    }
+
+    if (!pages.length) pages.push({ leftRows: [], rightRows: [] });
+
+    return pages;
 }
 
 // ── table node builder ────────────────────────────────────────────────────────
 
-function buildTableNode(rows) {
+const H_FILL   = '#E0E7EF';
+const GRAY_ROW = '#E8E8E8';
+
+function buildTableNode(rows, fs) {
+    const fsSub = Math.max(fs - 1.5, 5.5);
+
     function h1(text) {
-        return { text, bold: true, fontSize: 8, alignment: 'center', fillColor: HFILL };
+        return { text, bold: true, fontSize: fs, alignment: 'center', fillColor: H_FILL };
     }
     function h2(text) {
-        return { text, italics: true, fontSize: 6.5, alignment: 'center', color: '#666666', fillColor: HFILL };
+        return { text, italics: true, fontSize: fsSub, color: '#444', alignment: 'center', fillColor: H_FILL };
     }
 
-    const headerRow1 = [h1('Ukuran'), h1('Bahan'), h1('B. Tabel'), h1('Harga'), h1('Harga'), h1('B. Asli')];
-    const headerRow2 = [h2('(panjang 6 meter)'), h2('(mm)'), h2('(kg)'), h2('/kg'), h2('/btg'), h2('(kg)')];
+    const headerRow1 = [h1('UKURAN'),            h1('BAHAN'), h1('B. Tabel'), h1('Harga'), h1('Harga'), h1('B. Asli')];
+    const headerRow2 = [h2('(panjang 6 meter)'), h2('(mm)'),  h2('(kg)'),     h2('/kg'),   h2('/btg'),  h2('(kg)')   ];
 
     const body = [headerRow1, headerRow2];
 
     for (const r of rows) {
-        if (!r) {
-            body.push([
-                { text: '', fontSize: 7 }, { text: '', fontSize: 7 }, { text: '', fontSize: 7 },
-                { text: '', fontSize: 7 }, { text: '', fontSize: 7 },
-                { text: '', fontSize: 7, fillColor: GRAY },
-            ]);
-            continue;
-        }
+        const fill = r.isF ? GRAY_ROW : null;
 
-        const rowFill = r.isF ? GRAY : null;
-
-        function dc(text, alignment, extra) {
-            const cell = Object.assign({ text: String(text || ''), fontSize: 7, alignment }, extra || {});
-            if (rowFill && !cell.fillColor) cell.fillColor = rowFill;
-            if (r.isF) cell.bold = true;
-            return cell;
+        function dc(text, extra) {
+            return Object.assign({ text: text || '', fontSize: fs, margin: [2, 1, 2, 1] }, extra || {});
         }
 
         body.push([
-            dc(r.ukuran,         'center'),
-            dc(r.bahan,          'center', { bold: true }),
-            dc(fmtBerat(r.weight), 'center'),
-            dc(fmtNum(r.kg),     'right'),
-            dc(fmtNum(r.btg),    'right'),
-            dc(r.beratAsli,      'right',  { bold: true, italics: true, fillColor: GRAY }),
+            dc(r.ukuran,           { alignment: 'left',   bold: r.isF, fillColor: fill }),
+            dc(r.bahan,            { alignment: 'center', bold: true,  fillColor: fill }),
+            dc(fmtBerat(r.weight), { alignment: 'right',               fillColor: fill }),
+            dc(fmtNum(r.kg),       { alignment: 'right',               fillColor: fill }),
+            dc(fmtNum(r.btg),      { alignment: 'right', bold: r.isF,  fillColor: fill }),
+            dc(r.beratAsli,        { alignment: 'right', bold: true, italics: true, fillColor: GRAY_ROW }),
         ]);
     }
 
     return {
         table: {
             headerRows: 2,
-            // Per table: (573pt available - 6pt gap) / 2 ≈ 283.5pt
-            widths: [73, 41, 43, 36, 48, 43],
+            widths: ['*', 34, 36, 32, 42, 36],
             body,
         },
         layout: {
             hLineWidth: function (i) {
-                if (i === 0 || i === 2) return 0.5;
-                if (i === 1) return 0.15;
-                return 0.2;
+                if (i === 0 || i === 2) return 0.5;  // top border + after header block
+                if (i === 1) return 0.15;             // between header row 1 and 2
+                return 0.25;
             },
             vLineWidth: function ()   { return 0.25; },
-            hLineColor: function ()   { return '#000000'; },
-            vLineColor: function ()   { return '#000000'; },
-            paddingLeft:   function () { return 3; },
-            paddingRight:  function () { return 3; },
+            hLineColor: function ()   { return '#555'; },
+            vLineColor: function ()   { return '#888'; },
+            paddingLeft:   function () { return 2; },
+            paddingRight:  function () { return 2; },
             paddingTop:    function () { return 1.5; },
             paddingBottom: function () { return 1.5; },
         },
     };
 }
 
+// ── footer notes ──────────────────────────────────────────────────────────────
+
+const BULLET = '•';
+
+const FOOTER_NOTES = {
+    note1: 'Untuk pesanan panjang lebih atau kurang dari 6 mtr, harga ditambah Rp 50/kg & pesanan min. 25 btg.',
+    note2: 'Untuk tebal Non Standard, harga ditambah Rp 100/kg dan pesanan minimum 200 btg.',
+    note3: 'CNP KW2 Rp 9.500,-/kg dari berat timbangan',
+};
+
+function formatTimestamp(d) {
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const dd   = String(d.getDate()).padStart(2, '0');
+    const mon  = months[d.getMonth()];
+    const yyyy = d.getFullYear();
+    const hh   = String(d.getHours()).padStart(2, '0');
+    const mi   = String(d.getMinutes()).padStart(2, '0');
+    return dd + ' ' + mon + ' ' + yyyy + ' ' + hh + ':' + mi;
+}
+
 // ── pdf definition ────────────────────────────────────────────────────────────
 
-function buildDocDef(rows, titleRight, ts) {
-    const { left, right } = splitFiftyFifty(rows);
+function buildPdf(groups, titleRight, generatedAt) {
+    const pages = flattenAndPaginate(groups);
+
+    let maxPerCol = 0;
+    pages.forEach(function (pg) {
+        if (pg.leftRows.length  > maxPerCol) maxPerCol = pg.leftRows.length;
+        if (pg.rightRows.length > maxPerCol) maxPerCol = pg.rightRows.length;
+    });
+
+    const fs = maxPerCol <= 24 ? 9 : (maxPerCol <= 28 ? 8 : 7.5);
+
+    const content = [];
+
+    pages.forEach(function (pg, idx) {
+        const block = {
+            columns: [
+                { width: '*', stack: [buildTableNode(pg.leftRows,  fs)] },
+                { width: 8,   text: '' },
+                { width: '*', stack: [buildTableNode(pg.rightRows, fs)] },
+            ],
+        };
+
+        if (idx > 0) block.pageBreak = 'before';
+        content.push(block);
+    });
 
     return {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [11, 24, 11, 35],
+        pageMargins:     [8, 22, 8, 38],
 
         header: function () {
             return {
+                margin: [8, 5, 8, 0],
                 columns: [
-                    { text: 'CNP',      bold: true, fontSize: 9, alignment: 'left',  margin: [13, 8, 0, 0] },
-                    { text: titleRight, bold: true, fontSize: 9, alignment: 'right', margin: [0,  8, 13, 0] },
+                    { text: 'CNP',      bold: true, fontSize: 11, alignment: 'left'  },
+                    { text: titleRight, bold: true, fontSize: 11, alignment: 'right' },
                 ],
             };
         },
@@ -251,31 +277,23 @@ function buildDocDef(rows, titleRight, ts) {
                 stack: [
                     {
                         columns: [
-                            { text: BULLET + ' ' + FOOTER.note1, italics: true, fontSize: 7.5, width: '*' },
-                            { text: ts, italics: true, fontSize: 7.5, alignment: 'right', width: 'auto' },
+                            { text: BULLET + ' ' + FOOTER_NOTES.note1, fontSize: 7.5, italics: true, width: '*' },
+                            { text: generatedAt, fontSize: 7.5, italics: true, alignment: 'right', width: 'auto' },
                         ],
-                        margin:    [13, 0, 13, 0],
                         columnGap: 8,
+                        margin: [8, 3, 8, 0],
                     },
-                    { text: BULLET + ' ' + FOOTER.note2, italics: true, fontSize: 7.5, margin: [13, 1, 13, 0] },
-                    { text: BULLET + ' ' + FOOTER.note3, fontSize: 8,                  margin: [13, 1, 13, 0] },
+                    { text: BULLET + ' ' + FOOTER_NOTES.note2, fontSize: 7.5, italics: true, margin: [8, 1, 8, 0] },
+                    { text: BULLET + ' ' + FOOTER_NOTES.note3, fontSize: 8,                  margin: [8, 1, 8, 0] },
                 ],
             };
         },
 
-        content: [
-            {
-                columns: [
-                    { width: '*', stack: [buildTableNode(left)]  },
-                    { width: 6,   text:  ''                      },
-                    { width: '*', stack: [buildTableNode(right)] },
-                ],
-            },
-        ],
+        content,
 
         defaultStyle: {
             font:     'Helvetica',
-            fontSize: 7,
+            fontSize: fs,
         },
     };
 }
@@ -284,9 +302,9 @@ function buildDocDef(rows, titleRight, ts) {
 
 function makeRender(priceKey, titleRight) {
     return function render({ items, customValues }) {
-        const ts   = formatTimestamp(new Date());
-        const rows = buildRows(items, customValues, priceKey);
-        const dd   = buildDocDef(rows, titleRight, ts);
+        const generatedAt = formatTimestamp(new Date());
+        const groups = buildGroups(items, customValues, priceKey);
+        const dd     = buildPdf(groups, titleRight, generatedAt);
 
         return new Promise(function (resolve, reject) {
             const printer = new PdfPrinter(fonts);
