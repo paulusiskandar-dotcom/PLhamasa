@@ -4,7 +4,7 @@ const meta = {
     name:         'CNP Cash Gudang',
     cat_id:       null,
     cat_name:     'CNP',
-    description:  'Template CNP — harga cash gudang, A5 landscape 2-kolom group-aware',
+    description:  'Template CNP — harga cash gudang, A5 landscape 2-kolom',
     custom_fields: [
         { key: 'bahan',      label: 'Bahan',      type: 'text' },
         { key: 'berat_asli', label: 'Berat Asli', type: 'text' },
