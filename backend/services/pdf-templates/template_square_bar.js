@@ -46,6 +46,8 @@ const meta = {
 function render({ items, customValues }) {
     const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY HH:mm');
 
+    const FS = 7.5;  // data font size
+
     const rows = items.map(function (item) {
         const cv       = customValues[item.ig_id] || {};
         const cashKg   = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
@@ -55,13 +57,13 @@ function render({ items, customValues }) {
         return {
             _weight: weight,
             cells: [
-                { text: cv.dia_inch || '', alignment: 'center', fontSize: 12 },
-                { text: cv.dia_mm   || '', alignment: 'center', fontSize: 12 },
-                { text: fmtBerat(weight),                        alignment: 'center', fontSize: 12 },
-                { text: fmtNum(cashKg),                          alignment: 'right',  fontSize: 12 },
-                { text: fmtNum(roundSpecial(cashKg * weight)),   alignment: 'right',  fontSize: 12 },
-                { text: fmtNum(kreditKg),                        alignment: 'right',  fontSize: 12 },
-                { text: fmtNum(roundSpecial(kreditKg * weight)), alignment: 'right',  fontSize: 12 },
+                { text: cv.dia_inch || '', alignment: 'center', fontSize: FS },
+                { text: cv.dia_mm   || '', alignment: 'center', fontSize: FS },
+                { text: fmtBerat(weight),                        alignment: 'center', fontSize: FS },
+                { text: fmtNum(cashKg),                          alignment: 'right',  fontSize: FS },
+                { text: fmtNum(roundSpecial(cashKg * weight)),   alignment: 'right',  fontSize: FS },
+                { text: fmtNum(kreditKg),                        alignment: 'right',  fontSize: FS },
+                { text: fmtNum(roundSpecial(kreditKg * weight)), alignment: 'right',  fontSize: FS },
             ],
         };
     });
@@ -69,35 +71,41 @@ function render({ items, customValues }) {
     // Sort by weight ascending
     rows.sort(function (a, b) { return a._weight - b._weight; });
 
+    const FSH   = 8;       // header font size
     const hFill = '#E8ECF0';
+
+    function hg(text, extra) {
+        return Object.assign({ text, alignment: 'center', bold: true, fontSize: FSH, fillColor: hFill }, extra || {});
+    }
+
     const headerGroup = [
-        { text: 'DIA.',   colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
-        { text: 'BERAT',              alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
-        { text: 'CASH',   colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
-        { text: 'KREDIT', colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
+        hg('DIA.',   { colSpan: 2 }), {},
+        hg('BERAT'),
+        hg('CASH',   { colSpan: 2 }), {},
+        hg('KREDIT', { colSpan: 2 }), {},
     ];
     const headerSub = [
-        { text: '(inch)',   alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
-        { text: '(mm)',     alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
-        { text: '(kg)',     alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
-        { text: '(Rp/kg)', alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
-        { text: '(Rp/btg)',alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
-        { text: '(Rp/kg)', alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
-        { text: '(Rp/btg)',alignment: 'center', bold: true, fontSize: 12, fillColor: '#E8ECF0' },
+        hg('(inch)'), hg('(mm)'), hg('(kg)'),
+        hg('(Rp/kg)'), hg('(Rp/btg)'),
+        hg('(Rp/kg)'), hg('(Rp/btg)'),
     ];
+
+    // A5 landscape available ≈ 579pt (margins [8,*,8,*])
+    // dia_inch wider to avoid wrap; 4 price cols share remaining space
+    // [82, 48, 56, 98, 98, 98, 99] = 579
 
     const dd = {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 30, 8, 25],
+        pageMargins:     [8, 26, 8, 20],
 
         header: function () {
             return {
                 text:      'ASS KOTAK / SQUARE BAR',
                 alignment: 'center',
                 bold:      true,
-                fontSize:  16,
-                margin:    [0, 8, 0, 6],
+                fontSize:  13,
+                margin:    [0, 6, 0, 0],
             };
         },
 
@@ -105,35 +113,35 @@ function render({ items, customValues }) {
             {
                 table: {
                     headerRows: 2,
-                    widths: ['12%', '10%', '13%', '16.25%', '16.25%', '16.25%', '16.25%'],
+                    widths: [82, 48, 56, 98, 98, 98, 99],
                     body:   [headerGroup, headerSub, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
-                    hLineWidth: function () { return 0.5; },
-                    vLineWidth: function () { return 0.5; },
-                    hLineColor: function () { return '#888'; },
-                    vLineColor: function () { return '#888'; },
+                    hLineWidth: function (i) { return i <= 2 ? 0.5 : 0.25; },
+                    vLineWidth: function ()   { return 0.3; },
+                    hLineColor: function ()   { return '#888'; },
+                    vLineColor: function ()   { return '#888'; },
                     paddingLeft:   function () { return 3; },
                     paddingRight:  function () { return 3; },
-                    paddingTop:    function () { return 4; },
-                    paddingBottom: function () { return 4; },
+                    paddingTop:    function () { return 2; },
+                    paddingBottom: function () { return 2; },
                 },
             },
         ],
 
         footer: function (currentPage, pageCount) {
             return {
-                margin: [20, 5, 20, 0],
+                margin: [8, 3, 8, 0],
                 columns: [
-                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'left',  fontSize: 10 },
-                    { text: 'Jakarta, ' + generatedAt,                alignment: 'right', fontSize: 10 },
+                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'left',  fontSize: 8 },
+                    { text: 'Jakarta, ' + generatedAt,                alignment: 'right', fontSize: 8 },
                 ],
             };
         },
 
         defaultStyle: {
             font:     'Helvetica',
-            fontSize: 12,
+            fontSize: FS,
         },
     };
 
