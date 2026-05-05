@@ -238,11 +238,23 @@ function buildTableNode(rows, fs) {
 
 // ── footer notes ──────────────────────────────────────────────────────────────
 
-const FOOTER_NOTES = [
-    '• Pesanan panjang ≠ 6 mtr: harga +Rp 50/kg & min. 25 btg.',
-    '• Tebal Non Standard: harga +Rp 100/kg & min. 200 btg.',
-    'KW2  Rp 9.500,-/kg dari berat timbangan',
-];
+const BULLET = '•';
+
+const FOOTER_NOTES = {
+    note1: 'Untuk pesanan panjang lebih atau kurang dari 6 mtr, harga ditambah Rp 50/kg & pesanan min. 25 btg.',
+    note2: 'Untuk tebal Non Standard, harga ditambah Rp 100/kg dan pesanan minimum 200 btg.',
+    note3: 'CNP KW2 Rp 9.500,-/kg dari berat timbangan',
+};
+
+function formatTimestamp(d) {
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const dd   = String(d.getDate()).padStart(2, '0');
+    const mon  = months[d.getMonth()];
+    const yyyy = d.getFullYear();
+    const hh   = String(d.getHours()).padStart(2, '0');
+    const mi   = String(d.getMinutes()).padStart(2, '0');
+    return dd + ' ' + mon + ' ' + yyyy + ' ' + hh + ':' + mi;
+}
 
 // ── pdf definition ────────────────────────────────────────────────────────────
 
@@ -293,16 +305,17 @@ function buildPdf(groups, titleRight, generatedAt) {
 
         footer: function () {
             return {
-                margin: [8, 3, 8, 0],
                 stack: [
-                    { text: FOOTER_NOTES[0], fontSize: 7, italics: true },
-                    { text: FOOTER_NOTES[1], fontSize: 7, italics: true },
                     {
                         columns: [
-                            { text: FOOTER_NOTES[2], fontSize: 7.5 },
-                            { text: generatedAt,     fontSize: 7, italics: true, alignment: 'right' },
+                            { text: BULLET + ' ' + FOOTER_NOTES.note1, fontSize: 7.5, italics: true, width: '*' },
+                            { text: generatedAt, fontSize: 7.5, italics: true, alignment: 'right', width: 'auto' },
                         ],
+                        columnGap: 8,
+                        margin: [8, 3, 8, 0],
                     },
+                    { text: BULLET + ' ' + FOOTER_NOTES.note2, fontSize: 7.5, italics: true, margin: [8, 1, 8, 0] },
+                    { text: BULLET + ' ' + FOOTER_NOTES.note3, fontSize: 8,                  margin: [8, 1, 8, 0] },
                 ],
             };
         },
@@ -320,7 +333,7 @@ function buildPdf(groups, titleRight, generatedAt) {
 
 function makeRender(priceKey, titleRight) {
     return function render({ items, customValues }) {
-        const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY');
+        const generatedAt = formatTimestamp(new Date());
         const groups = buildGroups(items, customValues, priceKey);
         const dd     = buildPdf(groups, titleRight, generatedAt);
 
