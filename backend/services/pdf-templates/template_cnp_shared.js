@@ -164,7 +164,7 @@ function buildTableNode(rows, fs) {
         return { text, italics: true, fontSize: fsSub, color: '#444', alignment: 'center', fillColor: H_FILL };
     }
 
-    const headerRow1 = [h1('UKURAN'),            h1('BAHAN'), h1('B. Tabel'), h1('Harga'), h1('Harga'), h1('B. Asli')];
+    const headerRow1 = [h1('Ukuran'),            h1('Bahan'), h1('B. Tabel'), h1('Harga'), h1('Harga'), h1('B. Asli')];
     const headerRow2 = [h2('(panjang 6 meter)'), h2('(mm)'),  h2('(kg)'),     h2('/kg'),   h2('/btg'),  h2('(kg)')   ];
 
     const body = [headerRow1, headerRow2];
