@@ -125,8 +125,8 @@ function buildGroups(items, customValues, priceKey) {
 
 // ── strict 50/50 split with pagination ───────────────────────────────────────
 
-// ~29 rows per column × 2 = 58 rows per page at fontSize 8
-const ROWS_PER_PAGE = 58;
+// ~23 rows per column × 2 = 46 rows per page (with increased padding)
+const ROWS_PER_PAGE = 46;
 
 function flattenAndPaginate(groups) {
     const allRows = [];
@@ -203,8 +203,9 @@ function buildTableNode(rows, fs) {
             vLineColor: function ()   { return '#888'; },
             paddingLeft:   function () { return 2; },
             paddingRight:  function () { return 2; },
-            paddingTop:    function () { return 1.5; },
-            paddingBottom: function () { return 1.5; },
+            // i=0 header row1, i=1 header row2 → more breathing room
+            paddingTop:    function (i) { return i < 2 ? 4 : 2.5; },
+            paddingBottom: function (i) { return i < 2 ? 4 : 2.5; },
         },
     };
 }
