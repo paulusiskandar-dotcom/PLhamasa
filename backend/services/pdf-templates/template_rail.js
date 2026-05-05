@@ -141,8 +141,8 @@ function render({ items, customValues }) {
             {
                 table: {
                     headerRows: 2,
-                    // 8 kolom, pt eksplisit: A5 landscape (595.28) - margins (8+8) = 579pt
-                    widths: [52, 69, 93, 64, 58, 58, 81, 104],
+                    // 8 kolom: 7 kolom persentase, kolom terakhir '*' auto-fill sisa ruang
+                    widths: ['9%', '12%', '16%', '11%', '10%', '10%', '14%', '*'],
                     body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
