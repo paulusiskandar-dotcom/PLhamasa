@@ -39,7 +39,9 @@ const meta = {
 };
 
 function render({ items, customValues }) {
-    const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY');
+    const _d = moment().tz('Asia/Jakarta');
+    const _months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const generatedAt = 'Jakarta, ' + _d.format('DD') + ' ' + _months[_d.month()] + ' ' + _d.format('YYYY HH:mm');
 
     const rows = items.map(function (item) {
         const cv      = customValues[item.ig_id] || {};
@@ -118,7 +120,7 @@ function render({ items, customValues }) {
                 },
             },
             {
-                text:      'Jakarta, ' + generatedAt,
+                text:      generatedAt,
                 alignment: 'right',
                 fontSize:  11,
                 margin:    [0, 8, 0, 4],
