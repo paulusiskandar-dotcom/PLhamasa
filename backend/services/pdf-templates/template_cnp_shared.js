@@ -125,8 +125,8 @@ function buildGroups(items, customValues, priceKey) {
 
 // ── strict 50/50 split with pagination ───────────────────────────────────────
 
-// ~23 rows per column × 2 = 46 rows per page (with increased padding)
-const ROWS_PER_PAGE = 46;
+// ~40 rows per column × 2 = 80 rows per page
+const ROWS_PER_PAGE = 80;
 
 function flattenAndPaginate(groups) {
     const allRows = [];
@@ -204,8 +204,8 @@ function buildTableNode(rows, fs) {
             paddingLeft:   function () { return 2; },
             paddingRight:  function () { return 2; },
             // i=0 header row1, i=1 header row2
-            paddingTop:    function (i) { return i < 2 ? 2.5 : 1.5; },
-            paddingBottom: function (i) { return i < 2 ? 2.5 : 1.5; },
+            paddingTop:    function (i) { return i < 2 ? 1.5 : 0.8; },
+            paddingBottom: function (i) { return i < 2 ? 1.5 : 0.8; },
         },
     };
 }
@@ -241,7 +241,7 @@ function buildPdf(groups, titleRight, generatedAt) {
         if (pg.rightRows.length > maxPerCol) maxPerCol = pg.rightRows.length;
     });
 
-    const fs = maxPerCol <= 24 ? 9 : (maxPerCol <= 28 ? 8 : 7.5);
+    const fs = maxPerCol <= 22 ? 9 : (maxPerCol <= 30 ? 8 : (maxPerCol <= 38 ? 7.5 : 7));
 
     const content = [];
 
@@ -261,7 +261,7 @@ function buildPdf(groups, titleRight, generatedAt) {
     return {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 22, 8, 38],
+        pageMargins:     [8, 22, 8, 32],
 
         header: function () {
             return {
