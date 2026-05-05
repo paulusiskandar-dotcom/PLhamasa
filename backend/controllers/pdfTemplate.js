@@ -31,13 +31,15 @@ module.exports._getTemplateItems = async function (req, res) {
         if (!catId) catId = await registry.getCatId(req.params.key);
         if (!catId) return response.error(res, 'cat_id_required', null, 400);
 
+        const itemBrand = tpl.meta && tpl.meta.item_brand ? tpl.meta.item_brand : null;
         const items = await dbERP().any(
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item
              WHERE cat_id = $1 AND deleted_at IS NULL AND is_item = true
                AND (i_group IS NULL OR i_group != 'N')
+               AND ($2::text IS NULL OR i_brand = $2)
              ORDER BY i_name ASC`,
-            [catId]
+            [catId, itemBrand]
         );
 
         const igIds = items.map(function (i) { return i.ig_id; });

@@ -11,6 +11,7 @@ const TEMPLATES = {
     inp:          require('./template_inp'),
     unp:          require('./template_unp'),
     sheetpile:    require('./template_sheetpile'),
+    wiremesh:     require('./template_wiremesh'),
 };
 
 let _catCache    = null;
