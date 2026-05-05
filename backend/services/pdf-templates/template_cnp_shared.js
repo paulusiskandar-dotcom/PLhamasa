@@ -102,6 +102,22 @@ function buildGroups(items, customValues, priceKey) {
         return (pa[0] - pb[0]) || (pa[1] - pb[1]);
     });
 
+    // Within each group: thickness ascending, then weight ascending; F always last
+    function getThickness(ukuran) {
+        const parts = String(ukuran).split(/\s*x\s*/);
+        return parseFloat(String(parts[parts.length - 1]).replace(',', '.')) || 0;
+    }
+
+    groupOrder.forEach(function (key) {
+        groupMap[key].sort(function (a, b) {
+            if (a.isF && !b.isF) return 1;
+            if (!a.isF && b.isF) return -1;
+            const dt = getThickness(a.ukuran) - getThickness(b.ukuran);
+            if (dt !== 0) return dt;
+            return a.weight - b.weight;
+        });
+    });
+
     return groupOrder.map(function (key) {
         return { baseSize: key, rows: groupMap[key] };
     });
@@ -178,7 +194,7 @@ function buildTableNode(rows, fs) {
     }
 
     const headerRow = [
-        hc('UKURAN'), hc('BAHAN'), hc('Brt\nTabel'), hc('KG'), hc('BTG'), hc('Brt\nAsli'),
+        hc('UKURAN'), hc('BAHAN'), hc('Berat\nTabel'), hc('KG'), hc('BTG'), hc('Berat\nAsli'),
     ];
 
     const body = [headerRow];
