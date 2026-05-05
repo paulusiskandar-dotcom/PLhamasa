@@ -40,16 +40,29 @@ function extractBaseSize(name) {
 }
 
 function shortenUkuran(name) {
-    // "CNP 100 x 50 x 2.1 mm x 6 m" → "100 x 50 x 2,1"
+    // "CNP 100 x 50 x 2.1 mm x 6 m"   → "100 x 50 x 2,1"
+    // "CNP 100 x 50 x 3.2 mm x 6 m F" → "100 x 50 x 3,2"  (strip trailing F + x N m)
     return name
         .replace(/^CNP\s+/i, '')
-        .replace(/\s*x\s*\d+\s*m\s*$/i, '')
-        .replace(/\s*mm\s*$/i, '')
+        .replace(/[\s\n]+F\s*$/i, '')       // strip trailing " F" or "\nF" before other ops
+        .replace(/\s*x\s*\d+\s*m\s*$/i, '') // strip " x 6 m" (or any length)
+        .replace(/\s*mm\b/gi, '')            // strip all "mm" occurrences
+        .replace(/\./g, ',')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function cleanBahan(raw) {
+    // "1.80 mm" → "1,80"   "3,20" → "3,20"   null → ""
+    if (!raw) return '';
+    return String(raw)
+        .replace(/\s*mm\b/gi, '')
         .replace(/\./g, ',')
         .trim();
 }
 
 function isRowF(bahan) {
+    // Works on raw value (with or without "mm" suffix, dot or comma)
     const v = parseFloat(String(bahan || '').replace(',', '.'));
     return !isNaN(v) && Math.abs(v - 3.20) < 0.01;
 }
@@ -62,12 +75,13 @@ function buildGroups(items, customValues, priceKey) {
 
     for (const item of items) {
         const cv       = customValues[item.ig_id] || {};
-        const rawBahan = cv.bahan || '';
-        const bahan    = rawBahan.replace(/\./g, ',').trim();
+        const rawBahan  = cv.bahan || '';
+        const bahan     = cleanBahan(rawBahan);
         const beratAsli = (cv.berat_asli || '').trim();
-        const f        = isRowF(rawBahan);
-        const baseSize = extractBaseSize(item.name);
-        const ukuran   = shortenUkuran(item.name) + (f ? ' F' : '');
+        const f         = isRowF(rawBahan);
+        const baseSize  = extractBaseSize(item.name);
+        const base      = shortenUkuran(item.name);       // F already stripped from name
+        const ukuran    = f ? base + ' F' : base;         // append F only when detected
 
         const weight = parseFloat(item.weight) || 0;
         const kg     = (item.prices && item.prices[priceKey] && item.prices[priceKey].current) || 0;
