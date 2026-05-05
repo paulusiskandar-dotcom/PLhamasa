@@ -123,62 +123,28 @@ function buildGroups(items, customValues, priceKey) {
     });
 }
 
-// ── group-aware 2-column split ───────────────────────────────────────────────
-
-function splitToTwoCols(groups) {
-    if (!groups.length) return { leftRows: [], rightRows: [] };
-    if (groups.length === 1) {
-        return { leftRows: groups[0].rows.slice(), rightRows: [] };
-    }
-
-    const total  = groups.reduce(function (s, g) { return s + g.rows.length; }, 0);
-    const target = Math.ceil(total / 2);
-    let leftCount = 0;
-    let splitIdx  = 0;
-
-    for (let i = 0; i < groups.length; i++) {
-        const newCount = leftCount + groups[i].rows.length;
-        // Stop BEFORE this group if adding it exceeds target and we already have rows
-        if (newCount > target && leftCount > 0) break;
-        leftCount = newCount;
-        splitIdx  = i + 1;
-    }
-
-    // Guarantee at least 1 group on the right
-    if (splitIdx >= groups.length) splitIdx = groups.length - 1;
-
-    const leftRows  = [];
-    const rightRows = [];
-    for (let i = 0; i < splitIdx; i++) {
-        for (const r of groups[i].rows) leftRows.push(r);
-    }
-    for (let i = splitIdx; i < groups.length; i++) {
-        for (const r of groups[i].rows) rightRows.push(r);
-    }
-
-    return { leftRows, rightRows };
-}
-
-// ── page assignment ───────────────────────────────────────────────────────────
+// ── strict 50/50 split with pagination ───────────────────────────────────────
 
 // ~29 rows per column × 2 = 58 rows per page at fontSize 8
 const ROWS_PER_PAGE = 58;
 
-function assignGroupsToPages(groups) {
-    const pages = [];
-    let currentPage  = [];
-    let currentCount = 0;
-
-    for (const grp of groups) {
-        if (currentCount + grp.rows.length > ROWS_PER_PAGE && currentPage.length > 0) {
-            pages.push(currentPage);
-            currentPage  = [];
-            currentCount = 0;
-        }
-        currentPage.push(grp);
-        currentCount += grp.rows.length;
+function flattenAndPaginate(groups) {
+    const allRows = [];
+    for (const g of groups) {
+        for (const r of g.rows) allRows.push(r);
     }
-    if (currentPage.length > 0) pages.push(currentPage);
+
+    const pages = [];
+    for (let i = 0; i < allRows.length; i += ROWS_PER_PAGE) {
+        const pageRows = allRows.slice(i, i + ROWS_PER_PAGE);
+        const mid = Math.ceil(pageRows.length / 2);
+        pages.push({
+            leftRows:  pageRows.slice(0, mid),
+            rightRows: pageRows.slice(mid),
+        });
+    }
+
+    if (!pages.length) pages.push({ leftRows: [], rightRows: [] });
 
     return pages;
 }
@@ -189,15 +155,19 @@ const H_FILL   = '#E0E7EF';
 const GRAY_ROW = '#E8E8E8';
 
 function buildTableNode(rows, fs) {
-    function hc(text) {
+    const fsSub = Math.max(fs - 1.5, 5.5);
+
+    function h1(text) {
         return { text, bold: true, fontSize: fs, alignment: 'center', fillColor: H_FILL };
     }
+    function h2(text) {
+        return { text, italics: true, fontSize: fsSub, color: '#444', alignment: 'center', fillColor: H_FILL };
+    }
 
-    const headerRow = [
-        hc('UKURAN'), hc('BAHAN'), hc('Berat\nTabel'), hc('KG'), hc('BTG'), hc('Berat\nAsli'),
-    ];
+    const headerRow1 = [h1('UKURAN'),            h1('BAHAN'), h1('B. Tabel'), h1('Harga'), h1('Harga'), h1('B. Asli')];
+    const headerRow2 = [h2('(panjang 6 meter)'), h2('(mm)'),  h2('(kg)'),     h2('/kg'),   h2('/btg'),  h2('(kg)')   ];
 
-    const body = [headerRow];
+    const body = [headerRow1, headerRow2];
 
     for (const r of rows) {
         const fill = r.isF ? GRAY_ROW : null;
@@ -207,24 +177,27 @@ function buildTableNode(rows, fs) {
         }
 
         body.push([
-            dc(r.ukuran,        { alignment: 'left',   bold: r.isF,  fillColor: fill }),
-            dc(r.bahan,         { alignment: 'center', bold: true,   fillColor: fill }),
-            dc(fmtBerat(r.weight), { alignment: 'right',             fillColor: fill }),
-            dc(fmtNum(r.kg),    { alignment: 'right',               fillColor: fill }),
-            dc(fmtNum(r.btg),   { alignment: 'right', bold: r.isF,  fillColor: fill }),
-            dc(r.beratAsli,     { alignment: 'right', bold: true, italics: true, fillColor: GRAY_ROW }),
+            dc(r.ukuran,           { alignment: 'left',   bold: r.isF, fillColor: fill }),
+            dc(r.bahan,            { alignment: 'center', bold: true,  fillColor: fill }),
+            dc(fmtBerat(r.weight), { alignment: 'right',               fillColor: fill }),
+            dc(fmtNum(r.kg),       { alignment: 'right',               fillColor: fill }),
+            dc(fmtNum(r.btg),      { alignment: 'right', bold: r.isF,  fillColor: fill }),
+            dc(r.beratAsli,        { alignment: 'right', bold: true, italics: true, fillColor: GRAY_ROW }),
         ]);
     }
 
     return {
         table: {
-            headerRows: 1,
-            // Widths within one half of the 2-column layout (~285pt per side)
+            headerRows: 2,
             widths: ['*', 34, 36, 32, 42, 36],
             body,
         },
         layout: {
-            hLineWidth: function (i) { return i <= 1 ? 0.5 : 0.25; },
+            hLineWidth: function (i) {
+                if (i === 0 || i === 2) return 0.5;  // top border + after header block
+                if (i === 1) return 0.15;             // between header row 1 and 2
+                return 0.25;
+            },
             vLineWidth: function ()   { return 0.25; },
             hLineColor: function ()   { return '#555'; },
             vLineColor: function ()   { return '#888'; },
@@ -259,13 +232,12 @@ function formatTimestamp(d) {
 // ── pdf definition ────────────────────────────────────────────────────────────
 
 function buildPdf(groups, titleRight, generatedAt) {
-    const pages = assignGroupsToPages(groups);
+    const pages = flattenAndPaginate(groups);
 
     let maxPerCol = 0;
     pages.forEach(function (pg) {
-        const { leftRows, rightRows } = splitToTwoCols(pg);
-        if (leftRows.length  > maxPerCol) maxPerCol = leftRows.length;
-        if (rightRows.length > maxPerCol) maxPerCol = rightRows.length;
+        if (pg.leftRows.length  > maxPerCol) maxPerCol = pg.leftRows.length;
+        if (pg.rightRows.length > maxPerCol) maxPerCol = pg.rightRows.length;
     });
 
     const fs = maxPerCol <= 24 ? 9 : (maxPerCol <= 28 ? 8 : 7.5);
@@ -273,13 +245,11 @@ function buildPdf(groups, titleRight, generatedAt) {
     const content = [];
 
     pages.forEach(function (pg, idx) {
-        const { leftRows, rightRows } = splitToTwoCols(pg);
-
         const block = {
             columns: [
-                { width: '*', stack: [buildTableNode(leftRows,  fs)] },
+                { width: '*', stack: [buildTableNode(pg.leftRows,  fs)] },
                 { width: 8,   text: '' },
-                { width: '*', stack: [buildTableNode(rightRows, fs)] },
+                { width: '*', stack: [buildTableNode(pg.rightRows, fs)] },
             ],
         };
 
@@ -290,12 +260,11 @@ function buildPdf(groups, titleRight, generatedAt) {
     return {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        // top: 28 for header, bottom: 38 for 3-line footer
-        pageMargins:     [8, 28, 8, 38],
+        pageMargins:     [8, 22, 8, 38],
 
         header: function () {
             return {
-                margin: [8, 7, 8, 0],
+                margin: [8, 5, 8, 0],
                 columns: [
                     { text: 'CNP',      bold: true, fontSize: 11, alignment: 'left'  },
                     { text: titleRight, bold: true, fontSize: 11, alignment: 'right' },

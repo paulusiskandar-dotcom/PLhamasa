@@ -11,6 +11,6 @@ const meta = {
     ],
 };
 
-const render = makeRender('kredit_gudang', 'KREDIT GUDANG');
+const render = makeRender('kredit_gudang', 'KREDIT');
 
 module.exports = { meta, render };
