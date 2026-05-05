@@ -203,9 +203,9 @@ function buildTableNode(rows, fs) {
             vLineColor: function ()   { return '#888'; },
             paddingLeft:   function () { return 2; },
             paddingRight:  function () { return 2; },
-            // i=0 header row1, i=1 header row2 → more breathing room
-            paddingTop:    function (i) { return i < 2 ? 4 : 2.5; },
-            paddingBottom: function (i) { return i < 2 ? 4 : 2.5; },
+            // i=0 header row1, i=1 header row2
+            paddingTop:    function (i) { return i < 2 ? 2.5 : 1.5; },
+            paddingBottom: function (i) { return i < 2 ? 2.5 : 1.5; },
         },
     };
 }
