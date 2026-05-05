@@ -29,11 +29,11 @@ function fmtHarga(n) {
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
-// Panjang: tampil tanpa desimal kalau bulat ("6,00" → "6")
-function fmtPanjang(v) {
+// Berat/panjang: integer tanpa desimal, desimal pakai koma Indonesian
+function fmtBeratVal(v) {
     if (!v && v !== 0) return '-';
     const n = parseFloat(String(v).replace(',', '.'));
-    if (isNaN(n)) return String(v);
+    if (isNaN(n) || n === 0) return '-';
     return n % 1 === 0 ? String(Math.round(n)) : String(n).replace('.', ',');
 }
 
@@ -77,9 +77,9 @@ function render({ items, customValues }) {
                 { text: dash(cv.tinggi),           alignment: 'center', fontSize: 11 },
                 { text: dash(cv.lebar_atas),        alignment: 'center', fontSize: 11 },
                 { text: dash(cv.lebar_bawah),       alignment: 'center', fontSize: 11 },
-                { text: fmtPanjang(cv.panjang_mtr), alignment: 'center', fontSize: 11 },
-                { text: dash(cv.berat_mtr),         alignment: 'center', fontSize: 11 },
-                { text: dash(cv.berat_pcs),         alignment: 'center', fontSize: 11 },
+                { text: fmtBeratVal(cv.panjang_mtr), alignment: 'center', fontSize: 11 },
+                { text: fmtBeratVal(cv.berat_mtr), alignment: 'center', fontSize: 11 },
+                { text: fmtBeratVal(cv.berat_pcs), alignment: 'center', fontSize: 11 },
                 { text: fmtHarga(cashKg),           alignment: 'right',  fontSize: 11 },
                 { text: fmtHarga(hargaBtgNum),      alignment: 'right',  fontSize: 11 },
             ],
@@ -94,22 +94,35 @@ function render({ items, customValues }) {
 
     const hFill = '#E8ECF0';
 
+    function hStack(lines, rowSpan, colSpan) {
+        const cell = {
+            fillColor: hFill,
+            alignment: 'center',
+            stack: lines.map(function (l, i) {
+                return { text: l, bold: i === 0, fontSize: i === 0 ? 11 : 9 };
+            }),
+        };
+        if (rowSpan) cell.rowSpan = rowSpan;
+        if (colSpan) cell.colSpan = colSpan;
+        return cell;
+    }
+
     const headerRow1 = [
-        { text: 'UKURAN', colSpan: 4, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {}, {}, {},
-        { text: 'BERAT',  colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
-        { text: 'HARGA\nPER KG\n(Rp)',  rowSpan: 2, alignment: 'center', bold: true, fontSize: 11, fillColor: hFill },
-        { text: 'HARGA\nPER BTG\n(Rp)', rowSpan: 2, alignment: 'center', bold: true, fontSize: 11, fillColor: hFill },
+        hStack(['UKURAN'], null, 4),                 {}, {}, {},
+        hStack(['BERAT'],  null, 2),                 {},
+        hStack(['HARGA', '/KG',  '(Rp)'], 2, null),
+        hStack(['HARGA', '/BTG', '(Rp)'], 2, null),
     ];
 
     const headerRow2 = [
-        { text: 'TINGGI\n(mm)',      alignment: 'center', bold: true, fontSize: 10, fillColor: hFill },
-        { text: 'LEBAR\nATAS (mm)',  alignment: 'center', bold: true, fontSize: 10, fillColor: hFill },
-        { text: 'LEBAR\nBAWAH (mm)',alignment: 'center', bold: true, fontSize: 10, fillColor: hFill },
-        { text: 'PANJANG\n(MTR)',    alignment: 'center', bold: true, fontSize: 10, fillColor: hFill },
-        { text: '/ MTR\n(kg)',       alignment: 'center', bold: true, fontSize: 10, fillColor: hFill },
-        { text: '/ PCS\n(kg)',       alignment: 'center', bold: true, fontSize: 10, fillColor: hFill },
-        {}, // rowSpan placeholder dari row 1
-        {}, // rowSpan placeholder dari row 1
+        hStack(['TINGGI',             '(mm)']),
+        hStack(['LEBAR ATAS',    '(mm)']),   // non-breaking space → no wrap
+        hStack(['LEBAR BAWAH',   '(mm)']),   // non-breaking space → no wrap
+        hStack(['PANJANG',            '(m)']),
+        hStack(['/Meter',             '(kg)']),
+        hStack(['/Pcs',               '(kg)']),
+        {}, // rowSpan placeholder
+        {}, // rowSpan placeholder
     ];
 
     const dd = {
@@ -128,8 +141,8 @@ function render({ items, customValues }) {
             {
                 table: {
                     headerRows: 2,
-                    // 8 kolom, total 100%: 9+12+16+11+10+10+14+18
-                    widths: ['9%', '12%', '16%', '11%', '10%', '10%', '14%', '18%'],
+                    // 8 kolom, pt eksplisit: A5 landscape (595.28) - margins (8+8) = 579pt
+                    widths: [52, 69, 93, 64, 58, 58, 81, 104],
                     body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
