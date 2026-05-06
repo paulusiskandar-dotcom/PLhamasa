@@ -1449,35 +1449,10 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .filter-row-1 {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  gap: 14px;
+  align-items: flex-end;
   flex-wrap: wrap;
 }
-
-.filter-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 160px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 7px 12px;
-  background: #fff;
-}
-.filter-search i { color: var(--text-muted); flex-shrink: 0; }
-.filter-search input {
-  border: none;
-  outline: none;
-  background: transparent;
-  font-size: 13px;
-  color: var(--text);
-  flex: 1;
-  width: 100%;
-}
-
-.filter-selects { display: flex; gap: 8px; flex-wrap: wrap; }
-.filter-selects .form-control { min-width: 130px; }
 
 /* Quick filter pills */
 .quick-filter { margin-top: 2px; }
@@ -1575,18 +1550,24 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .pl-action-row {
   display: flex;
-  gap: 5px;
+  gap: 6px;
+  justify-content: flex-end;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 
-.btn-edit-flex { flex: 1; justify-content: center; }
+.pl-action-row .btn-primary,
+.pl-action-row .btn-ghost {
+  padding: 6px 14px;
+  font-size: 12px;
+  flex: none;
+}
 
 .btn-editing-placeholder {
-  flex: 1;
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 6px 14px;
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;

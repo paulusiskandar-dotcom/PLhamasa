@@ -29,9 +29,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         localStorage.setItem('plm.sidebarHidden', $scope.sidebarHidden);
     };
 
-    $scope.filter              = { status: '', sortBy: 'default' };
-    $scope.searchQuery         = '';
-    $scope.activeCategoryFilter = null;
+    $scope.filter              = { catId: '', status: '', sortBy: 'default' };
     $scope.expandedPublished   = {};
     $scope.lists               = [];
     $scope.groupedLists        = [];
@@ -159,22 +157,11 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     }
 
     $scope.applyFilterSort = function () {
-        var data      = ($scope.lists || []).slice();
-        var f         = $scope.filter;
-        var q         = ($scope.searchQuery || '').toLowerCase().trim();
-        var catFilter = $scope.activeCategoryFilter;
+        var data = ($scope.lists || []).slice();
+        var f    = $scope.filter;
 
-        if (q) {
-            data = data.filter(function (pl) {
-                return String(pl.revision_no || '').indexOf(q) >= 0;
-            });
-        }
-        if (f.status) {
-            data = data.filter(function (pl) { return pl.status === f.status; });
-        }
-        if (catFilter) {
-            data = data.filter(function (pl) { return pl.cat_id === catFilter; });
-        }
+        if (f.catId)  data = data.filter(function (pl) { return String(pl.cat_id) === String(f.catId); });
+        if (f.status) data = data.filter(function (pl) { return pl.status === f.status; });
 
         $scope.groupedLists = sortGroups(buildGroups(data), f.sortBy);
         computeStats();
@@ -195,7 +182,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     };
 
     $scope.togglePill = function (catId) {
-        $scope.activeCategoryFilter = ($scope.activeCategoryFilter === catId) ? null : catId;
+        $scope.filter.catId = ($scope.filter.catId === catId) ? '' : catId;
         $scope.applyFilterSort();
     };
 
