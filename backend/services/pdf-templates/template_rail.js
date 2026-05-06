@@ -89,12 +89,12 @@ function render({ items, customValues }) {
         return Object.assign({ text: text, fillColor: hFill, alignment: 'center' }, extra || {});
     }
 
-    // ROW 1: group — HARGA cols span all 3 header rows
+    // ROW 1: group — HARGA cols span row 1 + row 2
     const headerRow1 = [
         h('UKURAN',     { colSpan: 4, bold: true, fontSize: 12 }), {}, {}, {},
         h('BERAT',      { colSpan: 2, bold: true, fontSize: 12 }), {},
-        h('HARGA /KG',  { rowSpan: 3, bold: true, fontSize: 12, margin: [0, 10, 0, 0] }),
-        h('HARGA /BTG', { rowSpan: 3, bold: true, fontSize: 12, margin: [0, 10, 0, 0] }),
+        h('HARGA /KG',  { rowSpan: 2, bold: true, fontSize: 12, margin: [0, 6, 0, 0] }),
+        h('HARGA /BTG', { rowSpan: 2, bold: true, fontSize: 12, margin: [0, 6, 0, 0] }),
     ];
 
     // ROW 2: sub labels
@@ -116,7 +116,8 @@ function render({ items, customValues }) {
         h('(m)',  { fontSize: 10 }),
         h('(kg)', { fontSize: 10 }),
         h('(kg)', { fontSize: 10 }),
-        {}, {},  // rowSpan placeholders
+        h('(Rp)', { fontSize: 10 }),
+        h('(Rp)', { fontSize: 10 }),
     ];
 
     const dd = {
