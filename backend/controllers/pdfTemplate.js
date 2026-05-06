@@ -170,7 +170,7 @@ module.exports._render = async function (req, res) {
         const filename = slug + '_' + moment().tz('Asia/Jakarta').format('YYYYMMDD_HHmmss') + '.pdf';
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+        res.setHeader('Content-Disposition', 'inline; filename="' + filename + '"');
         res.send(buffer);
     } catch (err) {
         return response.error(res, null, err);
