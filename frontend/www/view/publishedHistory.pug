@@ -1,0 +1,52 @@
+extends master
+
+block content
+  div.plm-wrapper(ng-class="{'sidebar-hidden': sidebarHidden}" ng-controller="publishedHistoryController")
+
+    //- Sidebar
+    nav.sidebar
+      div.sidebar-brand
+        span.brand-icon ⬡
+        span Price List Manager
+      ul.sidebar-nav
+        li
+          a(href="/price-list")
+            i.bi.bi-table
+            span  Price List
+        li.active
+          a(href="/published-history")
+            i.bi.bi-clock-history
+            span  Published History
+        li
+          a(href="/settings")
+            i.bi.bi-gear
+            span  Settings
+
+      div.sidebar-user
+        div.user-info
+          i.bi.bi-person-circle.user-avatar
+          div.user-meta
+            div.user-name {{ currentUser.full_name || currentUser.username }}
+            span.role-badge(ng-class="'role-' + currentUser.role") {{ currentUser.role | uppercase }}
+        div.user-actions
+          button.user-action-btn(ng-click="openChangePassword()")
+            i.bi.bi-key
+            |  Ubah Password
+          a.user-action-btn(href="/logout")
+            i.bi.bi-box-arrow-right
+            |  Logout
+
+    //- Main
+    main.main-content
+
+      button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
+        i.bi.bi-list
+
+      div.page-header
+        div
+          h2.page-title Published History
+          p.page-sub Riwayat pricelist yang sudah dipublish
+
+      div.empty-state
+        i.bi.bi-clock-history
+        p Halaman ini sedang dikembangkan

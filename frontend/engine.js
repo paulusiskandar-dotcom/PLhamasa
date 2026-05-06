@@ -29,10 +29,11 @@ app.use(function (req, res, next) {
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.get("/",            require("./router/login"));
 app.get("/login",       require("./router/login"));
-app.get("/price-list",  require("./middleware/auth"), require("./router/priceList"));
-app.get("/edit/:id",    require("./middleware/auth"), require("./router/edit"));
-app.get("/view/:id",    require("./middleware/auth"), require("./router/view"));
-app.get("/settings",    require("./middleware/auth"), require("./router/settings"));
+app.get("/price-list",        require("./middleware/auth"), require("./router/priceList"));
+app.get("/published-history", require("./middleware/auth"), require("./router/publishedHistory"));
+app.get("/edit/:id",          require("./middleware/auth"), require("./router/edit"));
+app.get("/view/:id",          require("./middleware/auth"), require("./router/view"));
+app.get("/settings",          require("./middleware/auth"), require("./router/settings"));
 app.get("/logout",      require("./router/logout"));
 
 // ─── 404 ──────────────────────────────────────────────────────────────────────

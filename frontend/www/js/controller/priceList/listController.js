@@ -1,31 +1,79 @@
 plmApp.controller('priceListListController', function ($scope, $timeout, priceListService, $masterService, pdfTemplateService) {
 
+    var CATEGORY_DISPLAY_NAMES = {
+        'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP':    'Beton Polos',
+        'BU':   'Beton Ulir',  'CN':   'CNP',          'HRC':   'Coil Hitam',
+        'CRC':  'Coil Putih',  'HBEAM':'H-Beam',       'INP':   'INP',
+        'WF':   'IWF',         'PB':   'Plat Bordest', 'HR':    'Plat Hitam',
+        'HRK':  'Plat Kapal',  'CR':   'Plat Putih',   'STLK':  'Plat Strip',
+        'SP':   'Sheetpile',   'SK':   'Siku',          'SB':    'Square Bar',
+        'UNP':  'UNP',         'WM':   'Wire Mesh',
+    };
+
+    var PILL_DEFS = [
+        { catId: 'RBHM',  name: 'AS Hitam' },    { catId: 'RBPM',  name: 'AS Putih' },
+        { catId: 'BP',    name: 'Beton Polos' },  { catId: 'BU',    name: 'Beton Ulir' },
+        { catId: 'CN',    name: 'CNP' },           { catId: 'HRC',   name: 'Coil Hitam' },
+        { catId: 'CRC',   name: 'Coil Putih' },   { catId: 'HBEAM', name: 'H-Beam' },
+        { catId: 'INP',   name: 'INP' },           { catId: 'WF',    name: 'IWF' },
+        { catId: 'PB',    name: 'Plat Bordest' },  { catId: 'HR',    name: 'Plat Hitam' },
+        { catId: 'HRK',   name: 'Plat Kapal' },   { catId: 'CR',    name: 'Plat Putih' },
+        { catId: 'STLK',  name: 'Plat Strip' },   { catId: 'SP',    name: 'Sheetpile' },
+        { catId: 'SK',    name: 'Siku' },           { catId: 'SB',    name: 'Square Bar' },
+        { catId: 'UNP',   name: 'UNP' },           { catId: 'WM',    name: 'Wire Mesh' },
+    ];
+
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
     $scope.toggleSidebar = function () {
         $scope.sidebarHidden = !$scope.sidebarHidden;
         localStorage.setItem('plm.sidebarHidden', $scope.sidebarHidden);
     };
 
-    $scope.filter = { catId: '', status: '', sortBy: 'default' };
-    $scope.lists = [];
-    $scope.groupedLists = [];
-    $scope.categories = [];
+    $scope.filter              = { status: '', sortBy: 'default' };
+    $scope.searchQuery         = '';
+    $scope.activeCategoryFilter = null;
+    $scope.expandedPublished   = {};
+    $scope.lists               = [];
+    $scope.groupedLists        = [];
+    $scope.categories          = [];
     $scope.categoriesAvailable = [];
-    $scope.loading = false;
-    $scope.toast = { show: false, message: '', type: 'info' };
-    $scope.modalStart = null;
-    $scope.modalDetail = null;
-    $scope.modalLog = null;
+    $scope.categoryPills       = PILL_DEFS.map(function (p) { return { catId: p.catId, name: p.name, hasData: false }; });
+    $scope.aktiveCategoryCount = 0;
+    $scope.notCreatedCount     = 0;
+    $scope.loading             = false;
+    $scope.toast               = { show: false, message: '', type: 'info' };
+    $scope.modalStart          = null;
+    $scope.modalDetail         = null;
+    $scope.modalLog            = null;
+    $scope.pdfTemplateOptions  = [];
+    $scope.modalPdfTemplate    = null;
 
     function showToast(msg, type) {
         $scope.toast = { show: true, message: msg, type: type || 'info' };
         $timeout(function () { $scope.toast.show = false; }, 3000);
     }
 
+    function editedAgoStr(pl) {
+        if (!pl.last_log_at) return 'belum diedit';
+        var diffMs  = Date.now() - new Date(pl.last_log_at).getTime();
+        var diffMin = Math.floor(diffMs / 60000);
+        var diffHr  = Math.floor(diffMs / 3600000);
+        var diffDay = Math.floor(diffMs / 86400000);
+        if (diffMin < 1)   return 'diedit baru saja';
+        if (diffMin < 60)  return 'diedit ' + diffMin + ' menit lalu';
+        if (diffHr  < 24)  return 'diedit ' + diffHr  + ' jam lalu';
+        return 'diedit ' + diffDay + ' hari lalu';
+    }
+
+    function getDisplayName(catId, fallback) {
+        return CATEGORY_DISPLAY_NAMES[catId] || fallback || catId;
+    }
+
     function loadCategories() {
         $masterService.getCategories().then(function (res) {
             $scope.categories = res.result || [];
             updateCategoriesAvailable();
+            computeStats();
         }).catch(function () {
             showToast('Gagal memuat daftar kategori', 'danger');
         });
@@ -41,72 +89,104 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         });
     }
 
-    function groupByCategory(lists) {
-        var groups = {};
-        (lists || []).forEach(function (pl) {
-            var key = pl.cat_id;
-            if (!groups[key]) {
-                groups[key] = {
-                    cat_id: pl.cat_id,
-                    cat_name: pl.cat_name,
-                    records: [],
-                    has_open: false
-                };
-            }
-            groups[key].records.push(pl);
-            if (pl.status === 'OPEN') groups[key].has_open = true;
-        });
-        Object.keys(groups).forEach(function (k) {
-            groups[k].records.sort(function (a, b) {
-                if (a.status !== b.status) return a.status === 'OPEN' ? -1 : 1;
-                return b.revision_no - a.revision_no;
-            });
-        });
-        var arr = Object.keys(groups).map(function (k) { return groups[k]; });
-        arr.sort(function (a, b) { return a.cat_name.localeCompare(b.cat_name); });
-        return arr;
+    function updatePillsState() {
+        var catIdsWithData = {};
+        ($scope.lists || []).forEach(function (pl) { catIdsWithData[pl.cat_id] = true; });
+        $scope.categoryPills.forEach(function (p) { p.hasData = !!catIdsWithData[p.catId]; });
     }
 
-    function wrapAsSingleGroup(records) {
-        if (!records.length) return [];
-        return [{ cat_id: null, cat_name: 'Semua', records: records, has_open: false, flat: true }];
+    function computeStats() {
+        var uniqueCatIds = {};
+        ($scope.lists || []).forEach(function (pl) { uniqueCatIds[pl.cat_id] = 1; });
+        var activeCats = Object.keys(uniqueCatIds).length;
+        $scope.aktiveCategoryCount = activeCats;
+        $scope.notCreatedCount = Math.max(0, ($scope.categories || []).length - activeCats);
+    }
+
+    function buildGroups(lists) {
+        var groupMap   = {};
+        var groupOrder = [];
+
+        (lists || []).forEach(function (pl) {
+            var key = pl.cat_id;
+            if (!groupMap[key]) {
+                groupMap[key] = {
+                    cat_id: key,
+                    cat_name: getDisplayName(key, pl.cat_name),
+                    open: null,
+                    publishedLatest: null,
+                };
+                groupOrder.push(key);
+            }
+            if (pl.status === 'OPEN') {
+                pl.editedAgoStr = editedAgoStr(pl);
+                groupMap[key].open = pl;
+            } else if (pl.status === 'PUBLISHED') {
+                var cur = groupMap[key].publishedLatest;
+                if (!cur || new Date(pl.posted_at) > new Date(cur.posted_at)) {
+                    groupMap[key].publishedLatest = pl;
+                }
+            }
+        });
+
+        return groupOrder
+            .map(function (k) { return groupMap[k]; })
+            .filter(function (g) { return g.open || g.publishedLatest; });
+    }
+
+    function sortGroups(groups, sortBy) {
+        var sorted = groups.slice();
+        switch (sortBy) {
+            case 'created_desc':
+                sorted.sort(function (a, b) {
+                    var da = a.open ? new Date(a.open.created_at) : new Date(0);
+                    var db = b.open ? new Date(b.open.created_at) : new Date(0);
+                    return db - da;
+                });
+                break;
+            case 'cat_name':
+                sorted.sort(function (a, b) { return a.cat_name.localeCompare(b.cat_name); });
+                break;
+            default:
+                sorted.sort(function (a, b) {
+                    var da = a.open ? new Date(a.open.last_log_at || a.open.created_at) : new Date(0);
+                    var db = b.open ? new Date(b.open.last_log_at || b.open.created_at) : new Date(0);
+                    return db - da;
+                });
+                break;
+        }
+        return sorted;
     }
 
     $scope.applyFilterSort = function () {
-        var f = $scope.filter;
-        var data = ($scope.lists || []).slice();
+        var data      = ($scope.lists || []).slice();
+        var f         = $scope.filter;
+        var q         = ($scope.searchQuery || '').toLowerCase().trim();
+        var catFilter = $scope.activeCategoryFilter;
 
-        if (f.catId)   data = data.filter(function (pl) { return String(pl.cat_id) === String(f.catId); });
-        if (f.status)  data = data.filter(function (pl) { return pl.status === f.status; });
-
-        switch (f.sortBy) {
-            case 'created_desc':
-                data.sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
-                $scope.groupedLists = wrapAsSingleGroup(data);
-                break;
-            case 'updated_desc':
-                data.sort(function (a, b) {
-                    return new Date(b.last_log_at || b.created_at) - new Date(a.last_log_at || a.created_at);
-                });
-                $scope.groupedLists = wrapAsSingleGroup(data);
-                break;
-            case 'cat_name':
-                data.sort(function (a, b) { return a.cat_name.localeCompare(b.cat_name); });
-                $scope.groupedLists = wrapAsSingleGroup(data);
-                break;
-            default:
-                $scope.groupedLists = groupByCategory(data);
-                break;
+        if (q) {
+            data = data.filter(function (pl) {
+                return String(pl.revision_no || '').indexOf(q) >= 0;
+            });
+        }
+        if (f.status) {
+            data = data.filter(function (pl) { return pl.status === f.status; });
+        }
+        if (catFilter) {
+            data = data.filter(function (pl) { return pl.cat_id === catFilter; });
         }
 
+        $scope.groupedLists = sortGroups(buildGroups(data), f.sortBy);
+        computeStats();
         updateCategoriesAvailable();
     };
 
     $scope.loadList = function () {
         $scope.loading = true;
         priceListService.list(null).then(function (res) {
-            $scope.lists = res.result || [];
+            $scope.lists   = res.result || [];
             $scope.loading = false;
+            updatePillsState();
             $scope.applyFilterSort();
         }).catch(function () {
             $scope.loading = false;
@@ -114,12 +194,21 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         });
     };
 
+    $scope.togglePill = function (catId) {
+        $scope.activeCategoryFilter = ($scope.activeCategoryFilter === catId) ? null : catId;
+        $scope.applyFilterSort();
+    };
+
+    $scope.togglePublished = function (catId) {
+        $scope.expandedPublished[catId] = !$scope.expandedPublished[catId];
+    };
+
     $scope.showStartModal  = function () { $scope.modalStart = { catId: '' }; };
     $scope.closeStartModal = function () { $scope.modalStart = null; };
 
     $scope.startNew = function (catId, catName) {
         $scope.loading = true;
-        priceListService.start(catId).then(function (res) {
+        priceListService.start(catId).then(function () {
             showToast('Price List baru dibuat untuk ' + catName, 'success');
             $scope.modalStart = null;
             $scope.loadList();
@@ -152,11 +241,11 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
 
     $scope.showLog = function (pl) {
         $scope.modalLog = {
-            cat_name: pl.cat_name,
+            cat_name:    pl.cat_name,
             revision_no: pl.revision_no,
-            pl_id: pl.id,
-            entries: [],
-            loading: true,
+            pl_id:       pl.id,
+            entries:     [],
+            loading:     true,
         };
         priceListService.getLog(pl.id, 50, 0).then(function (res) {
             $scope.modalLog.entries = res.result || [];
@@ -167,12 +256,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         });
     };
 
-    $scope.closeLog = function () {
-        $scope.modalLog = null;
-    };
-
-    $scope.pdfTemplateOptions = [];
-    $scope.modalPdfTemplate   = null;
+    $scope.closeLog = function () { $scope.modalLog = null; };
 
     $scope.closePdfTemplateModal = function () { $scope.modalPdfTemplate = null; };
 

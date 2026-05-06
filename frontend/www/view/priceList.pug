@@ -14,6 +14,10 @@ block content
             i.bi.bi-table
             span  Price List
         li
+          a(href="/published-history")
+            i.bi.bi-clock-history
+            span  Published History
+        li
           a(href="/settings")
             i.bi.bi-gear
             span  Settings
@@ -38,37 +42,46 @@ block content
       button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
         i.bi.bi-list
 
-      div.page-header
-        div
+      //- Header
+      div.pl-page-header
+        div.pl-page-header-left
           h2.page-title Price List
-          p.page-sub Riwayat semua price list per kategori
+          p.page-sub {{ aktiveCategoryCount }} kategori aktif · {{ notCreatedCount }} kategori belum dibuat
+        button.btn-create-new(ng-click="showStartModal()")
+          i.bi.bi-plus
+          |  Buat baru
 
       //- Filter
       div.filter-bar
-        div.filter-group
-          label Kategori
-          select.form-control(ng-model="filter.catId" ng-change="applyFilterSort()" ng-options="c.id as c.name for c in categories")
-            option(value="") Semua Kategori
-        div.filter-group
-          label Status
-          select.form-control(ng-model="filter.status" ng-change="applyFilterSort()")
-            option(value="") Semua Status
-            option(value="OPEN") OPEN (sedang draft)
-            option(value="PUBLISHED") PUBLISHED (arsip)
-        div.filter-group
-          label Sort By
-          select.form-control(ng-model="filter.sortBy" ng-change="applyFilterSort()")
-            option(value="default") Status & Kategori (default)
-            option(value="created_desc") Terbaru Dibuat
-            option(value="updated_desc") Terbaru Diedit
-            option(value="cat_name") Kategori A-Z
+        div.filter-row-1
+          div.filter-search
+            i.bi.bi-search
+            input(type="text" ng-model="searchQuery" ng-change="applyFilterSort()" placeholder="Cari nomor pricelist...")
+          div.filter-selects
+            select.form-control(ng-model="filter.status" ng-change="applyFilterSort()")
+              option(value="") Semua Status
+              option(value="OPEN") Open
+              option(value="PUBLISHED") Published
+            select.form-control(ng-model="filter.sortBy" ng-change="applyFilterSort()")
+              option(value="default") Terbaru Diedit
+              option(value="created_desc") Terbaru Dibuat
+              option(value="cat_name") Kategori A-Z
+        div.quick-filter
+          div.quick-filter-label Quick filter
+          div.quick-filter-grid
+            button.pill(
+              ng-repeat="pill in categoryPills track by pill.catId"
+              ng-class="{'pill-active': activeCategoryFilter === pill.catId, 'pill-inactive': activeCategoryFilter !== pill.catId && pill.hasData, 'pill-disabled': !pill.hasData}"
+              ng-click="togglePill(pill.catId)"
+              ng-disabled="!pill.hasData"
+            ) {{ pill.name }}
 
       //- Loading
       div.loading-state(ng-if="loading")
         i.bi.bi-arrow-repeat.spin
         span  Memuat...
 
-      //- Empty state global
+      //- Empty state
       div.empty-state(ng-if="!loading && groupedLists.length === 0")
         i.bi.bi-clipboard
         p Belum ada Price List
@@ -76,47 +89,67 @@ block content
           i.bi.bi-plus
           |  Mulai Price List Baru
 
-      //- Grouped by category
-      div.category-group(ng-repeat="group in groupedLists")
-        div.category-header(ng-if="!group.flat")
-          h3 {{ group.cat_name }}
-          button.btn-secondary.btn-sm(ng-if="!group.has_open" ng-click="startNew(group.cat_id, group.cat_name)")
-            i.bi.bi-plus
-            |  Mulai Baru
+      //- Category grid
+      div.category-grid(ng-if="!loading && groupedLists.length > 0")
+        div.pl-card-v2(ng-repeat="group in groupedLists track by group.cat_id")
 
-        div.pl-card(ng-repeat="pl in group.records" ng-class="'pl-' + pl.status.toLowerCase()")
-          div.pl-header
-            span.pl-revision \#{{ pl.revision_no | padNumber:3 }}
-            span.pl-category(ng-if="group.flat") {{ pl.cat_name }}
-            span.pl-status(ng-class="'status-' + pl.status.toLowerCase()") {{ pl.status }}
-            span.pl-timestamp {{ pl.created_at | dateFormat }}
-            span.lock-badge.lock-mine(ng-if="pl.locked_status === 'mine'")  🟢 Sedang Anda edit
-            span.lock-badge.lock-other(ng-if="pl.locked_status === 'other_active'")  🟡 Diedit {{ pl.locked_by_name }}
-            span.lock-badge.lock-stale(ng-if="pl.locked_status === 'other_idle'")  🟠 Idle ({{ pl.locked_by_name }})
+          div.pl-card-header {{ group.cat_name }}
 
-          div.pl-body
-            span(ng-if="pl.status === 'OPEN'")
-              | {{ pl.item_count }} items
-              span(ng-if="pl.last_log_at")  · edit terakhir {{ pl.last_log_at | timeAgo }}
-            span(ng-if="pl.status === 'PUBLISHED'")
-              | Posted oleh {{ pl.posted_by_name }} · {{ pl.posted_at | dateFormat }} · {{ pl.item_count }} items
+          //- OPEN section
+          div(ng-if="group.open")
+            div.pl-revision-line
+              span.pl-revision \#{{ group.open.revision_no | padNumber:3 }}
+              span.pl-status-open OPEN
+              span.pl-timestamp {{ group.open.created_at | dateFormat }}
+              span.lock-badge.lock-mine(ng-if="group.open.locked_status === 'mine'")  🟢 Anda
+              span.lock-badge.lock-other(ng-if="group.open.locked_status === 'other_active'")  🟡 {{ group.open.locked_by_name }}
+              span.lock-badge.lock-stale(ng-if="group.open.locked_status === 'other_idle'")  🟠 Idle
+            div.pl-meta
+              | {{ group.open.item_count }} items
+              span(ng-if="group.open.editedAgoStr")  · {{ group.open.editedAgoStr }}
+            div.pl-action-row
+              button.btn-primary.btn-sm.btn-edit-flex(
+                ng-if="group.open.locked_status !== 'other_active'"
+                ng-click="continueEdit(group.open)"
+              )
+                i.bi.bi-pencil
+                |  Edit
+              span.btn-editing-placeholder(ng-if="group.open.locked_status === 'other_active'") Sedang diedit
+              button.btn-ghost.btn-sm(ng-click="showLog(group.open)" title="Log")
+                i.bi.bi-clock-history
+              button.btn-ghost.btn-sm(ng-click="exportPdf(group.open)" title="PDF")
+                i.bi.bi-file-pdf
+              button.btn-ghost.btn-sm(ng-click="exportExcel(group.open)" title="Excel")
+                i.bi.bi-file-earmark-excel
 
-          div.pl-actions
-            button.btn-primary.btn-sm(ng-if="pl.status === 'OPEN' && pl.locked_status !== 'other_active'" ng-click="continueEdit(pl)")
-              i.bi.bi-pencil
-              |  {{ pl.locked_status === 'other_idle' ? 'Take Over & Edit' : 'Continue Edit' }}
-            a.btn-secondary.btn-sm(ng-if="pl.status === 'PUBLISHED'" href="/view/{{ pl.id }}")
-              i.bi.bi-eye
-              |  Lihat Detail
-            button.btn-ghost.btn-sm(ng-click="showLog(pl)")
-              i.bi.bi-clock-history
-              |  Log
-            button.btn-ghost.btn-sm(ng-click="exportPdf(pl)")
-              i.bi.bi-file-pdf
-              |  PDF
-            button.btn-ghost.btn-sm(ng-click="exportExcel(pl)")
-              i.bi.bi-file-earmark-excel
-              |  Excel
+          //- Published collapsible footer
+          div.pl-collapsible
+
+            div(ng-if="group.publishedLatest")
+              button.pl-collapsible-toggle(ng-click="togglePublished(group.cat_id)")
+                i.bi(ng-class="expandedPublished[group.cat_id] ? 'bi-chevron-up' : 'bi-chevron-down'")
+                span  {{ expandedPublished[group.cat_id] ? 'Sembunyikan' : 'Lihat published terakhir' }}
+              div.pl-collapsible-content(ng-if="expandedPublished[group.cat_id]")
+                div.pl-revision-line
+                  span.pl-revision \#{{ group.publishedLatest.revision_no | padNumber:3 }}
+                  span.pl-status-published PUBLISHED
+                  span.pl-timestamp {{ group.publishedLatest.posted_at | dateFormat }}
+                div.pl-meta(ng-if="group.publishedLatest.posted_by_name || group.publishedLatest.item_count")
+                  span(ng-if="group.publishedLatest.posted_by_name") Posted oleh {{ group.publishedLatest.posted_by_name }}
+                  span(ng-if="group.publishedLatest.posted_by_name && group.publishedLatest.item_count")  ·
+                  span(ng-if="group.publishedLatest.item_count") {{ group.publishedLatest.item_count }} items
+                div.pl-action-row
+                  button.btn-primary.btn-sm.btn-edit-flex(ng-click="showDetail(group.publishedLatest)")
+                    i.bi.bi-eye
+                    |  Detail
+                  button.btn-ghost.btn-sm(ng-click="showLog(group.publishedLatest)" title="Log")
+                    i.bi.bi-clock-history
+                  button.btn-ghost.btn-sm(ng-click="exportPdf(group.publishedLatest)" title="PDF")
+                    i.bi.bi-file-pdf
+                  button.btn-ghost.btn-sm(ng-click="exportExcel(group.publishedLatest)" title="Excel")
+                    i.bi.bi-file-earmark-excel
+
+            div.pl-no-published(ng-if="!group.publishedLatest") Belum pernah dipublish
 
       //- Modal Start New
       div.modal-overlay(ng-if="modalStart" ng-click="closeStartModal()")
