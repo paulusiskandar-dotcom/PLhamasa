@@ -165,9 +165,9 @@ function render({ items, customValues }) {
                     {
                         width: '*',
                         stack: [
-                            { text: '• Harga sudah termasuk PPN',                                 fontSize: 9 },
-                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',    fontSize: 9 },
-                            { text: '• Untuk konfirmasi harga terbaru, hubungi sales',             fontSize: 9 },
+                            { text: '• Harga sudah termasuk PPN',                                fontSize: 9, margin: [0, 0, 0, 2] },
+                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',   fontSize: 9, margin: [0, 0, 0, 2] },
+                            { text: '• Untuk konfirmasi harga terbaru, hubungi sales',            fontSize: 9, margin: [0, 0, 0, 0] },
                         ],
                     },
                     {
