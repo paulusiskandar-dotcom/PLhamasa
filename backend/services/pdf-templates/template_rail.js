@@ -18,11 +18,6 @@ function roundSpecial(raw) {
     return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
 }
 
-function fmtNum(n) {
-    if (n === null || n === undefined || n === '' || n === 0) return '';
-    return new Intl.NumberFormat('id-ID').format(n);
-}
-
 // Harga: nol atau kosong tampil '-'
 function fmtHarga(n) {
     if (!n || n === 0) return '-';
@@ -61,32 +56,28 @@ function render({ items, customValues }) {
         const cv      = customValues[item.ig_id] || {};
         const cashKg  = (item.prices && item.prices.cash_gudang && item.prices.cash_gudang.current) || 0;
 
-        // berat_pcs: pakai custom field, fallback ke i_weight
         const beratPcsVal = cv.berat_pcs || '';
         const beratPcsNum = parseFloat(String(beratPcsVal).replace(',', '.')) || 0;
-
-        // harga /btg: hanya kalau berat_pcs ada dan harga ada
         const hargaBtgNum = (beratPcsNum > 0 && cashKg > 0) ? roundSpecial(cashKg * beratPcsNum) : 0;
 
-        const dash = (v) => (v ? String(v) : '-');
+        const dash = function (v) { return v ? String(v) : '-'; };
 
         return {
-            _tinggi:  parseFloat(String(cv.tinggi  || '').replace(',', '.')) || 9999,
+            _tinggi:  parseFloat(String(cv.tinggi      || '').replace(',', '.')) || 9999,
             _panjang: parseFloat(String(cv.panjang_mtr || '').replace(',', '.')) || 0,
             cells: [
-                { text: dash(cv.tinggi),           alignment: 'center', fontSize: 11 },
-                { text: dash(cv.lebar_atas),        alignment: 'center', fontSize: 11 },
-                { text: dash(cv.lebar_bawah),       alignment: 'center', fontSize: 11 },
-                { text: fmtBeratVal(cv.panjang_mtr), alignment: 'center', fontSize: 11 },
-                { text: fmtBeratVal(cv.berat_mtr), alignment: 'center', fontSize: 11 },
-                { text: fmtBeratVal(cv.berat_pcs), alignment: 'center', fontSize: 11 },
-                { text: fmtHarga(cashKg),           alignment: 'right',  fontSize: 11 },
-                { text: fmtHarga(hargaBtgNum),      alignment: 'right',  fontSize: 11 },
+                { text: dash(cv.tinggi),              alignment: 'center', fontSize: 11 },
+                { text: dash(cv.lebar_atas),           alignment: 'center', fontSize: 11 },
+                { text: dash(cv.lebar_bawah),          alignment: 'center', fontSize: 11 },
+                { text: fmtBeratVal(cv.panjang_mtr),   alignment: 'center', fontSize: 11 },
+                { text: fmtBeratVal(cv.berat_mtr),     alignment: 'center', fontSize: 11 },
+                { text: fmtBeratVal(cv.berat_pcs),     alignment: 'center', fontSize: 11 },
+                { text: fmtHarga(cashKg),              alignment: 'right',  fontSize: 11 },
+                { text: fmtHarga(hargaBtgNum),         alignment: 'right',  fontSize: 11 },
             ],
         };
     });
 
-    // Sort: tinggi ASC, secondary panjang ASC, items tanpa tinggi di akhir
     rows.sort(function (a, b) {
         if (a._tinggi !== b._tinggi) return a._tinggi - b._tinggi;
         return a._panjang - b._panjang;
@@ -94,35 +85,38 @@ function render({ items, customValues }) {
 
     const hFill = '#E8ECF0';
 
-    function hStack(lines, rowSpan, colSpan) {
-        const cell = {
-            fillColor: hFill,
-            alignment: 'center',
-            stack: lines.map(function (l, i) {
-                return { text: l, bold: i === 0, fontSize: i === 0 ? 11 : 9 };
-            }),
-        };
-        if (rowSpan) cell.rowSpan = rowSpan;
-        if (colSpan) cell.colSpan = colSpan;
-        return cell;
+    function h(text, extra) {
+        return Object.assign({ text: text, fillColor: hFill, alignment: 'center' }, extra || {});
     }
 
+    // ROW 1: group — HARGA cols span all 3 header rows
     const headerRow1 = [
-        hStack(['UKURAN'], null, 4),                 {}, {}, {},
-        hStack(['BERAT'],  null, 2),                 {},
-        hStack(['HARGA', '/KG',  '(Rp)'], 2, null),
-        hStack(['HARGA', '/BTG', '(Rp)'], 2, null),
+        h('UKURAN',     { colSpan: 4, bold: true, fontSize: 12 }), {}, {}, {},
+        h('BERAT',      { colSpan: 2, bold: true, fontSize: 12 }), {},
+        h('HARGA /KG',  { rowSpan: 3, bold: true, fontSize: 12, margin: [0, 10, 0, 0] }),
+        h('HARGA /BTG', { rowSpan: 3, bold: true, fontSize: 12, margin: [0, 10, 0, 0] }),
     ];
 
+    // ROW 2: sub labels
     const headerRow2 = [
-        hStack(['TINGGI',             '(mm)']),
-        hStack(['LEBAR ATAS',    '(mm)']),   // non-breaking space → no wrap
-        hStack(['LEBAR BAWAH',   '(mm)']),   // non-breaking space → no wrap
-        hStack(['PANJANG',            '(m)']),
-        hStack(['/Meter',             '(kg)']),
-        hStack(['/Pcs',               '(kg)']),
-        {}, // rowSpan placeholder
-        {}, // rowSpan placeholder
+        h('TINGGI',  { bold: true, fontSize: 11 }),
+        h('ATAS',    { bold: true, fontSize: 11 }),
+        h('BAWAH',   { bold: true, fontSize: 11 }),
+        h('PANJANG', { bold: true, fontSize: 11 }),
+        h('/Meter',  { bold: true, fontSize: 11 }),
+        h('/Pcs',    { bold: true, fontSize: 11 }),
+        {}, {},  // rowSpan placeholders
+    ];
+
+    // ROW 3: units
+    const headerRow3 = [
+        h('(mm)', { fontSize: 10 }),
+        h('(mm)', { fontSize: 10 }),
+        h('(mm)', { fontSize: 10 }),
+        h('(m)',  { fontSize: 10 }),
+        h('(kg)', { fontSize: 10 }),
+        h('(kg)', { fontSize: 10 }),
+        {}, {},  // rowSpan placeholders
     ];
 
     const dd = {
@@ -140,10 +134,9 @@ function render({ items, customValues }) {
             },
             {
                 table: {
-                    headerRows: 2,
-                    // 8 kolom: 7 kolom persentase, kolom terakhir '*' auto-fill sisa ruang
-                    widths: ['9%', '12%', '16%', '11%', '10%', '10%', '14%', '*'],
-                    body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
+                    headerRows: 3,
+                    widths: ['9%', '12%', '13%', '11%', '10%', '10%', '14%', '*'],
+                    body:   [headerRow1, headerRow2, headerRow3, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
                     hLineWidth: function () { return 0.5; },
@@ -165,13 +158,13 @@ function render({ items, customValues }) {
                     {
                         width: '*',
                         stack: [
-                            { text: '• Harga sudah termasuk PPN',                                          fontSize: 9 },
-                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',             fontSize: 9 },
-                            { text: '• Untuk konfirmasi harga terbaru, hubungi sales',                     fontSize: 9 },
+                            { text: '• Harga sudah termasuk PPN',                                 fontSize: 9 },
+                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',    fontSize: 9 },
+                            { text: '• Untuk konfirmasi harga terbaru, hubungi sales',             fontSize: 9 },
                         ],
                     },
                     {
-                        width: 'auto',
+                        width:     'auto',
                         text:      generatedAt,
                         fontSize:  9,
                         italics:   true,
