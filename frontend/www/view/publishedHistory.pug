@@ -42,11 +42,153 @@ block content
       button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
         i.bi.bi-list
 
-      div.page-header
-        div
+      //- Header
+      div.pl-page-header
+        div.pl-page-header-left
           h2.page-title Published History
-          p.page-sub Riwayat pricelist yang sudah dipublish
+          p.page-sub {{ totalCount }} published · {{ categoryCount }} kategori
 
-      div.empty-state
-        i.bi.bi-clock-history
-        p Halaman ini sedang dikembangkan
+      //- Filter bar
+      div.filter-bar
+        div.filter-row-1
+          div.filter-group
+            label Kategori
+            select.form-control(ng-model="filter.cat_id" ng-change="applyFilter()" ng-options="c.id as c.name for c in allCategories")
+              option(value="") Semua Kategori
+          div.filter-group
+            label Periode
+            select.form-control(ng-model="filter.period" ng-change="applyFilter()")
+              option(value="all") Semua Periode
+              option(value="last_30_days") 30 hari terakhir
+              option(value="last_3_months") 3 bulan terakhir
+              option(ng-repeat="yr in availableYears" ng-value="yr") {{ yr }}
+          div.filter-group
+            label Sort By
+            select.form-control(ng-model="filter.sort_by" ng-change="applyFilter()")
+              option(value="posted_at_desc") Terbaru Posted
+              option(value="posted_at_asc") Terlama Posted
+              option(value="cat_name_asc") Kategori A-Z
+              option(value="item_count_desc") Item Count
+        div.quick-filter
+          div.quick-filter-label Quick filter
+          div.quick-filter-grid
+            button.pill(
+              ng-repeat="pill in pills track by pill.cat_id"
+              ng-class="{'pill-active': filter.cat_id === pill.cat_id, 'pill-inactive': filter.cat_id !== pill.cat_id && pill.has_data, 'pill-disabled': !pill.has_data}"
+              ng-click="togglePill(pill)"
+              ng-disabled="!pill.has_data"
+            ) {{ pill.display_name }}
+
+      //- Loading
+      div.loading-state(ng-if="loading")
+        i.bi.bi-arrow-repeat.spin
+        span  Memuat...
+
+      //- Table
+      div.ph-table(ng-if="!loading")
+
+        div.ph-thead
+          div.ph-th.ph-col-cat(ng-click="setSort('cat_name')" ng-class="{active: sort.column === 'cat_name'}")
+            span KATEGORI
+            span.sort-icon
+              span(ng-if="sort.column !== 'cat_name'") ↕
+              span(ng-if="sort.column === 'cat_name' && sort.direction === 'asc'") ▲
+              span(ng-if="sort.column === 'cat_name' && sort.direction === 'desc'") ▼
+          div.ph-th.ph-col-rev(ng-click="setSort('revision_no')" ng-class="{active: sort.column === 'revision_no'}")
+            span REV
+            span.sort-icon
+              span(ng-if="sort.column !== 'revision_no'") ↕
+              span(ng-if="sort.column === 'revision_no' && sort.direction === 'asc'") ▲
+              span(ng-if="sort.column === 'revision_no' && sort.direction === 'desc'") ▼
+          div.ph-th.ph-col-posted(ng-click="setSort('posted_at')" ng-class="{active: sort.column === 'posted_at'}")
+            span POSTED
+            span.sort-icon
+              span(ng-if="sort.column !== 'posted_at'") ↕
+              span(ng-if="sort.column === 'posted_at' && sort.direction === 'asc'") ▲
+              span(ng-if="sort.column === 'posted_at' && sort.direction === 'desc'") ▼
+          div.ph-th.ph-col-items(ng-click="setSort('item_count')" ng-class="{active: sort.column === 'item_count'}")
+            span ITEMS
+            span.sort-icon
+              span(ng-if="sort.column !== 'item_count'") ↕
+              span(ng-if="sort.column === 'item_count' && sort.direction === 'asc'") ▲
+              span(ng-if="sort.column === 'item_count' && sort.direction === 'desc'") ▼
+          div.ph-th.ph-col-user(ng-click="setSort('posted_by_username')" ng-class="{active: sort.column === 'posted_by_username'}")
+            span POSTED BY
+            span.sort-icon
+              span(ng-if="sort.column !== 'posted_by_username'") ↕
+              span(ng-if="sort.column === 'posted_by_username' && sort.direction === 'asc'") ▲
+              span(ng-if="sort.column === 'posted_by_username' && sort.direction === 'desc'") ▼
+          div.ph-th.ph-col-actions
+
+        div(ng-if="items.length === 0")
+          div.ph-empty-state
+            i.bi.bi-inbox
+            p Tidak ada published history sesuai filter
+
+        div.ph-row(ng-repeat="item in items track by item.id")
+          div.ph-td.ph-col-cat {{ getCategoryDisplayName(item.cat_id, item.cat_name) }}
+          div.ph-td.ph-col-rev.mono \#{{ item.revision_no | padNumber:3 }}
+          div.ph-td.ph-col-posted {{ formatDate(item.posted_at) }}
+          div.ph-td.ph-col-items {{ item.item_count }}
+          div.ph-td.ph-col-user {{ item.posted_by_username || '-' }}
+          div.ph-td.ph-col-actions
+            button.btn-primary.btn-xs(ng-click="showDetail(item)") Detail
+            button.btn-ghost.btn-xs(ng-click="exportPdf(item)") PDF
+            button.btn-ghost.btn-xs(ng-click="exportExcel(item)") Excel
+
+        //- Pagination
+        div.ph-pagination(ng-if="totalCount > 0")
+          span.ph-pagination-info Menampilkan {{ paginationStart() }}–{{ paginationEnd() }} dari {{ totalCount }}
+          div.ph-pagination-controls
+            button(ng-disabled="page === 1" ng-click="prevPage()") ‹ Sebelumnya
+            span {{ page }} / {{ totalPages }}
+            button(ng-disabled="page >= totalPages" ng-click="nextPage()") Selanjutnya ›
+
+      //- Modal Detail (PUBLISHED)
+      div.modal-overlay(ng-if="modalDetail" ng-click="modalDetail = null")
+        div.modal-card.modal-large(ng-click="$event.stopPropagation()")
+          div.modal-header
+            div
+              h3 {{ modalDetail.cat_name }} — \#{{ modalDetail.revision_no | padNumber:3 }}
+              span.pl-status.status-published PUBLISHED
+            button.modal-close(ng-click="modalDetail = null") ×
+          div.modal-body
+            p.detail-meta
+              | Posted by {{ modalDetail.posted_by_name }} pada {{ modalDetail.posted_at | dateTimeFormat }}
+            table.detail-table(ng-if="modalDetail.items && modalDetail.items.length > 0")
+              thead
+                tr
+                  th ig_id
+                  th pr_id
+                  th Harga/kg
+              tbody
+                tr(ng-repeat="it in modalDetail.items")
+                  td.mono {{ it.ig_id }}
+                  td.mono {{ it.pr_id }}
+                  td.mono.text-right {{ it.i_price | number:0 }}
+          div.modal-actions
+            button.btn-ghost(ng-click="exportPdf(modalDetail)") Export PDF
+            button.btn-ghost(ng-click="exportExcel(modalDetail)") Export Excel
+            button.btn-primary(ng-click="modalDetail = null") Tutup
+
+      //- Modal PDF Template
+      div.modal-overlay(ng-if="showPdfModal" ng-click="showPdfModal = false")
+        div.modal-card(ng-click="$event.stopPropagation()")
+          div.modal-header
+            h3 Pilih Template PDF
+            button.modal-close(ng-click="showPdfModal = false") ×
+          div.modal-body
+            div.empty-state(ng-if="!pdfTemplates || pdfTemplates.length === 0")
+              i.bi.bi-file-earmark-pdf
+              p Belum ada template PDF untuk kategori ini.
+            div.tpl-list(ng-if="pdfTemplates && pdfTemplates.length > 0")
+              button.tpl-option(ng-repeat="tpl in pdfTemplates" ng-click="selectPdfTemplate(tpl.key)")
+                strong {{ tpl.name }}
+                small {{ tpl.description }}
+          div.modal-actions
+            button.btn-ghost(ng-click="showPdfModal = false") Tutup
+
+      //- Toast
+      div.toast-container(ng-if="toast.show")
+        div.toast-msg(ng-class="'toast-' + toast.type")
+          | {{ toast.message }}

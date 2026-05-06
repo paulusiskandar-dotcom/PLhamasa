@@ -549,3 +549,26 @@ module.exports._exportExcel = async function (req, res) {
         return response.error(res, err.message || 'export_failed', null, 500);
     }
 };
+
+// ── GET /price-list/published ─────────────────────────────────────────────────
+
+module.exports._listPublished = async function (req, res) {
+    try {
+        const { cat_id, period, sort_by, page, limit } = req.query;
+        const result = await $model.listPublished({ cat_id, period, sort_by, page, limit });
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
+// ── GET /price-list/published/years ──────────────────────────────────────────
+
+module.exports._getPublishedYears = async function (req, res) {
+    try {
+        const years = await $model.getPublishedYears();
+        return response.success(res, { years });
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};

@@ -6,6 +6,7 @@ module.exports = function (req, res) {
                 controller: "/js/controller/publishedHistory/listController.js",
                 services: [
                     "/js/services/auth.js",
+                    "/js/services/pdfTemplate.js",
                 ]
             }
         }

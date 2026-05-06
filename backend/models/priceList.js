@@ -517,3 +517,87 @@ module.exports.postToErp = async function (plId, userId, erpTargetId) {
 };
 
 module.exports._roundSpecial = roundSpecial;
+
+// ── List Published (Published History page) ───────────────────────────────────
+
+module.exports.listPublished = async function ({ cat_id, period, sort_by, page, limit } = {}) {
+    const whereParams = [];
+    const conditions  = ["pl.status = 'PUBLISHED'"];
+
+    if (cat_id) {
+        whereParams.push(cat_id);
+        conditions.push(`pl.cat_id = $${whereParams.length}`);
+    }
+
+    if (period && period !== 'all') {
+        if (period === 'last_30_days') {
+            conditions.push(`pl.posted_at >= NOW() - INTERVAL '30 days'`);
+        } else if (period === 'last_3_months') {
+            conditions.push(`pl.posted_at >= NOW() - INTERVAL '3 months'`);
+        } else if (/^\d{4}$/.test(String(period))) {
+            whereParams.push(parseInt(period, 10));
+            conditions.push(`EXTRACT(YEAR FROM pl.posted_at) = $${whereParams.length}`);
+        }
+    }
+
+    const whereClause = 'WHERE ' + conditions.join(' AND ');
+
+    let orderClause = 'ORDER BY pl.posted_at DESC';
+    switch (sort_by) {
+        case 'posted_at_asc':          orderClause = 'ORDER BY pl.posted_at ASC'; break;
+        case 'cat_name_asc':           orderClause = 'ORDER BY pl.cat_name ASC, pl.posted_at DESC'; break;
+        case 'item_count_desc':        orderClause = 'ORDER BY item_count DESC, pl.posted_at DESC'; break;
+        case 'revision_no_desc':       orderClause = 'ORDER BY pl.revision_no DESC'; break;
+        case 'revision_no_asc':        orderClause = 'ORDER BY pl.revision_no ASC'; break;
+        case 'posted_by_username_asc': orderClause = 'ORDER BY up.username ASC, pl.posted_at DESC'; break;
+    }
+
+    const pageNum   = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum  = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const offset    = (pageNum - 1) * limitNum;
+    const limitIdx  = whereParams.length + 1;
+    const offsetIdx = whereParams.length + 2;
+    const dataParams = whereParams.concat([limitNum, offset]);
+
+    const dataQuery = `
+        SELECT
+            pl.id, pl.cat_id, pl.cat_name, pl.revision_no,
+            pl.posted_at, pl.posted_by,
+            up.username AS posted_by_username,
+            (SELECT COUNT(*)::int FROM price_list_item pli WHERE pli.price_list_id = pl.id) AS item_count
+        FROM price_list pl
+        LEFT JOIN users up ON up.id = pl.posted_by
+        ${whereClause}
+        ${orderClause}
+        LIMIT $${limitIdx} OFFSET $${offsetIdx}
+    `;
+    const countQuery = `
+        SELECT COUNT(*)::int AS total
+        FROM price_list pl
+        ${whereClause}
+    `;
+
+    const [rows, countRow] = await Promise.all([
+        dbPLM().any(dataQuery, dataParams),
+        dbPLM().one(countQuery, whereParams),
+    ]);
+
+    const total = countRow.total;
+    return {
+        data:        rows,
+        total,
+        page:        pageNum,
+        limit:       limitNum,
+        total_pages: Math.ceil(total / limitNum) || 1,
+    };
+};
+
+module.exports.getPublishedYears = async function () {
+    const rows = await dbPLM().any(`
+        SELECT DISTINCT EXTRACT(YEAR FROM posted_at)::int AS year
+        FROM price_list
+        WHERE status = 'PUBLISHED' AND posted_at IS NOT NULL
+        ORDER BY year DESC
+    `);
+    return rows.map(function (r) { return r.year; });
+};

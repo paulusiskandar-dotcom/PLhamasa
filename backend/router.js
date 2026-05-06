@@ -47,6 +47,8 @@ module.exports = function (app) {
     // ── PRICE LIST V2 ──────────────────────────────────────────────────────────
     app.get("/price-list",                        auth.verifyToken, require("./controllers/priceList")._list);
     app.post("/price-list/start",                 auth.verifyToken, require("./controllers/priceList")._start);
+    app.get("/price-list/published/years",        auth.verifyToken, require("./controllers/priceList")._getPublishedYears);
+    app.get("/price-list/published",              auth.verifyToken, require("./controllers/priceList")._listPublished);
     app.get("/price-list/:id",                    auth.verifyToken, require("./controllers/priceList")._getById);
     app.post("/price-list/:id/lock",              auth.verifyToken, require("./controllers/priceList")._lock);
     app.post("/price-list/:id/heartbeat",         auth.verifyToken, require("./controllers/priceList")._heartbeat);
