@@ -93,8 +93,8 @@ function render({ items, customValues }) {
     const headerRow1 = [
         h('UKURAN',     { colSpan: 4, bold: true, fontSize: 12 }), {}, {}, {},
         h('BERAT',      { colSpan: 2, bold: true, fontSize: 12 }), {},
-        h('HARGA /KG',  { rowSpan: 2, bold: true, fontSize: 12, margin: [0, 6, 0, 0] }),
-        h('HARGA /BTG', { rowSpan: 2, bold: true, fontSize: 12, margin: [0, 6, 0, 0] }),
+        h('HARGA /KG',  { rowSpan: 2, bold: true, fontSize: 12, verticalAlignment: 'middle' }),
+        h('HARGA /BTG', { rowSpan: 2, bold: true, fontSize: 12, verticalAlignment: 'middle' }),
     ];
 
     // ROW 2: sub labels
@@ -137,6 +137,12 @@ function render({ items, customValues }) {
                 table: {
                     headerRows: 3,
                     widths: ['9%', '12%', '13%', '11%', '10%', '10%', '14%', '*'],
+                    heights: function (row) {
+                        if (row === 0) return 18;
+                        if (row === 1) return 18;
+                        if (row === 2) return 14;
+                        return 'auto';
+                    },
                     body:   [headerRow1, headerRow2, headerRow3, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
