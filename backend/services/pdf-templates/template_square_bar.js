@@ -105,7 +105,7 @@ function render({ items, customValues }) {
             {
                 table: {
                     headerRows: 2,
-                    widths: ['17%', '10%', '13%', '15%', '15%', '15%', '15%'],
+                    widths: ['16%', '11%', '13%', '15%', '15%', '15%', '15%'],
                     body:   [headerGroup, headerSub, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
@@ -115,8 +115,8 @@ function render({ items, customValues }) {
                     vLineColor: function () { return '#888'; },
                     paddingLeft:   function () { return 3; },
                     paddingRight:  function () { return 3; },
-                    paddingTop:    function () { return 2; },
-                    paddingBottom: function () { return 2; },
+                    paddingTop:    function () { return 3; },
+                    paddingBottom: function () { return 3; },
                 },
             },
         ],
