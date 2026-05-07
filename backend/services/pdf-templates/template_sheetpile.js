@@ -65,7 +65,7 @@ function render({ items, customValues }) {
             _weight: weight,
             cells: [
                 { text: item.name || '', alignment: 'left',   fontSize: 10, margin: [6, 0, 0, 0] },
-                { text: fmtBerat(weight), alignment: 'right',  fontSize: 10 },
+                { text: fmtBerat(weight), alignment: 'center', fontSize: 10 },
                 { text: fmtPrice(cgKg),   alignment: 'right',  fontSize: 10 },
                 { text: fmtBtg(cgBtg),    alignment: 'right',  fontSize: 10 },
                 { text: fmtPrice(kgKg),   alignment: 'right',  fontSize: 10 },
@@ -116,7 +116,8 @@ function render({ items, customValues }) {
             {
                 table: {
                     headerRows: 2,
-                    widths: ['30%', '14%', '14%', '14%', '14%', '14%'],
+                    widths: ['38%', '12.4%', '12.4%', '12.4%', '12.4%', '12.4%'],
+                    heights: function (row) { return row < 2 ? 22 : 'auto'; },
                     body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
@@ -132,7 +133,7 @@ function render({ items, customValues }) {
             },
         ],
 
-        footer: function (currentPage, pageCount) {
+        footer: function () {
             return {
                 margin: [8, 4, 8, 0],
                 columns: [
@@ -142,14 +143,6 @@ function render({ items, customValues }) {
                             { text: '• Harga sudah termasuk PPN',                                fontSize: 9, margin: [0, 0, 0, 1] },
                             { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',   fontSize: 9, margin: [0, 0, 0, 0] },
                         ],
-                    },
-                    {
-                        width:     'auto',
-                        text:      'Page ' + currentPage + '/' + pageCount,
-                        fontSize:  9,
-                        bold:      true,
-                        alignment: 'center',
-                        margin:    [10, 0, 10, 0],
                     },
                     {
                         width:     'auto',
