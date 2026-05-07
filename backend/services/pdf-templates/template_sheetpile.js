@@ -12,128 +12,152 @@ const fonts = {
     },
 };
 
+const EM = '—'; // em dash — for null/zero values
+
 function roundSpecial(raw) {
     if (!raw) return 0;
     const sisa = Math.round(raw) % 100;
     return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
 }
 
-function fmtNum(n) {
-    if (n === null || n === undefined || n === '' || n === 0) return '';
-    return new Intl.NumberFormat('id-ID').format(n);
-}
-
 function fmtBerat(b) {
-    if (!b) return '';
+    const n = parseFloat(b);
+    if (!n || n === 0) return EM;
     return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    }).format(b);
+    }).format(n);
+}
+
+function fmtPrice(n) {
+    if (!n || n === 0) return EM;
+    return new Intl.NumberFormat('id-ID').format(n);
+}
+
+function fmtBtg(n) {
+    if (!n || n === 0) return EM;
+    return new Intl.NumberFormat('id-ID').format(n);
 }
 
 const meta = {
     name:         'Sheetpile',
     cat_id:       null,
     cat_name:     'SHEETPILE',
-    description:  'Template Sheetpile (SP) — A4 portrait, harga cash & kredit gudang per kg & batang',
+    description:  'Template Sheetpile — A5 landscape, harga cash & kredit gudang per kg & batang',
     custom_fields: [],
 };
 
 function render({ items, customValues }) {
-    const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY');
+    const _d      = moment().tz('Asia/Jakarta');
+    const _months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const generatedAt = 'Jakarta, ' + _d.format('DD') + ' ' + _months[_d.month()] + ' ' + _d.format('YYYY HH:mm');
 
     const rows = items.map(function (item) {
         const weight = parseFloat(item.weight) || 0;
         const cgKg   = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
         const kgKg   = (item.prices && item.prices.kredit_gudang && item.prices.kredit_gudang.current) || 0;
 
-        const cgUnit = (cgKg && weight) ? roundSpecial(cgKg * weight) : 0;
-        const kgUnit = (kgKg && weight) ? roundSpecial(kgKg * weight) : 0;
+        const cgBtg = (cgKg && weight) ? roundSpecial(cgKg * weight) : 0;
+        const kgBtg = (kgKg && weight) ? roundSpecial(kgKg * weight) : 0;
 
         return {
             _name:   item.name || '',
             _weight: weight,
             cells: [
-                { text: item.name || '',  alignment: 'left',  fontSize: 10 },
-                { text: fmtBerat(weight), alignment: 'right', fontSize: 10 },
-                { text: fmtNum(cgKg),     alignment: 'right', fontSize: 10, color: '#C62828', bold: true },
-                { text: fmtNum(cgUnit),   alignment: 'right', fontSize: 10 },
-                { text: fmtNum(kgKg),     alignment: 'right', fontSize: 10, color: '#C62828', bold: true },
-                { text: fmtNum(kgUnit),   alignment: 'right', fontSize: 10 },
+                { text: item.name || '', alignment: 'left',   fontSize: 10, margin: [6, 0, 0, 0] },
+                { text: fmtBerat(weight), alignment: 'right',  fontSize: 10 },
+                { text: fmtPrice(cgKg),   alignment: 'right',  fontSize: 10 },
+                { text: fmtBtg(cgBtg),    alignment: 'right',  fontSize: 10 },
+                { text: fmtPrice(kgKg),   alignment: 'right',  fontSize: 10 },
+                { text: fmtBtg(kgBtg),    alignment: 'right',  fontSize: 10 },
             ],
         };
     });
 
-    rows.sort(function (a, b) {
-        const nc = a._name.localeCompare(b._name);
-        return nc !== 0 ? nc : a._weight - b._weight;
-    });
+    rows.sort(function (a, b) { return a._name.localeCompare(b._name); });
 
-    const hFill  = '#E8ECF0';
-    const hStyle = { bold: true, fillColor: hFill, alignment: 'center', fontSize: 10 };
+    const hFill = '#E8ECF0';
 
+    function h(text, extra) {
+        return Object.assign({ text: text, bold: true, fillColor: hFill, alignment: 'center' }, extra || {});
+    }
+
+    // Row 1: UKURAN(rs2) | BERAT | CASH(cs2) | {} | KREDIT(cs2) | {}
     const headerRow1 = [
-        { text: 'UKURAN',      rowSpan: 2, ...hStyle, fontSize: 11 },
-        { text: 'BERAT\n(KG)', rowSpan: 2, ...hStyle },
-        { text: 'CASH',        colSpan: 2, ...hStyle, fontSize: 11 }, {},
-        { text: 'KREDIT',      colSpan: 2, ...hStyle, fontSize: 11 }, {},
+        h('UKURAN',  { rowSpan: 2, verticalAlignment: 'middle', fontSize: 11 }),
+        h('BERAT',   { fontSize: 11 }),
+        h('CASH',    { colSpan: 2, fontSize: 11 }), {},
+        h('KREDIT',  { colSpan: 2, fontSize: 11 }), {},
     ];
 
+    // Row 2: {} | (kg) | /kg | /batang | /kg | /batang
     const headerRow2 = [
-        {}, {},
-        { text: '/kg',     ...hStyle, color: '#C62828' },
-        { text: '/batang', ...hStyle },
-        { text: '/kg',     ...hStyle, color: '#C62828' },
-        { text: '/batang', ...hStyle },
+        {},
+        h('(kg)',    { fontSize: 9 }),
+        h('/kg',     { fontSize: 9 }),
+        h('/batang', { fontSize: 9 }),
+        h('/kg',     { fontSize: 9 }),
+        h('/batang', { fontSize: 9 }),
     ];
 
     const dd = {
-        pageSize:        'A4',
-        pageOrientation: 'portrait',
-        pageMargins:     [20, 40, 20, 30],
-
-        header: function () {
-            return {
-                text:      'SHEETPILE',
-                alignment: 'center',
-                bold:      true,
-                fontSize:  18,
-                margin:    [0, 12, 0, 6],
-            };
-        },
+        pageSize:        'A5',
+        pageOrientation: 'landscape',
+        pageMargins:     [8, 30, 8, 25],
 
         content: [
             {
+                text:      'SHEETPILE',
+                alignment: 'center',
+                bold:      true,
+                fontSize:  14,
+                margin:    [0, 0, 0, 6],
+            },
+            {
                 table: {
                     headerRows: 2,
-                    widths: ['*', 55, 65, 80, 65, 80],
-                    body: [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
+                    widths: ['30%', '14%', '14%', '14%', '14%', '14%'],
+                    body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
                     hLineWidth: function () { return 0.5; },
                     vLineWidth: function () { return 0.5; },
                     hLineColor: function () { return '#888'; },
                     vLineColor: function () { return '#888'; },
-                    paddingLeft:   function () { return 4; },
-                    paddingRight:  function () { return 4; },
+                    paddingLeft:   function () { return 3; },
+                    paddingRight:  function () { return 3; },
                     paddingTop:    function () { return 4; },
                     paddingBottom: function () { return 4; },
                 },
-            },
-            {
-                text:      'Jakarta, ' + generatedAt,
-                alignment: 'right',
-                fontSize:  9,
-                margin:    [0, 10, 0, 0],
             },
         ],
 
         footer: function (currentPage, pageCount) {
             return {
-                margin: [10, 5, 10, 0],
+                margin: [8, 4, 8, 0],
                 columns: [
-                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'left',  fontSize: 9 },
-                    { text: '',                                        alignment: 'right', fontSize: 9 },
+                    {
+                        width: '*',
+                        stack: [
+                            { text: '• Harga sudah termasuk PPN',                                fontSize: 9, margin: [0, 0, 0, 1] },
+                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',   fontSize: 9, margin: [0, 0, 0, 0] },
+                        ],
+                    },
+                    {
+                        width:     'auto',
+                        text:      'Page ' + currentPage + '/' + pageCount,
+                        fontSize:  9,
+                        bold:      true,
+                        alignment: 'center',
+                        margin:    [10, 0, 10, 0],
+                    },
+                    {
+                        width:     'auto',
+                        text:      generatedAt,
+                        fontSize:  9,
+                        italics:   true,
+                        alignment: 'right',
+                    },
                 ],
             };
         },
