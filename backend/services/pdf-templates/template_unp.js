@@ -18,38 +18,43 @@ function roundSpecial(raw) {
     return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
 }
 
-function fmtNum(n) {
-    if (n === null || n === undefined || n === '' || n === 0) return '';
+function fmtKg(n) {
+    if (!n || n === 0) return '-';
+    return new Intl.NumberFormat('id-ID').format(n);
+}
+
+function fmtBtg(n) {
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
 function fmtBerat(b) {
-    if (!b) return '';
+    const n = parseFloat(b);
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-    }).format(b);
-}
-
-// Grade is the last word of the item name (e.g. "UNP 100 x 6 m A" → "A")
-function extractGrade(name) {
-    if (!name) return '';
-    const parts = name.trim().split(/\s+/);
-    return parts[parts.length - 1] || '';
+    }).format(n);
 }
 
 const meta = {
     name:         'UNP',
     cat_id:       null,
     cat_name:     'UNP',
-    description:  'Template Besi UNP — A5 landscape, harga cash & kredit gudang & pabrik',
-    custom_fields: [],
+    description:  'Template Besi UNP — A5 landscape, 9 kolom, multi-page',
+    custom_fields: [
+        { key: 'ukuran', label: 'Ukuran', type: 'text' },
+    ],
 };
 
 function render({ items, customValues }) {
-    const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY');
+    const _d      = moment().tz('Asia/Jakarta');
+    const _months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const generatedAt = 'Jakarta, ' + _d.format('DD') + ' ' + _months[_d.month()] + ' ' + _d.format('YYYY HH:mm');
 
     const rows = items.map(function (item) {
+        const cv     = customValues[item.ig_id] || {};
+        const ukuran = cv.ukuran || '';
         const weight = parseFloat(item.weight) || 0;
 
         const cgKg = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
@@ -57,75 +62,84 @@ function render({ items, customValues }) {
         const cpKg = (item.prices && item.prices.cash_pabrik   && item.prices.cash_pabrik.current)   || 0;
         const kpKg = (item.prices && item.prices.kredit_pabrik && item.prices.kredit_pabrik.current) || 0;
 
-        const cgUnit = (cgKg && weight) ? roundSpecial(cgKg * weight) : 0;
-        const kgUnit = (kgKg && weight) ? roundSpecial(kgKg * weight) : 0;
-        const cpUnit = (cpKg && weight) ? roundSpecial(cpKg * weight) : 0;
-        const kpUnit = (kpKg && weight) ? roundSpecial(kpKg * weight) : 0;
+        const cgBtg = (cgKg && weight) ? roundSpecial(cgKg * weight) : 0;
+        const kgBtg = (kgKg && weight) ? roundSpecial(kgKg * weight) : 0;
+        const cpBtg = (cpKg && weight) ? roundSpecial(cpKg * weight) : 0;
+        const kpBtg = (kpKg && weight) ? roundSpecial(kpKg * weight) : 0;
 
         return {
-            _name:   item.name || '',
             _weight: weight,
+            _name:   item.name || '',
             cells: [
-                { text: item.name || '',       alignment: 'left',   fontSize: 9 },
-                { text: extractGrade(item.name), alignment: 'center', fontSize: 9, bold: true },
-                { text: fmtBerat(weight),       alignment: 'right',  fontSize: 9 },
-                { text: fmtNum(cgKg),           alignment: 'right',  fontSize: 9, color: '#C62828', bold: true },
-                { text: fmtNum(cgUnit),         alignment: 'right',  fontSize: 9 },
-                { text: fmtNum(kgUnit),         alignment: 'right',  fontSize: 9 },
-                { text: fmtNum(cpKg),           alignment: 'right',  fontSize: 9, color: '#C62828', bold: true },
-                { text: fmtNum(cpUnit),         alignment: 'right',  fontSize: 9 },
-                { text: fmtNum(kpUnit),         alignment: 'right',  fontSize: 9 },
+                { text: item.name || '', alignment: 'left',   fontSize: 10 },
+                { text: ukuran,          alignment: 'center', fontSize: 10 },
+                { text: fmtBerat(weight),alignment: 'center', fontSize: 10 },
+                { text: fmtKg(cgKg),     alignment: 'right',  fontSize: 10 },
+                { text: fmtBtg(cgBtg),   alignment: 'right',  fontSize: 10 },
+                { text: fmtBtg(kgBtg),   alignment: 'right',  fontSize: 10 },
+                { text: fmtKg(cpKg),     alignment: 'right',  fontSize: 10 },
+                { text: fmtBtg(cpBtg),   alignment: 'right',  fontSize: 10 },
+                { text: fmtBtg(kpBtg),   alignment: 'right',  fontSize: 10 },
             ],
         };
     });
 
     rows.sort(function (a, b) {
-        const nc = a._name.localeCompare(b._name);
-        return nc !== 0 ? nc : a._weight - b._weight;
+        if (a._weight !== b._weight) return a._weight - b._weight;
+        return a._name.localeCompare(b._name);
     });
 
     const hFill = '#E8ECF0';
-    const hStyle = { bold: true, fillColor: hFill, alignment: 'center', fontSize: 9 };
+
+    function h(text, extra) {
+        return Object.assign({ text: text, bold: true, fillColor: hFill, alignment: 'center' }, extra || {});
+    }
 
     const headerRow1 = [
-        { text: 'UKURAN',  rowSpan: 2, ...hStyle, fontSize: 10 },
-        { text: 'Grade',   rowSpan: 2, ...hStyle },
-        { text: 'BERAT\n(KG)', rowSpan: 2, ...hStyle },
-        { text: 'GUDANG',  colSpan: 3, ...hStyle, fontSize: 10 }, {}, {},
-        { text: 'PABRIK',  colSpan: 3, ...hStyle, fontSize: 10, color: '#1A3A5C' }, {}, {},
+        h('Nama Barang', { rowSpan: 3, verticalAlignment: 'middle', fontSize: 10 }),
+        h('Ukuran',      { rowSpan: 3, verticalAlignment: 'middle', fontSize: 10 }),
+        h('BERAT',       { rowSpan: 2, verticalAlignment: 'middle', fontSize: 10 }),
+        h('GUDANG',      { colSpan: 3, fontSize: 10 }), {}, {},
+        h('PABRIK',      { colSpan: 3, fontSize: 10 }), {}, {},
     ];
 
     const headerRow2 = [
         {}, {}, {},
-        { text: 'hrg/kg',  ...hStyle, color: '#C62828' },
-        { text: 'Tunai',   ...hStyle },
-        { text: 'Kredit',  ...hStyle },
-        { text: 'hrg/kg',  ...hStyle, color: '#C62828' },
-        { text: 'Tunai',   ...hStyle },
-        { text: 'Kredit',  ...hStyle },
+        h('CASH',   { colSpan: 2 }), {},
+        h('KREDIT'),
+        h('CASH',   { colSpan: 2 }), {},
+        h('KREDIT'),
+    ];
+
+    const headerRow3 = [
+        {}, {},
+        h('(kg)',  { fontSize: 9 }),
+        h('/kg',   { fontSize: 9 }),
+        h('/btg',  { fontSize: 9 }),
+        h('/btg',  { fontSize: 9 }),
+        h('/kg',   { fontSize: 9 }),
+        h('/btg',  { fontSize: 9 }),
+        h('/btg',  { fontSize: 9 }),
     ];
 
     const dd = {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 30, 8, 25],
-
-        header: function () {
-            return {
-                text:      'BESI UNP',
-                alignment: 'center',
-                bold:      true,
-                fontSize:  16,
-                margin:    [0, 8, 0, 6],
-            };
-        },
+        pageMargins:     [8, 12, 8, 32],
 
         content: [
             {
+                text:      'UNP',
+                alignment: 'center',
+                bold:      true,
+                fontSize:  14,
+                margin:    [0, 0, 0, 6],
+            },
+            {
                 table: {
-                    headerRows: 2,
-                    widths: ['*', 24, 42, 60, 64, 64, 60, 64, 64],
-                    body: [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
+                    headerRows: 3,
+                    widths: ['19%', '14%', '8%', '10%', '10%', '10%', '10%', '10%', '9%'],
+                    body:   [headerRow1, headerRow2, headerRow3, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
                     hLineWidth: function () { return 0.5; },
@@ -134,31 +148,45 @@ function render({ items, customValues }) {
                     vLineColor: function () { return '#888'; },
                     paddingLeft:   function () { return 3; },
                     paddingRight:  function () { return 3; },
-                    paddingTop:    function () { return 3; },
-                    paddingBottom: function () { return 3; },
+                    paddingTop:    function () { return 2; },
+                    paddingBottom: function () { return 2; },
                 },
-            },
-            {
-                text:      'Jakarta, ' + generatedAt,
-                alignment: 'right',
-                fontSize:  9,
-                margin:    [0, 8, 0, 0],
             },
         ],
 
         footer: function (currentPage, pageCount) {
             return {
-                margin: [10, 5, 10, 0],
+                margin: [8, 4, 8, 0],
                 columns: [
-                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'left',  fontSize: 9 },
-                    { text: '',                                        alignment: 'right', fontSize: 9 },
+                    {
+                        width: '*',
+                        stack: [
+                            { text: '• Harga sudah termasuk PPN',                                fontSize: 9, margin: [0, 0, 0, 1] },
+                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',   fontSize: 9, margin: [0, 0, 0, 0] },
+                        ],
+                    },
+                    {
+                        width:     'auto',
+                        text:      'Page ' + currentPage + '/' + pageCount,
+                        fontSize:  9,
+                        bold:      true,
+                        alignment: 'center',
+                        margin:    [10, 0, 10, 0],
+                    },
+                    {
+                        width:     'auto',
+                        text:      generatedAt,
+                        fontSize:  9,
+                        italics:   true,
+                        alignment: 'right',
+                    },
                 ],
             };
         },
 
         defaultStyle: {
             font:     'Helvetica',
-            fontSize: 9,
+            fontSize: 10,
         },
     };
 
