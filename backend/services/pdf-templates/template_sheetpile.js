@@ -83,21 +83,23 @@ function render({ items, customValues }) {
     }
 
     // Row 1: UKURAN(rs2) | BERAT | CASH(cs2) | {} | KREDIT(cs2) | {}
+    // UKURAN spans 2 rows (18+18=36pt) → margin-top 13pt to center 11pt text
+    // BERAT/CASH/KREDIT single row (18pt) → margin-top 4pt to center 11pt text
     const headerRow1 = [
-        h('UKURAN',  { rowSpan: 2, verticalAlignment: 'middle', fontSize: 11 }),
-        h('BERAT',   { fontSize: 11 }),
-        h('CASH',    { colSpan: 2, fontSize: 11 }), {},
-        h('KREDIT',  { colSpan: 2, fontSize: 11 }), {},
+        h('UKURAN',  { rowSpan: 2, fontSize: 11, margin: [0, 13, 0, 0] }),
+        h('BERAT',   { fontSize: 11, margin: [0, 4, 0, 0] }),
+        h('CASH',    { colSpan: 2, fontSize: 11, margin: [0, 4, 0, 0] }), {},
+        h('KREDIT',  { colSpan: 2, fontSize: 11, margin: [0, 4, 0, 0] }), {},
     ];
 
-    // Row 2: {} | (kg) | /kg | /batang | /kg | /batang
+    // Row 2: single row (18pt) → margin-top 4pt to center 9pt text
     const headerRow2 = [
         {},
-        h('(kg)',    { fontSize: 9 }),
-        h('/kg',     { fontSize: 9 }),
-        h('/batang', { fontSize: 9 }),
-        h('/kg',     { fontSize: 9 }),
-        h('/batang', { fontSize: 9 }),
+        h('(kg)',    { fontSize: 9, margin: [0, 4, 0, 0] }),
+        h('/kg',     { fontSize: 9, margin: [0, 4, 0, 0] }),
+        h('/batang', { fontSize: 9, margin: [0, 4, 0, 0] }),
+        h('/kg',     { fontSize: 9, margin: [0, 4, 0, 0] }),
+        h('/batang', { fontSize: 9, margin: [0, 4, 0, 0] }),
     ];
 
     const dd = {
@@ -117,7 +119,7 @@ function render({ items, customValues }) {
                 table: {
                     headerRows: 2,
                     widths: ['38%', '12.4%', '12.4%', '12.4%', '12.4%', '12.4%'],
-                    heights: function (row) { return row < 2 ? 22 : 'auto'; },
+                    heights: function (row) { if (row === 0) return 18; if (row === 1) return 18; return 'auto'; },
                     body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
@@ -127,8 +129,8 @@ function render({ items, customValues }) {
                     vLineColor: function () { return '#888'; },
                     paddingLeft:   function () { return 3; },
                     paddingRight:  function () { return 3; },
-                    paddingTop:    function (i) { if (i === 0) return 5; if (i === 1) return 6; return 3; },
-                    paddingBottom: function (i) { if (i === 0) return 5; if (i === 1) return 6; return 3; },
+                    paddingTop:    function (i) { return i < 2 ? 0 : 3; },
+                    paddingBottom: function (i) { return i < 2 ? 0 : 3; },
                 },
             },
         ],
