@@ -20,55 +20,38 @@ function roundSpecial(raw) {
     return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
 }
 
-function fmtNum(n) {
-    if (!n) return '';
+const EM = '—';  // em dash for null/zero cells
+
+function fmtPrice(n) {
+    if (!n || n === 0) return EM;
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
-function fmtDec(n, dec) {
-    if (n === null || n === undefined || n === 0) return '';
+function fmtBerat(b) {
+    const n = parseFloat(b);
+    if (!n || n === 0) return EM;
     return new Intl.NumberFormat('id-ID', {
-        minimumFractionDigits: dec,
-        maximumFractionDigits: dec,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     }).format(n);
 }
 
-function extractType(name) {
-    const m = name.match(/M-(\d+)/i);
-    return m ? 'M-' + m[1] : null;
+function extractTypeNum(name) {
+    const m = String(name || '').match(/M-?(\d+)/i);
+    return m ? parseInt(m[1], 10) : null;
 }
 
-// Fallback when grade_label custom field is empty
-function extractGradeFromName(name) {
-    const m = name.match(/M-\d+\s+([FABC])\b/i);
-    return m ? m[1].toUpperCase() : null;
+const GRADE_WEIGHT = { F: 1, A: 2, B: 3, C: 4 };
+
+function gradeSort(grade) {
+    if (!grade || grade === EM || grade === '') return 99;
+    const g = grade.trim().toUpperCase();
+    return GRADE_WEIGHT[g] !== undefined ? GRADE_WEIGHT[g] : 50;
 }
 
-// ── constants ────────────────────────────────────────────────────────────────
-
-const GRADE_ORDER = ['F', 'A', 'B', 'C'];
-
-const TYPE_COLORS = {
-    'M-5':  '#FFFDE7',
-    'M-6':  '#E3F2FD',
-    'M-7':  '#E8F5E9',
-    'M-8':  '#FBE9E7',
-    'M-9':  '#F3E5F5',
-    'M-10': '#FCE4EC',
-    'M-12': '#EEEEEE',
-};
-
-const TRONTON_CAP = [
-    ['M-5', '350 lbr'],
-    ['M-6', '300 lbr'],
-    ['M-7', '250 lbr'],
-    ['M-8', '250 lbr'],
-];
-
-const WROD_PRICES = [
-    'W.Rod ≤5,5mm   Rp 10.900',
-    'W.Rod >5,5mm   Rp 10.700',
-];
+// wirerod check takes priority over roll
+function isWirerod(name) { return /wirerod/i.test(name || ''); }
+function isRoll(name)    { return !isWirerod(name) && /roll/i.test(name || ''); }
 
 // ── meta ─────────────────────────────────────────────────────────────────────
 
@@ -76,229 +59,200 @@ const meta = {
     name:         'Wiremesh',
     cat_id:       null,
     cat_name:     'WIRE MESH',
-    description:  'Template Wiremesh — A4 landscape, CASH + KREDIT per lembar dan roll',
-    item_brand:   'HMESH',
+    description:  'Template Wiremesh — A5 landscape, 2 halaman (Lembar + Roll)',
+    // No item_brand filter — wirerod (brand="-") must appear at bottom of page 2
     custom_fields: [
-        { key: 'tebal_aktual', label: 'Tebal Aktual (mm)', type: 'text' },
-        { key: 'grade_label',  label: 'Grade (F/A/B/C)',   type: 'text' },
+        { key: 'grade_wm', label: 'Grade', type: 'text' },
     ],
 };
+
+// ── table builder ─────────────────────────────────────────────────────────────
+
+function buildTable(sortedItems, customValues, unitLabel) {
+    const hFill = '#E8ECF0';
+
+    function h(text, extra) {
+        return Object.assign({
+            text, bold: true, fillColor: hFill, alignment: 'center', fontSize: 9,
+        }, extra || {});
+    }
+
+    // Row 1: NAMA BARANG(rs3) | GRADE(rs3) | BERAT(rs2) | CASH(cs2) | KREDIT(cs2)
+    const headerRow1 = [
+        h('NAMA BARANG', { rowSpan: 3, verticalAlignment: 'middle' }),
+        h('GRADE',       { rowSpan: 3, verticalAlignment: 'middle' }),
+        h('BERAT',       { rowSpan: 2, verticalAlignment: 'middle' }),
+        h('CASH',   { colSpan: 2 }), {},
+        h('KREDIT', { colSpan: 2 }), {},
+    ];
+
+    // Row 2: (spans) | (spans) | (spans) | /Kg | /unitLabel | /Kg | /unitLabel
+    const headerRow2 = [
+        {}, {}, {},
+        h('/Kg'), h('/' + unitLabel),
+        h('/Kg'), h('/' + unitLabel),
+    ];
+
+    // Row 3: (spans) | (spans) | (kg) | (Rp) | (Rp) | (Rp) | (Rp)
+    const headerRow3 = [
+        {}, {},
+        h('(kg)'),
+        h('(Rp)'), h('(Rp)'), h('(Rp)'), h('(Rp)'),
+    ];
+
+    const bodyRows = sortedItems.map(function (item) {
+        const cv      = customValues[item.ig_id] || {};
+        const grade   = (cv.grade_wm || '').trim().toUpperCase() || null;
+        const weight  = parseFloat(item.weight) || 0;
+
+        const cashKg   = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
+        const kreditKg = (item.prices && item.prices.kredit_gudang && item.prices.kredit_gudang.current) || 0;
+
+        const cashUnit   = (cashKg   && weight) ? roundSpecial(cashKg   * weight) : 0;
+        const kreditUnit = (kreditKg && weight) ? roundSpecial(kreditKg * weight) : 0;
+
+        function dc(text, extra) {
+            return Object.assign({ text: text, fontSize: 9 }, extra || {});
+        }
+
+        return [
+            dc(item.name || EM,      { alignment: 'left' }),
+            dc(grade || EM,          { alignment: 'center' }),
+            dc(fmtBerat(weight),     { alignment: 'right' }),
+            dc(fmtPrice(cashKg),     { alignment: 'right' }),
+            dc(fmtPrice(cashUnit),   { alignment: 'right' }),
+            dc(fmtPrice(kreditKg),   { alignment: 'right' }),
+            dc(fmtPrice(kreditUnit), { alignment: 'right' }),
+        ];
+    });
+
+    if (bodyRows.length === 0) {
+        bodyRows.push([
+            { text: 'Tidak ada item', colSpan: 7, alignment: 'center', fontSize: 9, color: '#999' },
+            {}, {}, {}, {}, {}, {},
+        ]);
+    }
+
+    return {
+        table: {
+            headerRows: 3,
+            widths: ['32%', '8%', '12%', '12%', '12%', '12%', '12%'],
+            body: [headerRow1, headerRow2, headerRow3, ...bodyRows],
+        },
+        layout: {
+            hLineWidth: function () { return 0.5; },
+            vLineWidth: function () { return 0.5; },
+            hLineColor: function () { return '#888'; },
+            vLineColor: function () { return '#888'; },
+            paddingLeft:   function () { return 3; },
+            paddingRight:  function () { return 3; },
+            paddingTop:    function () { return 4; },
+            paddingBottom: function () { return 4; },
+        },
+    };
+}
 
 // ── render ────────────────────────────────────────────────────────────────────
 
 function render({ items, customValues }) {
-    const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY');
+    const _d      = moment().tz('Asia/Jakarta');
+    const _months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    const generatedAt = 'Jakarta, ' + _d.format('DD') + ' ' + _months[_d.month()] + ' ' + _d.format('YYYY HH:mm');
 
-    // ── 1. group items: TYPE → grade → { ulir, roll } ──────────────────────
-    const grouped = {};
+    // ── classify ───────────────────────────────────────────────────────────────
+    const lembarItems  = [];
+    const rollItems    = [];
+    const wirerodItems = [];
 
     for (const item of items) {
-        const cv    = customValues[item.ig_id] || {};
-        const grade = (cv.grade_label || '').trim().toUpperCase() || extractGradeFromName(item.name);
-        const type  = extractType(item.name);
-        if (!type || !grade) continue;
-
-        const isRoll = /\broll\b/i.test(item.name);
-        const cashKg   = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
-        const kreditKg = (item.prices && item.prices.kredit_gudang && item.prices.kredit_gudang.current) || 0;
-        const tebal    = parseFloat((cv.tebal_aktual || '').replace(',', '.')) || null;
-
-        if (!grouped[type])        grouped[type]        = {};
-        if (!grouped[type][grade]) grouped[type][grade] = { ulir: null, roll: null };
-
-        grouped[type][grade][isRoll ? 'roll' : 'ulir'] = {
-            weight: parseFloat(item.weight) || 0,
-            tebal,
-            cashKg,
-            kreditKg,
-        };
+        if (isWirerod(item.name))      wirerodItems.push(item);
+        else if (isRoll(item.name))    rollItems.push(item);
+        else                           lembarItems.push(item);
     }
 
-    // ── 2. sorted type list ─────────────────────────────────────────────────
-    const types = Object.keys(grouped).sort(function (a, b) {
-        return parseInt(a.replace('M-', '')) - parseInt(b.replace('M-', ''));
-    });
+    // ── sort ───────────────────────────────────────────────────────────────────
+    function sortItems(arr) {
+        return arr.slice().sort(function (a, b) {
+            const tA = extractTypeNum(a.name) || 9999;
+            const tB = extractTypeNum(b.name) || 9999;
+            if (tA !== tB) return tA - tB;
 
-    // ── 3. header cells ─────────────────────────────────────────────────────
-    // A4 landscape available ≈ 812pt; side panel 100 + 8 gap = 108 → table ≈ 704pt
-    // 13 col widths: [30,14,28,36,36, 50,90,50,90, 50,90,50,90] = 704
-    const HDK   = '#1E3A5F';  // dark blue — CASH/KREDIT title
-    const HCASH = '#C62828';  // red family — CASH sub-headers
-    const HKRD  = '#1565C0';  // blue family — KREDIT sub-headers
-    const HLIGHT = '#D0DAEA'; // light blue — row-3 column labels
+            const cvA = customValues[a.ig_id] || {};
+            const cvB = customValues[b.ig_id] || {};
+            const gA  = gradeSort((cvA.grade_wm || '').trim().toUpperCase());
+            const gB  = gradeSort((cvB.grade_wm || '').trim().toUpperCase());
+            if (gA !== gB) return gA - gB;
 
-    function hCell(text, opts) {
-        return Object.assign({
-            text, bold: true, fontSize: 7, alignment: 'center',
-            margin: [1, 2, 1, 2],
-        }, opts || {});
-    }
-
-    const headerRow1 = [
-        hCell('TIPE',       { rowSpan: 3, fillColor: HDK, color: '#FFF', fontSize: 8 }),
-        hCell('Gr',         { rowSpan: 3, fillColor: HDK, color: '#FFF', fontSize: 8 }),
-        hCell('Tbl\n(mm)',  { rowSpan: 3, fillColor: HDK, color: '#FFF' }),
-        hCell('Brt\nLbr\n(kg)',  { rowSpan: 3, fillColor: HDK, color: '#FFF' }),
-        hCell('Brt\nRoll\n(kg)', { rowSpan: 3, fillColor: HDK, color: '#FFF' }),
-        hCell('CASH',   { colSpan: 4, fillColor: HCASH, color: '#FFF', fontSize: 9 }), {}, {}, {},
-        hCell('KREDIT', { colSpan: 4, fillColor: HKRD,  color: '#FFF', fontSize: 9 }), {}, {}, {},
-    ];
-
-    const headerRow2 = [
-        {}, {}, {}, {}, {},
-        hCell('Lembar',     { colSpan: 2, fillColor: '#B71C1C', color: '#FFF' }), {},
-        hCell('Roll',       { colSpan: 2, fillColor: '#B71C1C', color: '#FFF' }), {},
-        hCell('Lembar',     { colSpan: 2, fillColor: '#0D47A1', color: '#FFF' }), {},
-        hCell('Roll',       { colSpan: 2, fillColor: '#0D47A1', color: '#FFF' }), {},
-    ];
-
-    const headerRow3 = [
-        {}, {}, {}, {}, {},
-        hCell('Rp/kg',   { fillColor: HLIGHT }),
-        hCell('Rp/lbr',  { fillColor: HLIGHT }),
-        hCell('Rp/kg',   { fillColor: HLIGHT }),
-        hCell('Rp/roll', { fillColor: HLIGHT }),
-        hCell('Rp/kg',   { fillColor: HLIGHT }),
-        hCell('Rp/lbr',  { fillColor: HLIGHT }),
-        hCell('Rp/kg',   { fillColor: HLIGHT }),
-        hCell('Rp/roll', { fillColor: HLIGHT }),
-    ];
-
-    // ── 4. body rows ────────────────────────────────────────────────────────
-    const tableBody = [headerRow1, headerRow2, headerRow3];
-
-    function dc(val, extra) {
-        return Object.assign({ text: val, fontSize: 7, margin: [1, 2, 2, 2] }, extra || {});
-    }
-
-    for (const type of types) {
-        const bgType = TYPE_COLORS[type] || '#FFFFFF';
-        const grades = GRADE_ORDER.filter(function (g) { return grouped[type][g]; });
-
-        grades.forEach(function (grade, idx) {
-            const ulir = grouped[type][grade].ulir;
-            const roll = grouped[type][grade].roll;
-
-            const cashLbrRp   = ulir ? roundSpecial(ulir.cashKg   * ulir.weight) : 0;
-            const cashRollRp  = roll ? roundSpecial(roll.cashKg   * roll.weight) : 0;
-            const kreditLbrRp = ulir ? roundSpecial(ulir.kreditKg * ulir.weight) : 0;
-            const kreditRollRp = roll ? roundSpecial(roll.kreditKg * roll.weight) : 0;
-
-            // prefer ulir tebal, fallback roll
-            const tebal = (ulir && ulir.tebal) ? ulir.tebal : (roll && roll.tebal ? roll.tebal : null);
-
-            const row = [
-                // TIPE: rowSpan on first grade row
-                idx === 0
-                    ? dc(type, { bold: true, fontSize: 8, alignment: 'center', rowSpan: grades.length, fillColor: bgType, margin: [1, 4, 1, 4] })
-                    : {},
-                // Grade
-                dc(grade, { bold: true, alignment: 'center', fillColor: bgType }),
-                // Tebal aktual
-                dc(fmtDec(tebal, 2), { alignment: 'center', fillColor: bgType }),
-                // Berat Lembar
-                dc(ulir ? fmtDec(ulir.weight, 2) : '', { alignment: 'right', fillColor: bgType }),
-                // Berat Roll
-                dc(roll ? fmtDec(roll.weight, 2) : '', { alignment: 'right', fillColor: bgType }),
-                // CASH Lembar
-                dc(ulir ? fmtNum(ulir.cashKg)  : '', { alignment: 'right', color: '#B71C1C' }),
-                dc(fmtNum(cashLbrRp),  { alignment: 'right', color: '#B71C1C', bold: true }),
-                // CASH Roll
-                dc(roll ? fmtNum(roll.cashKg)  : '', { alignment: 'right', color: '#B71C1C' }),
-                dc(fmtNum(cashRollRp), { alignment: 'right', color: '#B71C1C', bold: true }),
-                // KREDIT Lembar
-                dc(ulir ? fmtNum(ulir.kreditKg) : '', { alignment: 'right', color: '#0D47A1' }),
-                dc(fmtNum(kreditLbrRp),  { alignment: 'right', color: '#0D47A1', bold: true }),
-                // KREDIT Roll
-                dc(roll ? fmtNum(roll.kreditKg) : '', { alignment: 'right', color: '#0D47A1' }),
-                dc(fmtNum(kreditRollRp), { alignment: 'right', color: '#0D47A1', bold: true }),
-            ];
-
-            tableBody.push(row);
+            return a.name.localeCompare(b.name);
         });
     }
 
-    // ── 5. side panel ───────────────────────────────────────────────────────
-    const sideStack = [
-        { text: 'Kapasitas Tronton', bold: true, fontSize: 8, alignment: 'center', margin: [0, 0, 0, 4] },
-        {
-            table: {
-                widths: [22, '*'],
-                body: TRONTON_CAP.map(function (row) {
-                    return [
-                        { text: row[0] + ':', bold: true, fontSize: 7, border: [false, false, false, false] },
-                        { text: row[1],        fontSize: 7, border: [false, false, false, false] },
-                    ];
-                }),
-            },
-            layout: 'noBorders',
-            margin: [0, 0, 0, 10],
-        },
-        { text: 'Bahan Baku W.Rod', bold: true, fontSize: 8, alignment: 'center', margin: [0, 0, 0, 4] },
-    ].concat(WROD_PRICES.map(function (line) {
-        return { text: line, fontSize: 7, margin: [0, 1, 0, 1] };
-    }));
+    const sortedLembar  = sortItems(lembarItems);
+    const sortedRoll    = sortItems(rollItems);
+    const sortedWirerod = wirerodItems.slice().sort(function (a, b) {
+        return a.name.localeCompare(b.name);
+    });
 
-    // ── 6. docDef ────────────────────────────────────────────────────────────
+    // ── console audit ──────────────────────────────────────────────────────────
+    console.log('[wiremesh] Lembar:', sortedLembar.length,
+                '| Roll:', sortedRoll.length,
+                '| Wirerod (bottom of page 2):', sortedWirerod.length);
+    if (sortedLembar.length > 20) {
+        console.warn('[wiremesh] WARNING: lembar section has', sortedLembar.length,
+                     'items — may overflow page 1');
+    }
+
+    // ── build tables ───────────────────────────────────────────────────────────
+    const page2Items = sortedRoll.concat(sortedWirerod);
+
     const dd = {
-        pageSize:        'A4',
+        pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [15, 32, 15, 26],
-
-        header: function () {
-            return {
-                text:      'DAFTAR HARGA WIREMESH',
-                alignment: 'center',
-                bold:      true,
-                fontSize:  13,
-                margin:    [0, 9, 0, 0],
-            };
-        },
+        pageMargins:     [8, 30, 8, 36],  // bottom 36pt to fit 3-line footer at 8pt
 
         content: [
-            {
+            { text: 'WIREMESH',      bold: true, alignment: 'center', fontSize: 14, margin: [0, 0, 0, 6] },
+            buildTable(sortedLembar, customValues, 'Lbr'),
+
+            { text: 'WIREMESH ROLL', bold: true, alignment: 'center', fontSize: 14, margin: [0, 0, 0, 6], pageBreak: 'before' },
+            buildTable(page2Items, customValues, 'Roll'),
+        ],
+
+        footer: function (currentPage, pageCount) {
+            return {
+                margin: [8, 4, 8, 0],
                 columns: [
                     {
                         width: '*',
-                        table: {
-                            headerRows: 3,
-                            // 13 columns summing to ~704pt (A4 landscape minus margins and side panel)
-                            widths: [30, 14, 28, 36, 36, 50, 90, 50, 90, 50, 90, 50, 90],
-                            body: tableBody,
-                        },
-                        layout: {
-                            hLineWidth: function () { return 0.5; },
-                            vLineWidth: function () { return 0.5; },
-                            hLineColor: function () { return '#999'; },
-                            vLineColor: function () { return '#999'; },
-                            paddingLeft:   function () { return 2; },
-                            paddingRight:  function () { return 2; },
-                            paddingTop:    function () { return 1; },
-                            paddingBottom: function () { return 1; },
-                        },
+                        stack: [
+                            { text: '• Harga sudah termasuk PPN',                                          fontSize: 8, color: '#444', margin: [0, 0, 0, 1] },
+                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',              fontSize: 8, color: '#444', margin: [0, 0, 0, 1] },
+                            { text: '• Kapasitas tronton: M5=350, M6=300, M7=250, M8=250 lbr/tronton',     fontSize: 8, color: '#444' },
+                        ],
                     },
                     {
-                        width: 100,
-                        margin: [8, 0, 0, 0],
-                        stack: sideStack,
+                        width:     'auto',
+                        text:      'Page ' + currentPage + '/' + pageCount,
+                        fontSize:  8,
+                        color:     '#444',
+                        alignment: 'center',
+                        margin:    [8, 0, 8, 0],
                     },
-                ],
-            },
-        ],
-
-        footer: function () {
-            return {
-                margin: [15, 4, 15, 0],
-                columns: [
-                    { text: '* Harga sudah termasuk PPN', fontSize: 8, italics: true, color: '#555' },
-                    { text: 'Update: ' + generatedAt,     fontSize: 8, alignment: 'right', color: '#555' },
+                    {
+                        width:     'auto',
+                        text:      generatedAt,
+                        fontSize:  8,
+                        italics:   true,
+                        color:     '#444',
+                        alignment: 'right',
+                    },
                 ],
             };
         },
 
         defaultStyle: {
             font:     'Helvetica',
-            fontSize: 8,
+            fontSize: 9,
         },
     };
 
