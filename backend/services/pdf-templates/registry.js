@@ -12,6 +12,7 @@ const TEMPLATES = {
     unp:          require('./template_unp'),
     sheetpile:    require('./template_sheetpile'),
     wiremesh:     require('./template_wiremesh'),
+    h_beam:       require('./template_h_beam'),
 };
 
 let _catCache    = null;
