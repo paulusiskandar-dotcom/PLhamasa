@@ -80,9 +80,24 @@ function render({ items, customValues }) {
 
     const hFill = '#E8ECF0';
 
-    function h(text, extra) {
+    function hLabel(text, extra) {
         return Object.assign({
             text:              text,
+            bold:              true,
+            fontSize:          11,
+            color:             '#111',
+            fillColor:         hFill,
+            alignment:         'center',
+            verticalAlignment: 'middle',
+        }, extra || {});
+    }
+
+    function hUnit(text, extra) {
+        return Object.assign({
+            text:              text,
+            italics:           true,
+            fontSize:          9.5,
+            color:             '#444',
             fillColor:         hFill,
             alignment:         'center',
             verticalAlignment: 'middle',
@@ -90,18 +105,28 @@ function render({ items, customValues }) {
     }
 
     const headerRow1 = [
-        h('UKURAN', { colSpan: 4, bold: true, fontSize: 11 }), {}, {}, {},
-        h([{ text: 'BERAT/LBR', bold: true, fontSize: 11 }, { text: '\n(kg)', fontSize: 9.5 }], { rowSpan: 2 }),
-        h('GRADE', { rowSpan: 2, bold: true, fontSize: 11 }),
-        h([{ text: 'HARGA', bold: true, fontSize: 11 }, { text: '\n(Rp/lbr)', fontSize: 9.5 }], { rowSpan: 2 }),
+        hLabel('UKURAN', { colSpan: 4 }), {}, {}, {},
+        hLabel('BERAT',  { rowSpan: 2 }),
+        hLabel('GRADE',  { rowSpan: 3 }),
+        hLabel('HARGA',  { rowSpan: 2 }),
     ];
 
     const headerRow2 = [
-        h([{ text: 'TINGGI',  bold: true, fontSize: 11 }, { text: '\n(inch)', fontSize: 9.5 }]),
-        h([{ text: 'TEBAL',   bold: true, fontSize: 11 }, { text: '\n(inch)', fontSize: 9.5 }]),
-        h([{ text: 'LEBAR',   bold: true, fontSize: 11 }, { text: '\n(ft)',   fontSize: 9.5 }]),
-        h([{ text: 'PANJANG', bold: true, fontSize: 11 }, { text: '\n(ft)',   fontSize: 9.5 }]),
+        hLabel('TINGGI'),
+        hLabel('TEBAL'),
+        hLabel('LEBAR'),
+        hLabel('PANJANG'),
         {}, {}, {},
+    ];
+
+    const headerRow3 = [
+        hUnit('(inch)'),
+        hUnit('(inch)'),
+        hUnit('(ft)'),
+        hUnit('(ft)'),
+        hUnit('(kg)'),
+        {},
+        hUnit('(Rp/lbr)'),
     ];
 
     const dd = {
@@ -119,9 +144,9 @@ function render({ items, customValues }) {
             },
             {
                 table: {
-                    headerRows: 2,
+                    headerRows: 3,
                     widths: ['11%', '11%', '11%', '11%', '14%', '14%', '28%'],
-                    body:   [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
+                    body:   [headerRow1, headerRow2, headerRow3, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
                     hLineWidth: function () { return 0.5; },
