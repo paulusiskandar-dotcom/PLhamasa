@@ -13,6 +13,7 @@ const TEMPLATES = {
     sheetpile:    require('./template_sheetpile'),
     wiremesh:     require('./template_wiremesh'),
     h_beam:       require('./template_h_beam'),
+    grating:      require('./template_grating'),
 };
 
 let _catCache    = null;
