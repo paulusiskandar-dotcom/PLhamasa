@@ -14,6 +14,7 @@ const TEMPLATES = {
     wiremesh:     require('./template_wiremesh'),
     h_beam:       require('./template_h_beam'),
     grating:      require('./template_grating'),
+    plat_strip:   require('./template_plat_strip'),
 };
 
 let _catCache    = null;
