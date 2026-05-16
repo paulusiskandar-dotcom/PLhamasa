@@ -74,8 +74,8 @@ const meta = {
 
 // ── layout constants ──────────────────────────────────────────────────────────
 
-const ROWS_PER_COL_P1 = 19;  // page 1 (title memotong ruang)
-const ROWS_PER_COL    = 21;  // page 2+
+const ROWS_PER_COL_P1 = 22;  // page 1 (title memotong ruang)
+const ROWS_PER_COL    = 24;  // page 2+
 
 const FS_H   = 9;
 const FS_B   = 8;
