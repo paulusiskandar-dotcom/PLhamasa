@@ -74,8 +74,7 @@ const meta = {
 
 // ── layout constants ──────────────────────────────────────────────────────────
 
-const ROWS_PER_COL_P1 = 22;  // page 1 (title memotong ruang)
-const ROWS_PER_COL    = 24;  // page 2+
+const ROWS_PER_COL = 22;
 
 const FS_H   = 9;
 const FS_B   = 8;
@@ -99,13 +98,13 @@ function h(text, extra) {
 
 function buildTableNode(rowItems) {
     const headerRow1 = [
-        h('UKURAN', { rowSpan: 2 }),
+        h('UKURAN'),
         h('BERAT'),
         h('CASH',   { colSpan: 2 }), {},
         h('KREDIT', { colSpan: 2 }), {},
     ];
     const headerRow2 = [
-        {},
+        h('6 M'),
         h('kg'),
         h('/kg'),
         h('/btg'),
@@ -130,7 +129,7 @@ function buildTableNode(rowItems) {
         const ukuran = parsed ? parsed.display : (item.name || '-');
 
         body.push([
-            c(ukuran,                                          'center'),
+            Object.assign(c(ukuran, 'left'), { margin: [5, 0, 0, 0] }),
             c(weight   > 0 ? fmtBerat(weight)   : '-',        'center'),
             c(cashKg   > 0 ? fmtNum(cashKg)     : '-',        'right'),
             c(cashBtg  > 0 ? fmtNum(cashBtg)    : '-',        'right'),
@@ -192,7 +191,7 @@ function render({ items }) {
     const pages = [];
     let cursor = 0;
     while (cursor < allItems.length) {
-        const perCol = pages.length === 0 ? ROWS_PER_COL_P1 : ROWS_PER_COL;
+        const perCol = ROWS_PER_COL;
         const chunk  = allItems.slice(cursor, cursor + perCol * 2);
         pages.push({
             left:  chunk.slice(0, perCol),
@@ -202,30 +201,27 @@ function render({ items }) {
     }
     if (!pages.length) pages.push({ left: [], right: [] });
 
-    // Content: title only on page 1; column blocks with pageBreak on page 2+
+    // Content: title repeats on every page; pageBreak attached to title on page 2+
     const content = [];
 
     pages.forEach(function (pg, i) {
-        if (i === 0) {
-            content.push({
-                text:      'PLAT STRIP',
-                alignment: 'center',
-                bold:      true,
-                fontSize:  14,
-                margin:    [0, 0, 0, 4],
-            });
-        }
+        const title = {
+            text:      'PLAT STRIP',
+            alignment: 'center',
+            bold:      true,
+            fontSize:  14,
+            margin:    [0, 0, 0, 4],
+        };
+        if (i > 0) title.pageBreak = 'before';
+        content.push(title);
 
-        const block = {
+        content.push({
             columns: [
                 { width: '*', stack: [buildTableNode(pg.left)]  },
                 { width: 10,  text: ''                          },
                 { width: '*', stack: [buildTableNode(pg.right)] },
             ],
-        };
-
-        if (i > 0) block.pageBreak = 'before';
-        content.push(block);
+        });
     });
 
     const dd = {
