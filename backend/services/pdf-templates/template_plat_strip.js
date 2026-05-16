@@ -42,43 +42,135 @@ function fmtBerat(b) {
     }).format(n);
 }
 
-// Sort key only — display always uses raw i_name
-const RE_SORT = /Plat\s+Strip\s+(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)/i;
+// ── ukuran parsing ────────────────────────────────────────────────────────────
 
-function parseSortKey(name) {
+const RE_PLAT = /Plat\s+Strip\s+(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)\s*x\s*(\d+(?:[.,]\d+)?)\s*m(\s+full)?/i;
+
+function fmtPart(rawStr) {
+    const n = parseFloat(rawStr.replace(',', '.'));
+    return Number.isInteger(n) ? String(Math.round(n)) : rawStr.replace(',', '.');
+}
+
+function parseUkuran(name) {
     if (!name) return null;
-    const m = RE_SORT.exec(name);
+    const m = RE_PLAT.exec(name);
     if (!m) return null;
-    return {
-        tebal: parseFloat(m[1].replace(',', '.')),
-        lebar: parseFloat(m[2].replace(',', '.')),
-    };
+    const tebal  = parseFloat(m[1].replace(',', '.'));
+    const lebar  = parseFloat(m[2].replace(',', '.'));
+    const isFull = !!m[4];
+    const display = fmtPart(m[1]) + ' x ' + fmtPart(m[2]) + (isFull ? ' (F)' : '');
+    return { tebal, lebar, isFull, display };
 }
 
 // ── meta ──────────────────────────────────────────────────────────────────────
 
 const meta = {
-    name:         'Plat Strip',
-    cat_id:       null,
-    cat_name:     'PLAT STRIP',
-    description:  'Template Plat Strip — A5 landscape, gudang only (cash & kredit)',
+    name:          'Plat Strip',
+    cat_id:        null,
+    cat_name:      'PLAT STRIP',
+    description:   'Template Plat Strip — A5 landscape, 2-kolom, gudang only (cash & kredit)',
     custom_fields: [],
 };
+
+// ── layout constants ──────────────────────────────────────────────────────────
+
+const ROWS_PER_COL_P1 = 19;  // page 1 (title memotong ruang)
+const ROWS_PER_COL    = 21;  // page 2+
+
+const FS_H   = 9;
+const FS_B   = 8;
+const H_FILL = '#E8ECF0';
+const BORDER = '#888';
+
+// ── header cell helper ────────────────────────────────────────────────────────
+
+function h(text, extra) {
+    return Object.assign({
+        text:               text,
+        bold:               true,
+        alignment:          'center',
+        fontSize:           FS_H,
+        fillColor:          H_FILL,
+        verticalAlignment:  'middle',
+    }, extra || {});
+}
+
+// ── table node ────────────────────────────────────────────────────────────────
+
+function buildTableNode(rowItems) {
+    const headerRow1 = [
+        h('UKURAN', { rowSpan: 2 }),
+        h('BERAT'),
+        h('CASH',   { colSpan: 2 }), {},
+        h('KREDIT', { colSpan: 2 }), {},
+    ];
+    const headerRow2 = [
+        {},
+        h('kg'),
+        h('/kg'),
+        h('/btg'),
+        h('/kg'),
+        h('/btg'),
+    ];
+
+    function c(text, alignment) {
+        return { text: String(text), alignment: alignment, fontSize: FS_B };
+    }
+
+    const body = [headerRow1, headerRow2];
+
+    for (const item of rowItems) {
+        const weight   = parseFloat(item.weight) || 0;
+        const cashKg   = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
+        const kreditKg = (item.prices && item.prices.kredit_gudang && item.prices.kredit_gudang.current) || 0;
+        const cashBtg   = (cashKg   > 0 && weight > 0) ? roundSpecial(cashKg   * weight) : 0;
+        const kreditBtg = (kreditKg > 0 && weight > 0) ? roundSpecial(kreditKg * weight) : 0;
+
+        const parsed = parseUkuran(item.name || '');
+        const ukuran = parsed ? parsed.display : (item.name || '-');
+
+        body.push([
+            c(ukuran,                                          'center'),
+            c(weight   > 0 ? fmtBerat(weight)   : '-',        'center'),
+            c(cashKg   > 0 ? fmtNum(cashKg)     : '-',        'right'),
+            c(cashBtg  > 0 ? fmtNum(cashBtg)    : '-',        'right'),
+            c(kreditKg > 0 ? fmtNum(kreditKg)   : '-',        'right'),
+            c(kreditBtg > 0 ? fmtNum(kreditBtg) : '-',        'right'),
+        ]);
+    }
+
+    return {
+        table: {
+            headerRows: 2,
+            widths: ['18%', '14%', '17%', '17%', '17%', '17%'],
+            body,
+        },
+        layout: {
+            hLineWidth: function () { return 0.5; },
+            vLineWidth: function () { return 0.5; },
+            hLineColor: function () { return BORDER; },
+            vLineColor: function () { return BORDER; },
+            paddingLeft:   function () { return 3; },
+            paddingRight:  function () { return 3; },
+            paddingTop:    function () { return 3; },
+            paddingBottom: function () { return 3; },
+        },
+    };
+}
 
 // ── render ────────────────────────────────────────────────────────────────────
 
 function render({ items }) {
     const generatedAt = formatJakartaTimestamp();
 
-    // ── Sort: tebal ASC → lebar ASC → i_name ASC ─────────────────────────────
-
+    // Sort: tebal ASC → lebar ASC → isFull ASC; regex-fail items last by i_name
     const parsed = [];
     const failed = [];
 
     for (const item of items) {
-        const sk = parseSortKey(item.name);
-        if (sk) {
-            parsed.push({ item, tebal: sk.tebal, lebar: sk.lebar });
+        const p = parseUkuran(item.name || '');
+        if (p) {
+            parsed.push({ item: item, tebal: p.tebal, lebar: p.lebar, isFull: p.isFull });
         } else {
             console.warn('[template_plat_strip] regex fail ig_id=' + item.ig_id + ' name="' + item.name + '"');
             failed.push(item);
@@ -86,118 +178,73 @@ function render({ items }) {
     }
 
     parsed.sort(function (a, b) {
-        return (a.tebal - b.tebal) || (a.lebar - b.lebar) || (a.item.name || '').localeCompare(b.item.name || '');
+        return (a.tebal - b.tebal) ||
+               (a.lebar - b.lebar) ||
+               (a.isFull ? 1 : 0) - (b.isFull ? 1 : 0);
     });
     failed.sort(function (a, b) {
         return (a.name || '').localeCompare(b.name || '');
     });
 
-    const sorted = parsed.map(function (e) { return e.item; }).concat(failed);
+    const allItems = parsed.map(function (e) { return e.item; }).concat(failed);
 
-    // ── Header & body cell builders ───────────────────────────────────────────
-
-    const FS_H  = 10;
-    const FS_B  = 9;
-    const hFill = '#E8ECF0';
-
-    function h(text, extra) {
-        return Object.assign({
-            text: text, bold: true, alignment: 'center',
-            fontSize: FS_H, fillColor: hFill,
-        }, extra || {});
+    // Column-major pagination: fill left column, then right, page-by-page
+    const pages = [];
+    let cursor = 0;
+    while (cursor < allItems.length) {
+        const perCol = pages.length === 0 ? ROWS_PER_COL_P1 : ROWS_PER_COL;
+        const chunk  = allItems.slice(cursor, cursor + perCol * 2);
+        pages.push({
+            left:  chunk.slice(0, perCol),
+            right: chunk.slice(perCol),
+        });
+        cursor += perCol * 2;
     }
+    if (!pages.length) pages.push({ left: [], right: [] });
 
-    function bc(text, alignment, extra) {
-        return Object.assign({ text: String(text), alignment: alignment, fontSize: FS_B }, extra || {});
-    }
+    // Content: title only on page 1; column blocks with pageBreak on page 2+
+    const content = [];
 
-    // ── Header rows (7 columns) ───────────────────────────────────────────────
-    //
-    // Col layout: UKURAN | BERAT(×2) | CASH /kg | CASH /btg | CREDIT /kg | CREDIT /btg
-    //
-    // Row 1: UKURAN(rowSpan=2) | BERAT(colSpan=2) | CASH(colSpan=2) | CREDIT(colSpan=2)
-    // Row 2:       {}           |   kg(colSpan=2)  |   /kg  |  /btg  |   /kg   |  /btg
-
-    const headerRow1 = [
-        h('UKURAN', { rowSpan: 2, verticalAlignment: 'middle' }),
-        h('BERAT',  { colSpan: 2, verticalAlignment: 'middle' }), {},
-        h('CASH',   { colSpan: 2, verticalAlignment: 'middle' }), {},
-        h('CREDIT', { colSpan: 2, verticalAlignment: 'middle' }), {},
-    ];
-
-    const headerRow2 = [
-        {},
-        h('kg',   { colSpan: 2, verticalAlignment: 'middle' }), {},
-        h('/kg',  { verticalAlignment: 'middle' }),
-        h('/btg', { verticalAlignment: 'middle' }),
-        h('/kg',  { verticalAlignment: 'middle' }),
-        h('/btg', { verticalAlignment: 'middle' }),
-    ];
-
-    // ── Body rows ─────────────────────────────────────────────────────────────
-    // BERAT uses colSpan=2 to span the two narrow columns under BERAT header
-
-    const bodyRows = sorted.map(function (it) {
-        const weight   = parseFloat(it.weight) || 0;
-        const cashKg   = (it.prices && it.prices.cash_gudang   && it.prices.cash_gudang.current)   || 0;
-        const kreditKg = (it.prices && it.prices.kredit_gudang && it.prices.kredit_gudang.current) || 0;
-        const cashBtg   = (cashKg   > 0 && weight > 0) ? roundSpecial(cashKg   * weight) : 0;
-        const kreditBtg = (kreditKg > 0 && weight > 0) ? roundSpecial(kreditKg * weight) : 0;
-
-        return [
-            bc(it.name || '-', 'left'),
-            Object.assign(bc(weight > 0 ? fmtBerat(weight) : '-', 'center'), { colSpan: 2 }), {},
-            bc(cashKg   > 0 ? fmtNum(cashKg)   : '-', 'right'),
-            bc(cashBtg  > 0 ? fmtNum(cashBtg)  : '-', 'right'),
-            bc(kreditKg > 0 ? fmtNum(kreditKg) : '-', 'right'),
-            bc(kreditBtg > 0 ? fmtNum(kreditBtg) : '-', 'right'),
-        ];
-    });
-
-    // ── Document definition ───────────────────────────────────────────────────
-
-    const dd = {
-        pageSize:        'A5',
-        pageOrientation: 'landscape',
-        pageMargins:     [8, 10, 8, 25],
-
-        content: [
-            {
+    pages.forEach(function (pg, i) {
+        if (i === 0) {
+            content.push({
                 text:      'PLAT STRIP',
                 alignment: 'center',
                 bold:      true,
                 fontSize:  14,
                 margin:    [0, 0, 0, 4],
-            },
-            {
-                table: {
-                    headerRows: 2,
-                    widths: ['24%', '8%', '8%', '15%', '15%', '15%', '15%'],
-                    body: [headerRow1, headerRow2].concat(bodyRows),
-                },
-                layout: {
-                    hLineWidth: function () { return 0.5; },
-                    vLineWidth: function () { return 0.5; },
-                    hLineColor: function () { return '#888'; },
-                    vLineColor: function () { return '#888'; },
-                    paddingLeft:   function () { return 3; },
-                    paddingRight:  function () { return 3; },
-                    paddingTop:    function () { return 4; },
-                    paddingBottom: function () { return 4; },
-                },
-            },
-        ],
+            });
+        }
+
+        const block = {
+            columns: [
+                { width: '*', stack: [buildTableNode(pg.left)]  },
+                { width: 10,  text: ''                          },
+                { width: '*', stack: [buildTableNode(pg.right)] },
+            ],
+        };
+
+        if (i > 0) block.pageBreak = 'before';
+        content.push(block);
+    });
+
+    const dd = {
+        pageSize:        'A5',
+        pageOrientation: 'landscape',
+        pageMargins:     [8, 8, 8, 25],
 
         footer: function (currentPage, pageCount) {
             return {
                 margin: [8, 5, 8, 0],
                 columns: [
-                    { text: '• Harap lihat stock untuk panjang-panjangnya', alignment: 'left',   fontSize: 7.5, color: '#444', width: '*'    },
-                    { text: 'Page ' + currentPage + '/' + pageCount,        alignment: 'center', fontSize: 7.5, color: '#444', width: 'auto' },
-                    { text: generatedAt,                                      alignment: 'right',  fontSize: 7.5, color: '#444', width: '*'    },
+                    { text: '• Harap lihat stock untuk panjang-panjangnya', alignment: 'left',   fontSize: 7, color: '#444', width: '*'    },
+                    { text: 'Page ' + currentPage + '/' + pageCount,        alignment: 'center', fontSize: 7, color: '#444', width: 'auto' },
+                    { text: generatedAt,                                      alignment: 'right',  fontSize: 7, color: '#444', width: '*'    },
                 ],
             };
         },
+
+        content: content,
 
         defaultStyle: {
             font:     'Helvetica',
