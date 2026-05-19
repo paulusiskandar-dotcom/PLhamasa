@@ -43,9 +43,16 @@ function parseHBeamName(name) {
     };
 }
 
-function itemDisplayLabel(size, size2) {
-    const prefix = size >= 400 ? 'WB' : 'H';
-    return size2 !== undefined ? `${prefix} ${size} x ${size2}` : `${prefix} ${size}`;
+function detectBeamType(name) {
+    const lower = name.toLowerCase();
+    if (lower.startsWith('welded beam') || lower.startsWith('welded ')) return 'WB';
+    if (lower.startsWith('h-beam') || lower.startsWith('h beam')) return 'H';
+    console.warn('[h-beam] unknown beam type:', name);
+    return 'H';
+}
+
+function itemDisplayLabel(beamType, size, size2) {
+    return size2 !== undefined ? `${beamType} ${size} x ${size2}` : `${beamType} ${size}`;
 }
 
 // i_brand → page (1|2) and column (0..3) on that page.
@@ -139,9 +146,10 @@ function render({ items, customValues }) {
         const group = sizeToGroup(size);
         if (!group) continue;
 
-        const label = itemDisplayLabel(size, parsed.size2);
+        const beamType = detectBeamType(it.name);
+        const label = itemDisplayLabel(beamType, size, parsed.size2);
         if (!labelMeta[label]) {
-            labelMeta[label] = { size, hasDim2: parsed.size2 !== undefined };
+            labelMeta[label] = { size, hasDim2: parsed.size2 !== undefined, beamType };
         }
 
         const pCash = (it.prices && it.prices.cash_pabrik && it.prices.cash_pabrik.current) || 0;
@@ -175,11 +183,13 @@ function render({ items, customValues }) {
         if (gCash > 0) bottomPrices[group][mapping.page][mapping.col].gudang.push(gCash);
     }
 
-    // Sort by size ASC, then single-dim before dual-dim within same size
+    // Sort: size ASC, then H before WB (same size), then dual-dim before single-dim
     const orderedLabels = Object.keys(body).sort(function (a, b) {
         const ma = labelMeta[a], mb = labelMeta[b];
         if (ma.size !== mb.size) return ma.size - mb.size;
-        return (ma.hasDim2 ? 1 : 0) - (mb.hasDim2 ? 1 : 0);
+        if (ma.beamType !== mb.beamType) return ma.beamType === 'H' ? -1 : 1;
+        if (ma.hasDim2 !== mb.hasDim2) return ma.hasDim2 ? -1 : 1;
+        return 0;
     });
 
     const HEADER_FILL      = '#E8ECF0';
