@@ -233,7 +233,7 @@ function render({ items }) {
             return {
                 margin: [8, 5, 8, 0],
                 columns: [
-                    { text: '• Harap lihat stock untuk panjang-panjangnya', alignment: 'left',   fontSize: 7, color: '#444', width: '*'    },
+                    { text: '',                                             alignment: 'left',   width: '*'    },
                     { text: 'Page ' + currentPage + '/' + pageCount,        alignment: 'center', fontSize: 7, color: '#444', width: 'auto' },
                     { text: generatedAt,                                      alignment: 'right',  fontSize: 7, color: '#444', width: '*'    },
                 ],
