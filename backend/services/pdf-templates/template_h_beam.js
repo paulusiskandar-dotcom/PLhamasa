@@ -129,7 +129,7 @@ function render({ items, customValues }) {
     const body       = {};
     const weights    = {};
     const sizeUkuran = {};
-    const labelMeta  = {}; // label → { size, hasDim2 }
+    const labelMeta  = {}; // label → { size, hasDim2, beamType }
     // bottomPrices[group][page][col] = { pabrik: [], gudang: [] }
     const bottomPrices = {};
 
@@ -199,16 +199,18 @@ function render({ items, customValues }) {
     function h(text, extra) {
         return Object.assign({
             text: text, bold: true, fillColor: HEADER_FILL,
-            alignment: 'center', fontSize: 9, verticalAlignment: 'middle',
+            alignment: 'center', fontSize: 9,
         }, extra || {});
     }
     function ph() {
-        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL, verticalAlignment: 'middle' };
+        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL };
     }
     function phBottom() {
-        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL, verticalAlignment: 'middle' };
+        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL };
     }
 
+    // Symmetric padding (equal top & bottom) gives visual vertical centering.
+    // No forced heights — rows auto-size to content + padding.
     const tableLayout = {
         hLineWidth: function () { return 0.5; },
         vLineWidth: function () { return 0.5; },
@@ -216,13 +218,9 @@ function render({ items, customValues }) {
         vLineColor: function () { return '#888'; },
         paddingLeft:   function () { return 3; },
         paddingRight:  function () { return 3; },
-        paddingTop:    function () { return 1; },
-        paddingBottom: function () { return 1; },
+        paddingTop:    function () { return 3; },
+        paddingBottom: function () { return 3; },
     };
-
-    const ROW_H_BODY   = 12;
-    const ROW_H_BOTTOM = 12;
-    const ROW_H_HEADER = undefined; // auto
 
     function buildPage(pageIndex) {
         const pageNum  = pageIndex + 1;
@@ -238,8 +236,8 @@ function render({ items, customValues }) {
         };
 
         const bodyHeader1 = [
-            h('UKURAN',     { rowSpan: 2, verticalAlignment: 'middle' }),
-            h('BERAT\n(kg)',{ rowSpan: 2, verticalAlignment: 'middle' }),
+            h('UKURAN',      { rowSpan: 2 }),
+            h('BERAT\n(kg)', { rowSpan: 2 }),
             h(brands[0], { colSpan: 2 }), {},
             h(brands[1], { colSpan: 2 }), {},
             h(brands[2], { colSpan: 2 }), {},
@@ -257,8 +255,8 @@ function render({ items, customValues }) {
             const displayText = sizeUkuran[lbl] || lbl;
             const w           = weights[lbl];
             const row = [
-                { text: displayText, alignment: 'left',   fontSize: 9, verticalAlignment: 'middle' },
-                { text: fmtBerat(w), alignment: 'center', fontSize: 9, verticalAlignment: 'middle' },
+                { text: displayText, alignment: 'left',   fontSize: 9 },
+                { text: fmtBerat(w), alignment: 'center', fontSize: 9 },
             ];
             for (let col = 0; col < 4; col++) {
                 if (!hasData[col]) {
@@ -267,11 +265,11 @@ function render({ items, customValues }) {
                 }
                 const data = body[lbl] && body[lbl][pageNum] && body[lbl][pageNum][col];
                 if (!data) {
-                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999', verticalAlignment: 'middle' });
-                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999', verticalAlignment: 'middle' });
+                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999' });
+                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999' });
                 } else {
-                    row.push({ text: fmtNum(data.pab_btg), alignment: 'right', fontSize: 9, verticalAlignment: 'middle' });
-                    row.push({ text: fmtNum(data.gud_btg), alignment: 'right', fontSize: 9, verticalAlignment: 'middle' });
+                    row.push({ text: fmtNum(data.pab_btg), alignment: 'right', fontSize: 9 });
+                    row.push({ text: fmtNum(data.gud_btg), alignment: 'right', fontSize: 9 });
                 }
             }
             return row;
@@ -281,7 +279,6 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['17%', '7%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
-                heights: function (r) { return r < 2 ? ROW_H_HEADER : ROW_H_BODY; },
                 body: [bodyHeader1, bodyHeader2].concat(bodyRows),
             },
             layout: tableLayout,
@@ -289,7 +286,7 @@ function render({ items, customValues }) {
 
         const bottomTitle = { text: 'Harga / Kg', fontSize: 10, margin: [0, 6, 0, 2] };
         const bottomHeader1 = [
-            h('KELOMPOK UKURAN', { rowSpan: 2, verticalAlignment: 'middle', alignment: 'left' }),
+            h('KELOMPOK UKURAN', { rowSpan: 2, alignment: 'left' }),
             h(brands[0], { colSpan: 2 }), {},
             h(brands[1], { colSpan: 2 }), {},
             h(brands[2], { colSpan: 2 }), {},
@@ -304,7 +301,7 @@ function render({ items, customValues }) {
         ];
 
         const bottomRows = GROUP_LABELS.map(function (grp) {
-            const row = [{ text: grp, alignment: 'left', fontSize: 9, fillColor: BOTTOM_FILL, verticalAlignment: 'middle' }];
+            const row = [{ text: grp, alignment: 'left', fontSize: 9, fillColor: BOTTOM_FILL }];
             for (let col = 0; col < 4; col++) {
                 if (!hasData[col]) {
                     row.push(phBottom()); row.push(phBottom());
@@ -313,8 +310,8 @@ function render({ items, customValues }) {
                 const bucket = bottomPrices[grp] && bottomPrices[grp][pageNum] && bottomPrices[grp][pageNum][col];
                 const pab = mode(bucket && bucket.pabrik);
                 const gud = mode(bucket && bucket.gudang);
-                row.push({ text: fmtNum(pab), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL, verticalAlignment: 'middle' });
-                row.push({ text: fmtNum(gud), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL, verticalAlignment: 'middle' });
+                row.push({ text: fmtNum(pab), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL });
+                row.push({ text: fmtNum(gud), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL });
             }
             return row;
         });
@@ -323,7 +320,6 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['24%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
-                heights: function (r) { return r < 2 ? ROW_H_HEADER : ROW_H_BOTTOM; },
                 body: [bottomHeader1, bottomHeader2].concat(bottomRows),
             },
             layout: tableLayout,
