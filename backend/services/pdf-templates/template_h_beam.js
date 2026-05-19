@@ -31,13 +31,21 @@ function fmtBerat(b) {
 
 function parseHBeamName(name) {
     if (!name) return null;
-    const m = name.match(/(\d+)\s*[xX]\s*(\d+)\s*[xX]\s*([\d.]+)\s*[mM]\b/);
-    if (!m) return null;
+    const m = name.match(/(\d+)\s*[xX]\s*(?:(\d+)\s*[xX]\s*)?([\d.]+)\s*[mM]\b/);
+    if (!m) {
+        console.warn('[h-beam parse] skip:', name);
+        return null;
+    }
     return {
         size:   parseInt(m[1], 10),
-        size2:  parseInt(m[2], 10),
+        size2:  m[2] !== undefined ? parseInt(m[2], 10) : undefined,
         length: parseFloat(m[3]),
     };
+}
+
+function itemDisplayLabel(size, size2) {
+    const prefix = size >= 400 ? 'WB' : 'H';
+    return size2 !== undefined ? `${prefix} ${size} x ${size2}` : `${prefix} ${size}`;
 }
 
 // i_brand → page (1|2) and column (0..3) on that page.
@@ -60,21 +68,6 @@ const PAGE_BRANDS = [
 const PAGE_HAS_DATA = [
     [true, true, true, false],
     [true, true, false, true],
-];
-
-const CANONICAL_SIZES = [
-    { key: 100, label: 'H 100'  },
-    { key: 125, label: 'H 125'  },
-    { key: 150, label: 'H 150'  },
-    { key: 175, label: 'H 175'  },
-    { key: 200, label: 'H 200'  },
-    { key: 250, label: 'H 250'  },
-    { key: 300, label: 'H 300'  },
-    { key: 350, label: 'H 350'  },
-    { key: 400, label: 'WB 400' },
-    { key: 700, label: 'WB 700' },
-    { key: 800, label: 'WB 800' },
-    { key: 900, label: 'WB 900' },
 ];
 
 const GROUP_LABELS = [
@@ -125,10 +118,11 @@ function render({ items, customValues }) {
 
     customValues = customValues || {};
 
-    // body[size][page][col] = { pab_btg, gud_btg }
-    const body = {};
-    const weights = {};
+    // body[label][page][col] = { pab_btg, gud_btg }
+    const body       = {};
+    const weights    = {};
     const sizeUkuran = {};
+    const labelMeta  = {}; // label → { size, hasDim2 }
     // bottomPrices[group][page][col] = { pabrik: [], gudang: [] }
     const bottomPrices = {};
 
@@ -140,30 +134,35 @@ function render({ items, customValues }) {
         const mapping = BRAND_MAP[brand];
         if (!mapping) continue;
 
-        const size = parsed.size;
-        const len  = parsed.length;
+        const size  = parsed.size;
+        const len   = parsed.length;
         const group = sizeToGroup(size);
         if (!group) continue;
+
+        const label = itemDisplayLabel(size, parsed.size2);
+        if (!labelMeta[label]) {
+            labelMeta[label] = { size, hasDim2: parsed.size2 !== undefined };
+        }
 
         const pCash = (it.prices && it.prices.cash_pabrik && it.prices.cash_pabrik.current) || 0;
         const gCash = (it.prices && it.prices.cash_gudang && it.prices.cash_gudang.current) || 0;
         const weight = parseFloat(it.weight) || 0;
 
         if (len === 12) {
-            if (!body[size]) body[size] = {};
-            if (!body[size][mapping.page]) body[size][mapping.page] = {};
-            if (!body[size][mapping.page][mapping.col]) {
-                body[size][mapping.page][mapping.col] = { pab_btg: 0, gud_btg: 0 };
+            if (!body[label]) body[label] = {};
+            if (!body[label][mapping.page]) body[label][mapping.page] = {};
+            if (!body[label][mapping.page][mapping.col]) {
+                body[label][mapping.page][mapping.col] = { pab_btg: 0, gud_btg: 0 };
             }
-            const cell = body[size][mapping.page][mapping.col];
+            const cell = body[label][mapping.page][mapping.col];
             const pab = pCash > 0 && weight > 0 ? roundSpecial(pCash * weight) : 0;
             const gud = gCash > 0 && weight > 0 ? roundSpecial(gCash * weight) : 0;
             if (pab > cell.pab_btg) cell.pab_btg = pab;
             if (gud > cell.gud_btg) cell.gud_btg = gud;
-            if (!weights[size] && weight > 0) weights[size] = weight;
-            if (!sizeUkuran[size]) {
+            if (!weights[label] && weight > 0) weights[label] = weight;
+            if (!sizeUkuran[label]) {
                 const cv = customValues[it.ig_id] || {};
-                if (cv.ukuran) sizeUkuran[size] = cv.ukuran;
+                if (cv.ukuran) sizeUkuran[label] = cv.ukuran;
             }
         }
 
@@ -176,6 +175,13 @@ function render({ items, customValues }) {
         if (gCash > 0) bottomPrices[group][mapping.page][mapping.col].gudang.push(gCash);
     }
 
+    // Sort by size ASC, then single-dim before dual-dim within same size
+    const orderedLabels = Object.keys(body).sort(function (a, b) {
+        const ma = labelMeta[a], mb = labelMeta[b];
+        if (ma.size !== mb.size) return ma.size - mb.size;
+        return (ma.hasDim2 ? 1 : 0) - (mb.hasDim2 ? 1 : 0);
+    });
+
     const HEADER_FILL      = '#E8ECF0';
     const PLACEHOLDER_FILL = '#FAFAFA';
     const BOTTOM_FILL      = '#F4F2EC';
@@ -183,14 +189,14 @@ function render({ items, customValues }) {
     function h(text, extra) {
         return Object.assign({
             text: text, bold: true, fillColor: HEADER_FILL,
-            alignment: 'center', fontSize: 9,
+            alignment: 'center', fontSize: 9, verticalAlignment: 'middle',
         }, extra || {});
     }
     function ph() {
-        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL };
+        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL, verticalAlignment: 'middle' };
     }
     function phBottom() {
-        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL };
+        return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL, verticalAlignment: 'middle' };
     }
 
     const tableLayout = {
@@ -237,25 +243,25 @@ function render({ items, customValues }) {
             h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
         ];
 
-        const bodyRows = CANONICAL_SIZES.map(function (sz) {
-            const label = sizeUkuran[sz.key] || sz.label;
-            const w     = weights[sz.key];
+        const bodyRows = orderedLabels.map(function (lbl) {
+            const displayText = sizeUkuran[lbl] || lbl;
+            const w           = weights[lbl];
             const row = [
-                { text: label,        alignment: 'left',   fontSize: 9 },
-                { text: fmtBerat(w),  alignment: 'center', fontSize: 9 },
+                { text: displayText, alignment: 'left',   fontSize: 9, verticalAlignment: 'middle' },
+                { text: fmtBerat(w), alignment: 'center', fontSize: 9, verticalAlignment: 'middle' },
             ];
             for (let col = 0; col < 4; col++) {
                 if (!hasData[col]) {
                     row.push(ph()); row.push(ph());
                     continue;
                 }
-                const data = body[sz.key] && body[sz.key][pageNum] && body[sz.key][pageNum][col];
+                const data = body[lbl] && body[lbl][pageNum] && body[lbl][pageNum][col];
                 if (!data) {
-                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999' });
-                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999' });
+                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999', verticalAlignment: 'middle' });
+                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999', verticalAlignment: 'middle' });
                 } else {
-                    row.push({ text: fmtNum(data.pab_btg), alignment: 'right', fontSize: 9 });
-                    row.push({ text: fmtNum(data.gud_btg), alignment: 'right', fontSize: 9 });
+                    row.push({ text: fmtNum(data.pab_btg), alignment: 'right', fontSize: 9, verticalAlignment: 'middle' });
+                    row.push({ text: fmtNum(data.gud_btg), alignment: 'right', fontSize: 9, verticalAlignment: 'middle' });
                 }
             }
             return row;
@@ -288,7 +294,7 @@ function render({ items, customValues }) {
         ];
 
         const bottomRows = GROUP_LABELS.map(function (grp) {
-            const row = [{ text: grp, alignment: 'left', fontSize: 9, fillColor: BOTTOM_FILL }];
+            const row = [{ text: grp, alignment: 'left', fontSize: 9, fillColor: BOTTOM_FILL, verticalAlignment: 'middle' }];
             for (let col = 0; col < 4; col++) {
                 if (!hasData[col]) {
                     row.push(phBottom()); row.push(phBottom());
@@ -297,8 +303,8 @@ function render({ items, customValues }) {
                 const bucket = bottomPrices[grp] && bottomPrices[grp][pageNum] && bottomPrices[grp][pageNum][col];
                 const pab = mode(bucket && bucket.pabrik);
                 const gud = mode(bucket && bucket.gudang);
-                row.push({ text: fmtNum(pab), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL });
-                row.push({ text: fmtNum(gud), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL });
+                row.push({ text: fmtNum(pab), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL, verticalAlignment: 'middle' });
+                row.push({ text: fmtNum(gud), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL, verticalAlignment: 'middle' });
             }
             return row;
         });
@@ -307,7 +313,7 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['24%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
-                heights: function (r) { return r < 2 ? ROW_H_HEADER : ROW_H_BODY; },
+                heights: function (r) { return r < 2 ? ROW_H_HEADER : ROW_H_BOTTOM; },
                 body: [bottomHeader1, bottomHeader2].concat(bottomRows),
             },
             layout: tableLayout,
