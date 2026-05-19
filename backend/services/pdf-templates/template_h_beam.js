@@ -236,8 +236,14 @@ function render({ items, customValues }) {
         };
 
         const bodyHeader1 = [
-            h('UKURAN',      { rowSpan: 2, margin: [0, 7, 0, 0] }),
-            h('BERAT\n(kg)', { rowSpan: 2, margin: [0, 3, 0, 0] }),
+            { rowSpan: 2, fillColor: HEADER_FILL, stack: [
+                { text: '', fontSize: 4 },
+                { text: 'UKURAN', bold: true, alignment: 'center', fontSize: 9 },
+            ]},
+            { rowSpan: 2, fillColor: HEADER_FILL, stack: [
+                { text: '', fontSize: 4 },
+                { text: 'BERAT\n(kg)', bold: true, alignment: 'center', fontSize: 9 },
+            ]},
             h(brands[0], { colSpan: 2 }), {},
             h(brands[1], { colSpan: 2 }), {},
             h(brands[2], { colSpan: 2 }), {},
@@ -286,7 +292,10 @@ function render({ items, customValues }) {
 
         const bottomTitle = { text: 'Harga / Kg', fontSize: 10, margin: [0, 6, 0, 2] };
         const bottomHeader1 = [
-            h('KELOMPOK UKURAN', { rowSpan: 2, margin: [0, 7, 0, 0] }),
+            { rowSpan: 2, fillColor: HEADER_FILL, stack: [
+                { text: '', fontSize: 4 },
+                { text: 'KELOMPOK UKURAN', bold: true, alignment: 'center', fontSize: 9 },
+            ]},
             h(brands[0], { colSpan: 2 }), {},
             h(brands[1], { colSpan: 2 }), {},
             h(brands[2], { colSpan: 2 }), {},
