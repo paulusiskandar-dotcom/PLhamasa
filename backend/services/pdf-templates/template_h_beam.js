@@ -56,25 +56,25 @@ function itemDisplayLabel(beamType, size, size2) {
 }
 
 // i_brand → page (1|2) and column (0..3) on that page.
-// Page 1 col 3: intentionally empty slot. Page 2 col 2: GMS, no source in DB.
-// GG IMP is excluded entirely; GG RSI is rendered under the "GG SS" column header.
+// GG RSI is rendered under the "GG SS" column header.
 const BRAND_MAP = {
     'GG':     { page: 1, col: 0 },
     'LS':     { page: 1, col: 1 },
     'KS':     { page: 1, col: 2 },
+    'GG IMP': { page: 1, col: 3 },
+    'IMP':    { page: 1, col: 3 },
     'GG RSI': { page: 2, col: 0 },
     'KPSS':   { page: 2, col: 1 },
-    'IMP':    { page: 2, col: 3 },
 };
 
 const PAGE_BRANDS = [
-    ['GG',    'LS',   'KS',   ''   ],
-    ['GG SS', 'KPSS', 'GMS',  'IMP'],
+    ['GG',    'LS',   'KS', 'IMP'],
+    ['GG SS', 'KPSS', '',   ''],
 ];
 
 const PAGE_HAS_DATA = [
-    [true, true, true, false],
-    [true, true, false, true],
+    [true, true, true, true],
+    [true, true, false, false],
 ];
 
 const GROUP_LABELS = [
@@ -199,7 +199,7 @@ function render({ items, customValues }) {
     function h(text, extra) {
         return Object.assign({
             text: text, bold: true, fillColor: HEADER_FILL,
-            alignment: 'center', fontSize: 9,
+            alignment: 'center', fontSize: 9, margin: [0, 3, 0, 0],
         }, extra || {});
     }
     function ph() {
@@ -218,8 +218,8 @@ function render({ items, customValues }) {
         vLineColor: function () { return '#888'; },
         paddingLeft:   function () { return 3; },
         paddingRight:  function () { return 3; },
-        paddingTop:    function () { return 3; },
-        paddingBottom: function () { return 3; },
+        paddingTop:    function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 4; },
+        paddingBottom: function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 2; },
     };
 
     function buildPage(pageIndex) {
@@ -236,25 +236,25 @@ function render({ items, customValues }) {
         };
 
         const bodyHeader1 = [
-            { rowSpan: 2, fillColor: HEADER_FILL, stack: [
-                { text: '', fontSize: 4 },
-                { text: 'UKURAN', bold: true, alignment: 'center', fontSize: 9 },
-            ]},
-            { rowSpan: 2, fillColor: HEADER_FILL, stack: [
-                { text: '', fontSize: 4 },
-                { text: 'BERAT\n(kg)', bold: true, alignment: 'center', fontSize: 9 },
-            ]},
+            {
+                rowSpan: 2, fillColor: HEADER_FILL, stack: [
+                    { text: '\n', fontSize: 10, lineHeight: 1 },
+                    { text: 'UKURAN', bold: true, alignment: 'center', fontSize: 9 },
+                ]
+            },
+            { text: 'BERAT', fillColor: HEADER_FILL, bold: true, alignment: 'center', fontSize: 9, margin: [0, 3, 0, 0] },
             h(brands[0], { colSpan: 2 }), {},
             h(brands[1], { colSpan: 2 }), {},
             h(brands[2], { colSpan: 2 }), {},
             h(brands[3], { colSpan: 2 }), {},
         ];
         const bodyHeader2 = [
-            {}, {},
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
+            {},
+            { text: '(kg)', fillColor: HEADER_FILL, bold: true, alignment: 'center', fontSize: 9, margin: [0, 2.5, 0, 0] },
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
         ];
 
         const bodyRows = orderedLabels.map(function (lbl) {
@@ -285,6 +285,7 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['17%', '7%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
+                heights: function (row) { if (row === 0) return 15; if (row === 1) return 14; return 'auto'; },
                 body: [bodyHeader1, bodyHeader2].concat(bodyRows),
             },
             layout: tableLayout,
@@ -292,21 +293,23 @@ function render({ items, customValues }) {
 
         const bottomTitle = { text: 'Harga / Kg', fontSize: 10, margin: [0, 6, 0, 2] };
         const bottomHeader1 = [
-            { rowSpan: 2, fillColor: HEADER_FILL, stack: [
-                { text: '', fontSize: 4 },
-                { text: 'KELOMPOK UKURAN', bold: true, alignment: 'center', fontSize: 9 },
-            ]},
-            h(brands[0], { colSpan: 2 }), {},
-            h(brands[1], { colSpan: 2 }), {},
-            h(brands[2], { colSpan: 2 }), {},
-            h(brands[3], { colSpan: 2 }), {},
+            {
+                rowSpan: 2, fillColor: HEADER_FILL, stack: [
+                    { text: '\n', fontSize: 14, lineHeight: 1 },
+                    { text: 'KELOMPOK UKURAN', bold: true, alignment: 'center', fontSize: 9 },
+                ]
+            },
+            h(brands[0], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
+            h(brands[1], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
+            h(brands[2], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
+            h(brands[3], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
         ];
         const bottomHeader2 = [
             {},
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
-            h('Pabrik', { fontSize: 8 }), h('Gudang', { fontSize: 8 }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
+            h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }), h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }),
         ];
 
         const bottomRows = GROUP_LABELS.map(function (grp) {
@@ -329,6 +332,7 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['24%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
+                heights: function (row) { if (row === 0) return 15; if (row === 1) return 14; return 'auto'; },
                 body: [bottomHeader1, bottomHeader2].concat(bottomRows),
             },
             layout: tableLayout,
