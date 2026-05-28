@@ -29,11 +29,11 @@ function fmtBerat(b) {
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
-function parseHBeamName(name) {
+function parseIWFName(name) {
     if (!name) return null;
     const m = name.match(/(\d+)\s*[xX]\s*(?:(\d+)\s*[xX]\s*)?([\d.]+)\s*[mM]\b/);
     if (!m) {
-        console.warn('[h-beam parse] skip:', name);
+        console.warn('[iwf parse] skip:', name);
         return null;
     }
     return {
@@ -43,57 +43,50 @@ function parseHBeamName(name) {
     };
 }
 
-function detectBeamType(name) {
-    const lower = name.toLowerCase();
-    if (lower.startsWith('welded beam') || lower.startsWith('welded ')) return 'WB';
-    if (lower.startsWith('h-beam') || lower.startsWith('h beam')) return 'H';
-    console.warn('[h-beam] unknown beam type:', name);
-    return 'H';
-}
-
 function itemDisplayLabel(beamType, size, size2) {
     return size2 !== undefined ? `${beamType} ${size} x ${size2}` : `${beamType} ${size}`;
 }
 
 // i_brand → page (1|2) and column (0..3) on that page.
-// GG RSI is rendered under the "GG SS" column header.
+// RSI is rendered under the "GG SS" column header.
 const BRAND_MAP = {
     'GG':     { page: 1, col: 0 },
     'LS':     { page: 1, col: 1 },
     'KS':     { page: 1, col: 2 },
-    'GG IMP': { page: 1, col: 3 },
     'IMP':    { page: 1, col: 3 },
-    'GG RSI': { page: 2, col: 0 },
+    'RSI':    { page: 2, col: 0 },
     'KPSS':   { page: 2, col: 1 },
+    'GMS':    { page: 2, col: 2 },
 };
 
 const PAGE_BRANDS = [
-    ['GG',    'LS',   'KS', 'IMP'],
-    ['GG SS', 'KPSS', '',   ''],
+    ['GG',  'LS', 'KS', 'IMP'],
+    ['GG SS', 'KPSS', 'GMS', ''],
 ];
 
 const PAGE_HAS_DATA = [
     [true, true, true, true],
-    [true, true, false, false],
+    [true, true, true, false],
 ];
 
 const GROUP_LABELS = [
-    'HB 100',
-    'HB 125',
-    'HB 150 – 175',
-    'HB 200',
-    'HB 250 – 350',
-    'WB 400 – 900',
+    'IWF 150',
+    'IWF 198 – 200',
+    'IWF 248 – 250',
+    'IWF 298 – 350',
+    'IWF 396 – 400',
+    'IWF 450 – 588',
+    'IWF 600',
 ];
 
 function sizeToGroup(size) {
-    if (size === 100) return 'HB 100';
-    if (size === 125) return 'HB 125';
-    if (size === 150 || size === 175) return 'HB 150 – 175';
-    if (size === 200) return 'HB 200';
-    if (size === 250 || size === 300 || size === 350) return 'HB 250 – 350';
-    if (size >= 400) return 'WB 400 – 900';
-    return null;
+    if (size <= 150) return 'IWF 150';
+    if (size <= 200) return 'IWF 198 – 200';
+    if (size <= 250) return 'IWF 248 – 250';
+    if (size <= 350) return 'IWF 298 – 350';
+    if (size <= 400) return 'IWF 396 – 400';
+    if (size <= 588) return 'IWF 450 – 588';
+    return 'IWF 600';
 }
 
 function mode(arr) {
@@ -109,10 +102,10 @@ function mode(arr) {
 }
 
 const meta = {
-    name:         'H-Beam',
+    name:         'IWF',
     cat_id:       null,
-    cat_name:     'H-BEAM',
-    description:  'Template H-Beam — A5 landscape, 2 halaman cash-only, 4 merk per halaman',
+    cat_name:     'IWF',
+    description:  'Template IWF — A5 landscape, 2 halaman cash-only, 4 merk per halaman',
     custom_fields: [
         { key: 'ukuran', label: 'Ukuran (display override)', type: 'text' },
     ],
@@ -125,17 +118,15 @@ function render({ items, customValues }) {
 
     customValues = customValues || {};
 
-    // body[label][page][col] = { pab_btg, gud_btg }
     const body       = {};
     const weights    = {};
     const sizeUkuran = {};
-    const labelMeta  = {}; // label → { size, hasDim2, beamType }
-    // bottomPrices[group][page][col] = { pabrik: [], gudang: [] }
+    const labelMeta  = {}; 
     const bottomPrices = {};
 
     for (const it of items) {
         if (!it || !it.name) continue;
-        const parsed = parseHBeamName(it.name);
+        const parsed = parseIWFName(it.name);
         if (!parsed) continue;
         const brand = (it.i_brand || '').trim();
         const mapping = BRAND_MAP[brand];
@@ -146,7 +137,7 @@ function render({ items, customValues }) {
         const group = sizeToGroup(size);
         if (!group) continue;
 
-        const beamType = detectBeamType(it.name);
+        const beamType = 'IWF';
         const label = itemDisplayLabel(beamType, size, parsed.size2);
         if (!labelMeta[label]) {
             labelMeta[label] = { size, hasDim2: parsed.size2 !== undefined, beamType };
@@ -183,11 +174,9 @@ function render({ items, customValues }) {
         if (gCash > 0) bottomPrices[group][mapping.page][mapping.col].gudang.push(gCash);
     }
 
-    // Sort: size ASC, then H before WB (same size), then dual-dim before single-dim
     const orderedLabels = Object.keys(body).sort(function (a, b) {
         const ma = labelMeta[a], mb = labelMeta[b];
         if (ma.size !== mb.size) return ma.size - mb.size;
-        if (ma.beamType !== mb.beamType) return ma.beamType === 'H' ? -1 : 1;
         if (ma.hasDim2 !== mb.hasDim2) return ma.hasDim2 ? -1 : 1;
         return 0;
     });
@@ -199,7 +188,7 @@ function render({ items, customValues }) {
     function h(text, extra) {
         return Object.assign({
             text: text, bold: true, fillColor: HEADER_FILL,
-            alignment: 'center', fontSize: 9, margin: [0, 3, 0, 0],
+            alignment: 'center', fontSize: 8.5, margin: [0, 3, 0, 0],
         }, extra || {});
     }
     function ph() {
@@ -209,8 +198,6 @@ function render({ items, customValues }) {
         return { text: '–', fontSize: 8, color: '#BBB', alignment: 'center', fillColor: PLACEHOLDER_FILL };
     }
 
-    // Symmetric padding (equal top & bottom) gives visual vertical centering.
-    // No forced heights — rows auto-size to content + padding.
     const tableLayout = {
         hLineWidth: function () { return 0.5; },
         vLineWidth: function () { return 0.5; },
@@ -218,8 +205,8 @@ function render({ items, customValues }) {
         vLineColor: function () { return '#888'; },
         paddingLeft:   function () { return 3; },
         paddingRight:  function () { return 3; },
-        paddingTop:    function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 4; },
-        paddingBottom: function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 2; },
+        paddingTop:    function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 3.0; },
+        paddingBottom: function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 2.2; },
     };
 
     function buildPage(pageIndex) {
@@ -229,20 +216,20 @@ function render({ items, customValues }) {
 
         const titleStrip = {
             columns: [
-                { text: 'H-BEAM', bold: true, fontSize: 14, alignment: 'left' },
-                { text: 'CASH',   bold: true, fontSize: 11, characterSpacing: 1, color: '#444', alignment: 'right' },
+                { text: 'IWF', bold: true, fontSize: 13, alignment: 'left' },
+                { text: 'CASH',   bold: true, fontSize: 10, characterSpacing: 1, color: '#444', alignment: 'right' },
             ],
-            margin: [0, 0, 0, 6],
+            margin: [0, 0, 0, 2],
         };
 
         const bodyHeader1 = [
             {
                 rowSpan: 2, fillColor: HEADER_FILL, stack: [
-                    { text: '\n', fontSize: 10, lineHeight: 1 },
-                    { text: 'UKURAN', bold: true, alignment: 'center', fontSize: 9 },
+                    { text: '\n', fontSize: 9, lineHeight: 1 },
+                    { text: 'UKURAN', bold: true, alignment: 'center', fontSize: 8.5 },
                 ]
             },
-            { text: 'BERAT', fillColor: HEADER_FILL, bold: true, alignment: 'center', fontSize: 9, margin: [0, 3, 0, 0] },
+            { text: 'BERAT', fillColor: HEADER_FILL, bold: true, alignment: 'center', fontSize: 8.5, margin: [0, 3, 0, 0] },
             h(brands[0], { colSpan: 2 }), {},
             h(brands[1], { colSpan: 2 }), {},
             h(brands[2], { colSpan: 2 }), {},
@@ -250,15 +237,15 @@ function render({ items, customValues }) {
         ];
         const bodyHeader2 = [
             {},
-            { text: '(kg)', fillColor: HEADER_FILL, bold: true, alignment: 'center', fontSize: 9, margin: [0, 2.5, 0, 0] },
+            { text: '(kg)', fillColor: HEADER_FILL, bold: true, alignment: 'center', fontSize: 8.5, margin: [0, 2.5, 0, 0] },
         ];
         for (let col = 0; col < 4; col++) {
             if (!hasData[col]) {
                 bodyHeader2.push(ph());
                 bodyHeader2.push(ph());
             } else {
-                bodyHeader2.push(h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }));
-                bodyHeader2.push(h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }));
+                bodyHeader2.push(h('Pabrik', { fontSize: 8, margin: [0, 2, 0, 0] }));
+                bodyHeader2.push(h('Gudang', { fontSize: 8, margin: [0, 2, 0, 0] }));
             }
         }
 
@@ -266,8 +253,8 @@ function render({ items, customValues }) {
             const displayText = sizeUkuran[lbl] || lbl;
             const w           = weights[lbl];
             const row = [
-                { text: displayText, alignment: 'left',   fontSize: 9 },
-                { text: fmtBerat(w), alignment: 'center', fontSize: 9 },
+                { text: displayText, alignment: 'left',   fontSize: 8.5 },
+                { text: fmtBerat(w), alignment: 'center', fontSize: 8.5 },
             ];
             for (let col = 0; col < 4; col++) {
                 if (!hasData[col]) {
@@ -276,11 +263,11 @@ function render({ items, customValues }) {
                 }
                 const data = body[lbl] && body[lbl][pageNum] && body[lbl][pageNum][col];
                 if (!data) {
-                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999' });
-                    row.push({ text: '-', alignment: 'right', fontSize: 9, color: '#999' });
+                    row.push({ text: '-', alignment: 'right', fontSize: 8.5, color: '#999' });
+                    row.push({ text: '-', alignment: 'right', fontSize: 8.5, color: '#999' });
                 } else {
-                    row.push({ text: fmtNum(data.pab_btg), alignment: 'right', fontSize: 9 });
-                    row.push({ text: fmtNum(data.gud_btg), alignment: 'right', fontSize: 9 });
+                    row.push({ text: fmtNum(data.pab_btg), alignment: 'right', fontSize: 8.5 });
+                    row.push({ text: fmtNum(data.gud_btg), alignment: 'right', fontSize: 8.5 });
                 }
             }
             return row;
@@ -290,24 +277,24 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['17%', '7%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
-                heights: function (row) { if (row === 0) return 15; if (row === 1) return 14; return 'auto'; },
+                heights: function (row) { if (row === 0) return 14; if (row === 1) return 13; return 'auto'; },
                 body: [bodyHeader1, bodyHeader2].concat(bodyRows),
             },
             layout: tableLayout,
         };
 
-        const bottomTitle = { text: 'Harga / Kg', fontSize: 10, margin: [0, 6, 0, 2] };
+        const bottomTitle = { text: 'Harga / Kg', fontSize: 9, margin: [0, 2, 0, 2] };
         const bottomHeader1 = [
             {
                 rowSpan: 2, fillColor: HEADER_FILL, stack: [
-                    { text: '\n', fontSize: 14, lineHeight: 1 },
-                    { text: 'KELOMPOK UKURAN', bold: true, alignment: 'center', fontSize: 9 },
+                    { text: '\n', fontSize: 13, lineHeight: 1 },
+                    { text: 'KELOMPOK UKURAN', bold: true, alignment: 'center', fontSize: 8.5 },
                 ]
             },
-            h(brands[0], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
-            h(brands[1], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
-            h(brands[2], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
-            h(brands[3], { colSpan: 2, margin: [0, 6, 0, 0] }), {},
+            h(brands[0], { colSpan: 2, margin: [0, 4, 0, 0] }), {},
+            h(brands[1], { colSpan: 2, margin: [0, 4, 0, 0] }), {},
+            h(brands[2], { colSpan: 2, margin: [0, 4, 0, 0] }), {},
+            h(brands[3], { colSpan: 2, margin: [0, 4, 0, 0] }), {},
         ];
         const bottomHeader2 = [
             {},
@@ -317,13 +304,13 @@ function render({ items, customValues }) {
                 bottomHeader2.push(phBottom());
                 bottomHeader2.push(phBottom());
             } else {
-                bottomHeader2.push(h('Pabrik', { fontSize: 8, margin: [0, 3, 0, 0] }));
-                bottomHeader2.push(h('Gudang', { fontSize: 8, margin: [0, 3, 0, 0] }));
+                bottomHeader2.push(h('Pabrik', { fontSize: 8, margin: [0, 2, 0, 0] }));
+                bottomHeader2.push(h('Gudang', { fontSize: 8, margin: [0, 2, 0, 0] }));
             }
         }
 
         const bottomRows = GROUP_LABELS.map(function (grp) {
-            const row = [{ text: grp, alignment: 'left', fontSize: 9, fillColor: BOTTOM_FILL }];
+            const row = [{ text: grp, alignment: 'left', fontSize: 8.5, fillColor: BOTTOM_FILL }];
             for (let col = 0; col < 4; col++) {
                 if (!hasData[col]) {
                     row.push(phBottom()); row.push(phBottom());
@@ -332,8 +319,8 @@ function render({ items, customValues }) {
                 const bucket = bottomPrices[grp] && bottomPrices[grp][pageNum] && bottomPrices[grp][pageNum][col];
                 const pab = mode(bucket && bucket.pabrik);
                 const gud = mode(bucket && bucket.gudang);
-                row.push({ text: fmtNum(pab), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL });
-                row.push({ text: fmtNum(gud), alignment: 'right', fontSize: 9, fillColor: BOTTOM_FILL });
+                row.push({ text: fmtNum(pab), alignment: 'right', fontSize: 8.5, fillColor: BOTTOM_FILL });
+                row.push({ text: fmtNum(gud), alignment: 'right', fontSize: 8.5, fillColor: BOTTOM_FILL });
             }
             return row;
         });
@@ -342,7 +329,7 @@ function render({ items, customValues }) {
             table: {
                 headerRows: 2,
                 widths: ['24%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%', '9.5%'],
-                heights: function (row) { if (row === 0) return 15; if (row === 1) return 14; return 'auto'; },
+                heights: function (row) { if (row === 0) return 14; if (row === 1) return 13; return 'auto'; },
                 body: [bottomHeader1, bottomHeader2].concat(bottomRows),
             },
             layout: tableLayout,
@@ -360,7 +347,7 @@ function render({ items, customValues }) {
     const dd = {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 10, 8, 18],
+        pageMargins:     [8, 8, 8, 14],
         content:         content,
         footer: function (currentPage, pageCount) {
             return {
