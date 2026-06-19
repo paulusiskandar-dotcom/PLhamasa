@@ -16,6 +16,8 @@ const TEMPLATES = {
     iwf:          require('./template_iwf'),
     grating:      require('./template_grating'),
     plat_strip:   require('./template_plat_strip'),
+    beton_polos:  require('./template_bp'),
+    beton_ulir:   require('./template_bu'),
 };
 
 let _catCache    = null;
