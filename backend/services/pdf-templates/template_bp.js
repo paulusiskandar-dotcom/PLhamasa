@@ -227,8 +227,8 @@ function render({ items, customValues }) {
     const tableLayout = {
         hLineWidth: function () { return 0.5; },
         vLineWidth: function () { return 0.5; },
-        hLineColor: function () { return '#888'; },
-        vLineColor: function () { return '#888'; },
+        hLineColor: function () { return '#000000'; },
+        vLineColor: function () { return '#000000'; },
         paddingLeft:   function () { return 2; },
         paddingRight:  function () { return 2; },
         paddingTop:    function () { return dynPadV; },

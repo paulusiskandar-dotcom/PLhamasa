@@ -79,7 +79,7 @@ const ROWS_PER_COL = 22;
 const FS_H   = 9;
 const FS_B   = 8;
 const H_FILL = '#E8ECF0';
-const BORDER = '#888';
+const BORDER = '#000000';
 
 // ── header cell helper ────────────────────────────────────────────────────────
 
@@ -234,8 +234,8 @@ function render({ items }) {
                 margin: [8, 5, 8, 0],
                 columns: [
                     { text: '',                                             alignment: 'left',   width: '*'    },
-                    { text: 'Page ' + currentPage + '/' + pageCount,        alignment: 'center', fontSize: 7, color: '#444', width: 'auto' },
-                    { text: generatedAt,                                      alignment: 'right',  fontSize: 7, color: '#444', width: '*'    },
+                    { text: 'Page ' + currentPage + '/' + pageCount,        alignment: 'center', fontSize: 7, color: '#000000', width: 'auto' },
+                    { text: generatedAt,                                      alignment: 'right',  fontSize: 7, color: '#000000', width: '*'    },
                 ],
             };
         },

@@ -201,8 +201,8 @@ function render({ items, customValues }) {
     const tableLayout = {
         hLineWidth: function () { return 0.5; },
         vLineWidth: function () { return 0.5; },
-        hLineColor: function () { return '#888'; },
-        vLineColor: function () { return '#888'; },
+        hLineColor: function () { return '#000000'; },
+        vLineColor: function () { return '#000000'; },
         paddingLeft:   function () { return 3; },
         paddingRight:  function () { return 3; },
         paddingTop:    function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 3.0; },
@@ -217,7 +217,7 @@ function render({ items, customValues }) {
         const titleStrip = {
             columns: [
                 { text: 'IWF', bold: true, fontSize: 13, alignment: 'left' },
-                { text: 'CASH',   bold: true, fontSize: 10, characterSpacing: 1, color: '#444', alignment: 'right' },
+                { text: 'CASH',   bold: true, fontSize: 10, characterSpacing: 1, color: '#000000', alignment: 'right' },
             ],
             margin: [0, 0, 0, 2],
         };

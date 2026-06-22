@@ -109,8 +109,8 @@ function render({ items, customValues }) {
                 layout: {
                     hLineWidth: function () { return 0.5; },
                     vLineWidth: function () { return 0.5; },
-                    hLineColor: function () { return '#888'; },
-                    vLineColor: function () { return '#888'; },
+                    hLineColor: function () { return '#000000'; },
+                    vLineColor: function () { return '#000000'; },
                     paddingLeft:   function () { return 3; },
                     paddingRight:  function () { return 3; },
                     paddingTop:    function () { return 4; },

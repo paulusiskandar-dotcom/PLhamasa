@@ -161,7 +161,7 @@ function buildTableNode(rows, fs) {
         return { text, bold: true, fontSize: fs, alignment: 'center', fillColor: H_FILL };
     }
     function h2(text) {
-        return { text, italics: true, fontSize: fsSub, color: '#444', alignment: 'center', fillColor: H_FILL };
+        return { text, italics: true, fontSize: fsSub, color: '#000000', alignment: 'center', fillColor: H_FILL };
     }
 
     const headerRow1 = [h1('UKURAN'),            h1('BAHAN'), h1('B. Tabel'), h1('Harga'), h1('Harga'), h1('B. Asli')];
@@ -200,7 +200,7 @@ function buildTableNode(rows, fs) {
             },
             vLineWidth: function ()   { return 0.25; },
             hLineColor: function ()   { return '#555'; },
-            vLineColor: function ()   { return '#888'; },
+            vLineColor: function ()   { return '#000000'; },
             paddingLeft:   function () { return 2; },
             paddingRight:  function () { return 2; },
             paddingTop:    function () { return 1.5; },

@@ -214,8 +214,8 @@ function render({ items, customValues }) {
     const tableLayout = {
         hLineWidth: function () { return 0.5; },
         vLineWidth: function () { return 0.5; },
-        hLineColor: function () { return '#888'; },
-        vLineColor: function () { return '#888'; },
+        hLineColor: function () { return '#000000'; },
+        vLineColor: function () { return '#000000'; },
         paddingLeft:   function () { return 3; },
         paddingRight:  function () { return 3; },
         paddingTop:    function (i, node) { return (node.table.headerRows && i < node.table.headerRows) ? 0 : 4; },
@@ -230,7 +230,7 @@ function render({ items, customValues }) {
         const titleStrip = {
             columns: [
                 { text: 'H-BEAM', bold: true, fontSize: 14, alignment: 'left' },
-                { text: 'CASH',   bold: true, fontSize: 11, characterSpacing: 1, color: '#444', alignment: 'right' },
+                { text: 'CASH',   bold: true, fontSize: 11, characterSpacing: 1, color: '#000000', alignment: 'right' },
             ],
             margin: [0, 0, 0, 6],
         };
