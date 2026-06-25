@@ -1,4 +1,4 @@
-const { makeRender } = require('./template_coil_plat_1200_shared');
+const { makeRender } = require('./template_coil_plat_builder');
 
 const meta = {
     name: 'Coil & Plat Hitam 1500',
