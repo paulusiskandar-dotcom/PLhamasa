@@ -55,12 +55,19 @@ module.exports.syncItemsFromErp = async function (plId, validPrIds) {
 
     // 5. Find new items in ERP not yet in the price list and not blacklisted
     const exclude = [...new Set([...existingIds, ...blIds])];
+    let catCondition = "i.cat_id = $1";
+    let catParam = pl.cat_id;
+    if (pl.cat_id === 'HRC_HR') {
+        catCondition = "i.cat_id = ANY($1::text[])";
+        catParam = ['HRC', 'HR', 'HRNS'];
+    }
+    
     let q = `
         SELECT i.ig_id, i.i_name, i.i_weight
         FROM item i
-        WHERE i.cat_id = $1 AND i.deleted_at IS NULL AND i.is_item = true
+        WHERE ${catCondition} AND i.deleted_at IS NULL AND i.is_item = true
     `;
-    const params = [pl.cat_id];
+    const params = [catParam];
     if (exclude.length) {
         params.push(exclude);
         q += ` AND i.ig_id != ALL($${params.length}::int[])`;

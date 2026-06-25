@@ -19,7 +19,11 @@ module.exports.getItemByQuery = function (params) {
 
     if (params.cat_id && params.cat_id !== "null") {
         queryParams.push(params.cat_id);
-        where += ` AND item.cat_id = $${queryParams.length}`;
+        if (Array.isArray(params.cat_id)) {
+            where += ` AND item.cat_id = ANY($${queryParams.length}::text[])`;
+        } else {
+            where += ` AND item.cat_id = $${queryParams.length}`;
+        }
     }
     if (params.brand_id && params.brand_id !== "null") {
         queryParams.push(params.brand_id);

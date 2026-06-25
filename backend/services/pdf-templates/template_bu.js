@@ -23,12 +23,12 @@ function extractSize(name) {
 }
 
 function fmtNum(n) {
-    if (!n) return '-';
+    if (!n || n === 0) return '-';
     return Number(n).toLocaleString('id-ID');
 }
 
 function fmtBerat(n) {
-    if (!n) return '-';
+    if (!n || n === 0) return '-';
     return n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 

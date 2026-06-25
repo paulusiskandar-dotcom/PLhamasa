@@ -55,7 +55,7 @@ function render({ items, customValues }) {
             hargaText = '-';
         } else {
             const harga = roundSpecial(cashKg * weight);
-            hargaText   = new Intl.NumberFormat('id-ID').format(harga);
+            hargaText   = (!harga || harga === 0) ? '-' : new Intl.NumberFormat('id-ID').format(harga);
         }
 
         return {

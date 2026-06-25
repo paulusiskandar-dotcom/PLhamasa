@@ -112,7 +112,7 @@ module.exports._getById = async function (req, res) {
         let erpItems = [];
         if (ig_ids.length > 0) {
             erpItems = await global.dbERP.any(
-                `SELECT ig_id, i_name, i_weight, i_brand, grade, i_group
+                `SELECT ig_id, i_name, i_weight, i_brand, grade, i_group, cat_id
                  FROM item
                  WHERE ig_id = ANY($1::int[]) AND deleted_at IS NULL`,
                 [ig_ids]
@@ -143,6 +143,7 @@ module.exports._getById = async function (req, res) {
                 brand:        erp.i_brand  || null,
                 grade:        erp.grade    || null,
                 group:        erp.i_group  || null,
+                cat_id:       erp.cat_id   || null,
                 prices,
                 newly_synced: newlySyncedIds.has(ig_id),
             };
@@ -206,8 +207,9 @@ module.exports._start = async function (req, res) {
         } else {
             // Build from ERP baseline
             // 1. Get items for this category from ERP (excluding blacklisted)
+            const actualCatIds = cat_id === 'HRC_HR' ? ['HRC', 'HR', 'HRNS'] : cat_id;
             const [allErpItems, blacklistedIds] = await Promise.all([
-                $itemModel.getItemByQuery({ cat_id }),
+                $itemModel.getItemByQuery({ cat_id: actualCatIds }),
                 $blacklist.getBlacklistedIds(),
             ]);
             const erpItems = blacklistedIds.length
@@ -217,7 +219,7 @@ module.exports._start = async function (req, res) {
                 return response.error(res, 'no_erp_items_for_category', null, 422);
             }
 
-            const catName = erpItems[0].cat_name || cat_id;
+            const catName = cat_id === 'HRC_HR' ? 'Coil & Plat Hitam' : (erpItems[0].cat_name || cat_id);
             const ig_ids = erpItems.map(r => r.ig_id);
 
             // Build weight map

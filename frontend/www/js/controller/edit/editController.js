@@ -90,6 +90,9 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         priceListService.get(plId).then(function (res) {
             var data = res.result;
             $scope.pl = data;
+            if ($scope.pl.cat_id === 'HRC_HR') {
+                $scope.activeTab = 'HRC';
+            }
             $scope.priceTypes = data.priceTypes || [];
             $scope.hasGudangPabrik = $scope.priceTypes.some(function (pt) { return pt.group === 'Pabrik'; });
 
@@ -260,10 +263,16 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.$watch('filter', function () { applyFilter(); }, true);
     $scope.$watch('sort', function () { applyFilter(); }, true);
 
+    $scope.setTab = function (tab) {
+        $scope.activeTab = tab;
+        applyFilter();
+    };
+
     function applyFilter() {
         if (!$scope.items) { $scope.filteredItems = []; return; }
         var f = $scope.filter;
         var filtered = $scope.items.filter(function (it) {
+            if ($scope.pl && $scope.pl.cat_id === 'HRC_HR' && it.cat_id !== $scope.activeTab) return false;
             if (f.subcatId && String($scope.subcatAssignments[it.ig_id]) !== String(f.subcatId)) return false;
             if (f.brand && it.brand !== f.brand) return false;
             if (f.grade && it.grade !== f.grade) return false;

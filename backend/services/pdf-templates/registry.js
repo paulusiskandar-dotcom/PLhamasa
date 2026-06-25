@@ -18,6 +18,10 @@ const TEMPLATES = {
     plat_strip:   require('./template_plat_strip'),
     beton_polos:  require('./template_bp'),
     beton_ulir:   require('./template_bu'),
+    coil_plat_1200: require('./template_coil_plat_1200'),
+    coil_plat_1500: require('./template_coil_plat_1500'),
+    coil_plat_1800: require('./template_coil_plat_1800'),
+    special_grades: require('./template_special_grades'),
 };
 
 let _catCache    = null;
@@ -30,6 +34,10 @@ async function _buildCache() {
     rows.forEach(function (r) {
         map[r.cat_name.trim().toUpperCase()] = r.cat_id;
     });
+    
+    // Virtual category mapping
+    map['COIL & PLAT HITAM'] = 'HRC_HR';
+    
     _catCache   = map;
     _catCacheAt = Date.now();
     return map;

@@ -32,14 +32,21 @@ module.exports._getTemplateItems = async function (req, res) {
         if (!catId) return response.error(res, 'cat_id_required', null, 400);
 
         const itemBrand = tpl.meta && tpl.meta.item_brand ? tpl.meta.item_brand : null;
+        let catCondition = "cat_id = $1";
+        let catParam = catId;
+        if (catId === 'HRC_HR') {
+            catCondition = "cat_id = ANY($1::text[])";
+            catParam = ['HRC', 'HR', 'HRNS'];
+        }
+
         const items = await dbERP().any(
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item
-             WHERE cat_id = $1 AND deleted_at IS NULL AND is_item = true
+             WHERE ${catCondition} AND deleted_at IS NULL AND is_item = true
                AND (i_group IS NULL OR i_group != 'N')
                AND ($2::text IS NULL OR i_brand = $2)
              ORDER BY i_name ASC`,
-            [catId, itemBrand]
+            [catParam, itemBrand]
         );
 
         const igIds = items.map(function (i) { return i.ig_id; });
@@ -117,25 +124,46 @@ module.exports._render = async function (req, res) {
             'SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id = $1', [plId]
         );
 
-        let igIds = [...new Set(plmPrices.map(function (p) { return p.ig_id; }))];
+        const blacklistedIds = await $blacklist.getBlacklistedIds();
 
-        // Exclude blacklisted items (only for OPEN records)
-        if (pl.status !== 'PUBLISHED') {
-            const blacklistedIds = await $blacklist.getBlacklistedIds();
-            if (blacklistedIds.length) {
-                igIds = igIds.filter(function (id) { return !blacklistedIds.includes(id); });
+        let allPlmPrices = [...plmPrices];
+        if (pl.status !== 'PUBLISHED' && blacklistedIds.length) {
+            allPlmPrices = allPlmPrices.filter(p => !blacklistedIds.includes(p.ig_id));
+        }
+
+        if (tpl.meta.linked_categories && Array.isArray(tpl.meta.linked_categories)) {
+            for (const linkCat of tpl.meta.linked_categories) {
+                let linkPl = await dbPLM().oneOrNone(
+                    `SELECT id, status FROM price_list WHERE cat_name = $1 AND status = 'OPEN' ORDER BY id DESC LIMIT 1`, [linkCat]
+                );
+                if (!linkPl) {
+                    linkPl = await dbPLM().oneOrNone(
+                        `SELECT id, status FROM price_list WHERE cat_name = $1 AND status = 'PUBLISHED' ORDER BY posted_at DESC NULLS LAST LIMIT 1`, [linkCat]
+                    );
+                }
+                if (linkPl) {
+                    let linkPrices = await dbPLM().any(
+                        'SELECT ig_id, pr_id, i_price FROM price_list_item WHERE price_list_id = $1', [linkPl.id]
+                    );
+                    if (linkPl.status !== 'PUBLISHED' && blacklistedIds.length) {
+                        linkPrices = linkPrices.filter(p => !blacklistedIds.includes(p.ig_id));
+                    }
+                    allPlmPrices = allPlmPrices.concat(linkPrices);
+                }
             }
         }
+
+        let igIds = [...new Set(allPlmPrices.map(function (p) { return p.ig_id; }))];
         const erpItems = igIds.length ? await dbERP().any(
             `SELECT ig_id, i_name, i_weight, un_name, i_brand
              FROM item WHERE ig_id = ANY($1::int[])
              AND deleted_at IS NULL AND is_item = true
-             AND (i_group IS NULL OR i_group != 'N')`,
+             AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR'))`,
             [igIds]
         ) : [];
 
         const priceIndex = {};
-        plmPrices.forEach(function (p) {
+        allPlmPrices.forEach(function (p) {
             if (!priceIndex[p.ig_id]) priceIndex[p.ig_id] = {};
             const code = PR_CODE[p.pr_id];
             if (code) priceIndex[p.ig_id][code] = { current: parseFloat(p.i_price) };

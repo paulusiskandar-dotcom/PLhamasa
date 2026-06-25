@@ -20,16 +20,16 @@ function roundSpecial(raw) {
     return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
 }
 
-const EM = '—';  // em dash for null/zero cells
+const EM = '-';  // em dash for null/zero cells
 
 function fmtPrice(n) {
-    if (!n || n === 0) return EM;
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
 function fmtBerat(b) {
     const n = parseFloat(b);
-    if (!n || n === 0) return EM;
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,

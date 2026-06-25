@@ -12,7 +12,7 @@ const fonts = {
     },
 };
 
-const EM = '—'; // em dash — for null/zero values
+const EM = '-'; // em dash — for null/zero values
 
 function roundSpecial(raw) {
     if (!raw) return 0;
@@ -22,7 +22,7 @@ function roundSpecial(raw) {
 
 function fmtBerat(b) {
     const n = parseFloat(b);
-    if (!n || n === 0) return EM;
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
@@ -30,12 +30,12 @@ function fmtBerat(b) {
 }
 
 function fmtPrice(n) {
-    if (!n || n === 0) return EM;
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
 function fmtBtg(n) {
-    if (!n || n === 0) return EM;
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 

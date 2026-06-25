@@ -2,9 +2,9 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
 
     var CATEGORY_DISPLAY_NAMES = {
         'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP':    'Beton Polos',
-        'BU':   'Beton Ulir',  'CN':   'CNP',          'HRC':   'Coil Hitam',
+        'BU':   'Beton Ulir',  'CN':   'CNP',         'HRC_HR':'Coil & Plat Hitam',
         'CRC':  'Coil Putih',  'HBEAM':'H-Beam',       'INP':   'INP',
-        'WF':   'IWF',         'PB':   'Plat Bordest', 'HR':    'Plat Hitam',
+        'WF':   'IWF',         'PB':   'Plat Bordest',
         'HRK':  'Plat Kapal',  'CR':   'Plat Putih',   'STLK':  'Plat Strip',
         'SP':   'Sheetpile',   'SK':   'Siku',          'SB':    'Square Bar',
         'UNP':  'UNP',         'WM':   'Wire Mesh',
@@ -13,10 +13,10 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     var PILL_DEFS = [
         { catId: 'RBHM',  name: 'AS Hitam' },    { catId: 'RBPM',  name: 'AS Putih' },
         { catId: 'BP',    name: 'Beton Polos' },  { catId: 'BU',    name: 'Beton Ulir' },
-        { catId: 'CN',    name: 'CNP' },           { catId: 'HRC',   name: 'Coil Hitam' },
+        { catId: 'CN',    name: 'CNP' },           { catId: 'HRC_HR',name: 'Coil & Plat Hitam' },
         { catId: 'CRC',   name: 'Coil Putih' },   { catId: 'HBEAM', name: 'H-Beam' },
         { catId: 'INP',   name: 'INP' },           { catId: 'WF',    name: 'IWF' },
-        { catId: 'PB',    name: 'Plat Bordest' },  { catId: 'HR',    name: 'Plat Hitam' },
+        { catId: 'PB',    name: 'Plat Bordest' },
         { catId: 'HRK',   name: 'Plat Kapal' },   { catId: 'CR',    name: 'Plat Putih' },
         { catId: 'STLK',  name: 'Plat Strip' },   { catId: 'SP',    name: 'Sheetpile' },
         { catId: 'SK',    name: 'Siku' },           { catId: 'SB',    name: 'Square Bar' },
@@ -69,7 +69,11 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
 
     function loadCategories() {
         $masterService.getCategories().then(function (res) {
-            $scope.categories = res.result || [];
+            var rawCats = res.result || [];
+            var mergedCats = rawCats.filter(function (c) { return c.id !== 'HRC' && c.id !== 'HR'; });
+            mergedCats.push({ id: 'HRC_HR', name: 'Coil & Plat Hitam' });
+            mergedCats.sort(function (a, b) { return a.name.localeCompare(b.name); });
+            $scope.categories = mergedCats;
             updateCategoriesAvailable();
             computeStats();
         }).catch(function () {

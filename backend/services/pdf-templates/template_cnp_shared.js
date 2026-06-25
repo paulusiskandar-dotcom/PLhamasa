@@ -21,7 +21,7 @@ function roundSpecial(raw) {
 }
 
 function fmtNum(n) {
-    if (!n) return '';
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 

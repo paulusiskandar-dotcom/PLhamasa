@@ -20,7 +20,7 @@ function roundSpecial(raw) {
 }
 
 function fmtNum(n) {
-    if (n === null || n === undefined || n === '') return '';
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 

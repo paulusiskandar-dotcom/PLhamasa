@@ -25,7 +25,7 @@ function fmtNum(n) {
 
 function fmtBerat(b) {
     const n = parseFloat(b);
-    if (!n || n === 0) return '';
+    if (!n || n === 0) return '-';
     return new Intl.NumberFormat('id-ID').format(n);
 }
 
