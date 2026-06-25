@@ -40,7 +40,7 @@ block content
     script.
       var plmPageData = { priceListId: !{JSON.stringify(page.data.priceListId || null)} };
 
-    main.main-content
+    main.main-content.edit-view
 
       button.sidebar-toggle(ng-click="toggleSidebar()" aria-label="Toggle sidebar")
         i.bi.bi-list
@@ -248,7 +248,7 @@ block content
           i.bi.bi-search
           p Tidak ada barang sesuai filter
 
-        div.table-scroll(ng-if="filteredItems.length > 0")
+        div.table-scroll(windowed-scroll ng-if="filteredItems.length > 0")
           table.data-table(ng-class="{'has-gudang-pabrik': hasGudangPabrik}")
 
             //- Standard header (2 price types)
@@ -358,10 +358,12 @@ block content
                   i.sort-icon.bi(ng-class="getSortIcon('lbr:' + pt.code)")
 
             tbody
-              tr(ng-repeat="item in filteredItems track by item.ig_id" ng-class="{'row-selected': item._checked, 'row-needs-tebal': requireTebal && !item.tebal}")
+              tr.v-spacer
+                td(colspan="99" ng-style="{height: win.padTop + 'px'}")
+              tr(ng-repeat="item in visibleItems track by item.ig_id" data-vrow ng-class="{'row-selected': item._checked, 'row-needs-tebal': requireTebal && !item.tebal}")
                 td.th-check
                   input(type="checkbox" ng-model="item._checked" ng-change="onItemCheckedChange()")
-                td(ng-class="{'item-new': item.newly_synced}")
+                td.col-name(ng-class="{'item-new': item.newly_synced}" title="{{ item.name }}")
                   span.new-badge(ng-if="item.newly_synced") BARU
                   | {{ item.name }}
                   i.bi.bi-exclamation-triangle-fill(ng-if="requireTebal && !item.tebal" title="Item belum di-assign tebal" style="color:#E65100; font-size:11px; margin-left:5px; vertical-align:middle")
@@ -398,6 +400,8 @@ block content
                   ng-class="{'group-gudang': hasGudangPabrik && pt.group === 'Gudang', 'group-pabrik': hasGudangPabrik && pt.group === 'Pabrik'}"
                 )
                   | {{ item.new_unit[pt.code] | number }}
+              tr.v-spacer
+                td(colspan="99" ng-style="{height: win.padBottom + 'px'}")
 
       //- Bottom toolbar — OPEN
       div.bottom-toolbar(ng-if="pl && pl.status === 'OPEN' && !loading")
@@ -472,6 +476,17 @@ block content
                 span.post-stat.post-stat-total
                   strong {{ modalPostPreview.summary.total }}
                   |  total
+              div.post-diff-filter
+                label Filter:
+                label
+                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.changed")
+                  |  Berubah
+                label
+                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.new")
+                  |  Baru
+                label
+                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.unchanged")
+                  |  Sama
               table.post-preview-table(ng-if="modalPostPreview.rows.length > 0")
                 thead
                   tr
@@ -496,17 +511,6 @@ block content
                         span(ng-if="r.diff_status === 'new'") BARU
                         span(ng-if="r.diff_status === 'changed'") BERUBAH
                         span(ng-if="r.diff_status === 'unchanged'") SAMA
-              div.post-diff-filter
-                label Filter:
-                label
-                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.changed")
-                  |  Berubah
-                label
-                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.new")
-                  |  Baru
-                label
-                  input(type="checkbox" ng-model="modalPostPreview.diffFilter.unchanged")
-                  |  Sama
           div.modal-actions.modal-actions-end
             button.btn-ghost(ng-click="closePostPreview()") Batal
             button.btn-primary(ng-click="openPostConfirm()" ng-disabled="modalPostPreview.loading || !erpActive")

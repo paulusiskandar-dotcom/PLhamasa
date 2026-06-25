@@ -221,11 +221,11 @@ block content
                       |  Hapus
 
       //- Modal: Tambah Blacklist
-      div.modal-overlay(ng-if="modalAddBl" ng-click="modalAddBl = null")
+      div.modal-overlay(ng-if="modalAddBl" ng-click="closeModal('modalAddBl')")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Tambah ke Blacklist
-            button.modal-close(ng-click="modalAddBl = null") ×
+            button.modal-close(ng-click="closeModal('modalAddBl')") ×
           div.modal-body
             p {{ modalAddBl.count }} item akan di-blacklist:
             ul.bl-modal-list
@@ -236,23 +236,23 @@ block content
               label Alasan (opsional)
               textarea.form-control(ng-model="modalAddBl.reason" rows="2" placeholder="Misal: Sudah discontinue")
           div.modal-actions
-            button.btn-ghost(ng-click="modalAddBl = null") Batal
+            button.btn-ghost(ng-click="closeModal('modalAddBl')") Batal
             button.btn-primary(ng-click="executeAddBlacklist()")
               | Konfirmasi Blacklist
 
       //- Modal: Hapus Blacklist
-      div.modal-overlay(ng-if="modalRemoveBl" ng-click="modalRemoveBl = null")
+      div.modal-overlay(ng-if="modalRemoveBl" ng-click="closeModal('modalRemoveBl')")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Hapus dari Blacklist
-            button.modal-close(ng-click="modalRemoveBl = null") ×
+            button.modal-close(ng-click="closeModal('modalRemoveBl')") ×
           div.modal-body
             p Item ini akan kembali muncul di sistem.
             p
               strong {{ modalRemoveBl.i_name }}
             p.bl-warning Item akan tersedia di rekaman price list baru, edit OPEN, export, dan push ERP.
           div.modal-actions
-            button.btn-ghost(ng-click="modalRemoveBl = null") Batal
+            button.btn-ghost(ng-click="closeModal('modalRemoveBl')") Batal
             button.btn-primary(ng-click="executeRemoveBlacklist()") Hapus dari Blacklist
 
       //- Section 5: ERP Target (superadmin only)
@@ -339,7 +339,7 @@ block content
                       | Opsional
 
       //- Modal: Add/Edit Subcategory
-      div.modal-overlay(ng-if="modalSubcat" ng-click="modalSubcat = null")
+      div.modal-overlay(ng-if="modalSubcat" ng-click="closeModal('modalSubcat')")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 {{ modalSubcat.editing ? 'Edit' : 'Tambah' }} Subkategori
@@ -348,15 +348,15 @@ block content
               label Nama Subkategori
               input.form-control(type="text" ng-model="modalSubcat.name" placeholder="Contoh: Diameter Kecil" autofocus)
           div.modal-actions
-            button.btn-ghost(ng-click="modalSubcat = null") Batal
+            button.btn-ghost(ng-click="closeModal('modalSubcat')") Batal
             button.btn-primary(ng-click="saveSubcat()" ng-disabled="!modalSubcat.name") Simpan
 
       //- Modal: Manage Subcategory Items
-      div.modal-overlay(ng-if="modalSubcatItems" ng-click="modalSubcatItems = null")
+      div.modal-overlay(ng-if="modalSubcatItems" ng-click="closeModal('modalSubcatItems')")
         div.modal-card.modal-large(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Assign Items — {{ modalSubcatItems.subcat.name }}
-            button.modal-close(ng-click="modalSubcatItems = null") ×
+            button.modal-close(ng-click="closeModal('modalSubcatItems')") ×
           div.modal-body
             p.section-desc Centang item yang masuk ke subkategori ini. Item yang sudah di-assign ke subkategori lain ditampilkan tapi tidak bisa dipilih.
             div.search-box
@@ -379,11 +379,11 @@ block content
                   small.assigned-info(ng-if="item.assignedTo && item.assignedTo !== modalSubcatItems.subcat.id")
                     |  (di "{{ item.assignedToName }}")
           div.modal-actions
-            button.btn-ghost(ng-click="modalSubcatItems = null") Tutup
+            button.btn-ghost(ng-click="closeModal('modalSubcatItems')") Tutup
             button.btn-primary(ng-click="saveSubcatItems()") Simpan Assignment
 
       //- Modal: Add/Edit ERP Target
-      div.modal-overlay(ng-if="modalErp" ng-click="modalErp = null")
+      div.modal-overlay(ng-if="modalErp" ng-click="closeModal('modalErp')")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 {{ modalErp.editing ? 'Edit' : 'Tambah' }} ERP Target
@@ -419,7 +419,7 @@ block content
                 i.bi.bi-x-circle-fill
                 |  {{ modalErp.testResult.error }}
           div.modal-actions
-            button.btn-ghost(ng-click="modalErp = null") Batal
+            button.btn-ghost(ng-click="closeModal('modalErp')") Batal
             button.btn-ghost(ng-click="testErpModal()" ng-disabled="!modalErp.data.host || !modalErp.data.db_name")
               i.bi.bi-plug
               |  Test

@@ -28,5 +28,11 @@ plmApp.factory('erpTargetService', function ($http) {
             return $http.post(api.url + 'erp-target/test', data)
                 .then(function (r) { return r.data; });
         },
+        // Test an already-saved target by id — password is loaded + decrypted
+        // server-side, never sent from the client.
+        testConnectionById: function (id) {
+            return $http.post(api.url + 'erp-target/' + id + '/test', {})
+                .then(function (r) { return r.data; });
+        },
     };
 });

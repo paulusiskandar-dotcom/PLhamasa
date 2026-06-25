@@ -94,6 +94,25 @@ module.exports._delete = async function (req, res) {
     }
 };
 
+// ── POST /erp-target/:id/test ─────────────────────────────────────────────────
+// Tests an ALREADY-SAVED target using its stored (encrypted) password, decrypted
+// server-side only. No password is accepted from, or returned to, the client.
+
+module.exports._testById = async function (req, res) {
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (isNaN(id)) return response.error(res, 'invalid_id', null, 400);
+        const target = await $model.getById(id);
+        if (!target) return response.error(res, 'not_found', null, 404);
+        const password = await $model.getPasswordForId(id);
+        if (!password) return response.error(res, 'no_stored_password', null, 400);
+        const result = await $model.testConnection(target.host, target.port, target.db_name, target.db_user, password);
+        return response.success(res, result);
+    } catch (err) {
+        return response.error(res, null, err);
+    }
+};
+
 // ── POST /erp-target/:id/activate ────────────────────────────────────────────
 
 module.exports._activate = async function (req, res) {

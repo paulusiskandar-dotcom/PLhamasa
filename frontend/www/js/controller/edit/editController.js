@@ -19,6 +19,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     $scope.hasGudangPabrik = false;
     $scope.items = [];
     $scope.filteredItems = [];
+    $scope.visibleItems = [];                               // render window (slice of filteredItems)
+    $scope.win = { padTop: 0, padBottom: 0, rowH: 48, start: 0, end: 0 };
     $scope.subcategories = [];
     $scope.subcatAssignments = {};
     $scope.availableBrands = [];
@@ -330,7 +332,74 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         });
 
         $scope.filteredItems = filtered;
+
+        // Render windowing: filter/sort rebuilt the full array — reset scroll to
+        // the top and recompute the visible slice. (filteredItems itself stays
+        // the FULL array; only the rendered window is derived from it.)
+        if (winEl) winEl.scrollTop = 0;
+        computeWindow();
     }
+
+    // ── Virtual scrolling (render windowing) ───────────────────────
+    // Renders only the visible slice of filteredItems. Filtering, sorting,
+    // search, facets, selection, modifier scope, unassignedCount and the
+    // "barang" total all keep operating on the FULL filteredItems/items arrays
+    // — this code only derives $scope.visibleItems for the ng-repeat.
+    var winEl = null;                 // the .table-scroll panel (set by directive)
+    var OVERSCAN = 10;                // rows rendered above/below the viewport
+    var INITIAL_COUNT = 40;           // slice rendered before the panel/geometry exists
+
+    $scope.registerWindowEl = function (el) { winEl = el; recomputeWindow(); };
+
+    function measureRowHeight() {
+        if (winEl) {
+            var row = winEl.querySelector('tbody tr[data-vrow]');
+            if (row) {
+                var h = row.getBoundingClientRect().height;
+                if (h && h > 0) return h;
+            }
+        }
+        return $scope.win.rowH || 48;
+    }
+
+    function computeWindow() {
+        var items = $scope.filteredItems || [];
+        var total = items.length;
+        if (total === 0) {
+            $scope.visibleItems = [];
+            $scope.win.start = 0; $scope.win.end = 0;
+            $scope.win.padTop = 0; $scope.win.padBottom = 0;
+            return;
+        }
+        var rh = measureRowHeight();
+        $scope.win.rowH = rh;
+        var scrollTop = winEl ? winEl.scrollTop : 0;
+        var vh        = winEl ? (winEl.clientHeight || 600) : 600;
+        var start = Math.max(0, Math.floor(scrollTop / rh) - OVERSCAN);
+        start -= (start % 2);                 // keep even → stable zebra (:nth-child) parity
+        var visCount = winEl ? (Math.ceil(vh / rh) + OVERSCAN * 2) : INITIAL_COUNT;
+        var end = Math.min(total, start + visCount);
+        $scope.visibleItems  = items.slice(start, end);   // SAME object refs → edits mutate real items
+        $scope.win.start = start; $scope.win.end = end;
+        $scope.win.padTop    = start * rh;
+        $scope.win.padBottom = Math.max(0, (total - end) * rh);
+    }
+
+    // rAF-batched: never a full $digest per scroll pixel.
+    var winTicking = false;
+    function recomputeWindow() {
+        if (winTicking) return;
+        winTicking = true;
+        $window.requestAnimationFrame(function () {
+            winTicking = false;
+            computeWindow();
+            $scope.$applyAsync();
+        });
+    }
+    $scope.recomputeWindow = recomputeWindow;
+
+    $window.addEventListener('resize', recomputeWindow);
+    $scope.$on('$destroy', function () { $window.removeEventListener('resize', recomputeWindow); });
 
     $scope.sortBy = function (field) {
         if ($scope.sort.field === field) {
@@ -384,7 +453,11 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         var targets = $scope.priceTypes.filter(function (pt) { return $scope.modifier.targets[pt.code]; });
         if (!targets.length) { showToast('Pilih minimal 1 target harga', 'warning'); return; }
 
-        var rawVal = parseThousand($scope.modifier.value);
+        var isPercent = $scope.modifier.type === 'plus_percent' || $scope.modifier.type === 'minus_percent';
+        var rawVal = isPercent
+            ? parseFloat(String($scope.modifier.value).replace(',', '.'))
+            : parseThousand($scope.modifier.value);
+        if (isPercent && isNaN(rawVal)) rawVal = null;
         if (rawVal === null || rawVal === undefined) { showToast('Masukkan nilai modifier', 'warning'); return; }
 
         var changes = [];
@@ -730,4 +803,27 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
 
     // Init
     loadData();
+});
+
+// ── windowed-scroll directive ─────────────────────────────────────
+// Binds to the .table-scroll panel (the vertical scroll container). On scroll
+// it asks the controller to recompute the visible row window (rAF-batched in
+// the controller). Registers/unregisters the panel element on link/$destroy so
+// it survives the ng-if that creates/removes the panel. Shares the controller
+// scope (no isolate) and only calls controller functions up the prototype chain
+// — it never writes window state on the ng-if child scope.
+plmApp.directive('windowedScroll', function () {
+    return {
+        restrict: 'A',
+        link: function (scope, element) {
+            var el = element[0];
+            scope.registerWindowEl(el);
+            function onScroll() { scope.recomputeWindow(); }   // recomputeWindow is rAF-batched
+            el.addEventListener('scroll', onScroll, { passive: true });
+            scope.$on('$destroy', function () {
+                el.removeEventListener('scroll', onScroll);
+                scope.registerWindowEl(null);
+            });
+        }
+    };
 });
