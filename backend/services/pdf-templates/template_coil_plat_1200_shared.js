@@ -172,6 +172,17 @@ function makeRender(pagesConfig) {
             if (!tebalsToRender || tebalsToRender.length === 0) {
                 tebalsToRender = Object.values(mapByTebal)
                     .filter(t => t.sortVal !== 999) // exclude unparsed items if any
+                    .filter(t => {
+                        const hasCoilPrice = t.coilItem && t.coilItem.prices && (
+                            (t.coilItem.prices.cash_gudang && t.coilItem.prices.cash_gudang.current > 0) ||
+                            (t.coilItem.prices.kredit_gudang && t.coilItem.prices.kredit_gudang.current > 0)
+                        );
+                        const hasPlatPrice = t.platItem && t.platItem.prices && (
+                            (t.platItem.prices.cash_gudang && t.platItem.prices.cash_gudang.current > 0) ||
+                            (t.platItem.prices.kredit_gudang && t.platItem.prices.kredit_gudang.current > 0)
+                        );
+                        return hasCoilPrice || hasPlatPrice;
+                    })
                     .sort((a, b) => a.sortVal - b.sortVal)
                     .map(t => t.displayStr);
             }
