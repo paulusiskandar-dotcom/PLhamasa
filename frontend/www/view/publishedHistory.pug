@@ -145,38 +145,38 @@ block content
             button(ng-disabled="page >= totalPages" ng-click="nextPage()") Selanjutnya ›
 
       //- Modal Detail (PUBLISHED)
-      div.modal-overlay(ng-if="modalDetail" ng-click="modalDetail = null")
+      div.modal-overlay(ng-if="modalDetail" ng-click="closeModal('modalDetail')")
         div.modal-card.modal-large(ng-click="$event.stopPropagation()")
           div.modal-header
             div
               h3 {{ modalDetail.cat_name }} — \#{{ modalDetail.revision_no | padNumber:3 }}
               span.pl-status.status-published PUBLISHED
-            button.modal-close(ng-click="modalDetail = null") ×
+            button.modal-close(ng-click="closeModal('modalDetail')") ×
           div.modal-body
             p.detail-meta
               | Posted by {{ modalDetail.posted_by_name }} pada {{ modalDetail.posted_at | dateTimeFormat }}
             table.detail-table(ng-if="modalDetail.items && modalDetail.items.length > 0")
               thead
                 tr
-                  th ig_id
-                  th pr_id
-                  th Harga/kg
+                  th Kode
+                  th Nama
+                  th.text-right(ng-repeat="pt in modalDetail.priceTypes") {{ pt.label }} {{ pt.group }}
               tbody
                 tr(ng-repeat="it in modalDetail.items")
                   td.mono {{ it.ig_id }}
-                  td.mono {{ it.pr_id }}
-                  td.mono.text-right {{ it.i_price | number:0 }}
+                  td {{ it.name }}
+                  td.mono.text-right(ng-repeat="pt in modalDetail.priceTypes") {{ it.prices[pt.code].current | number:0 }}
           div.modal-actions
             button.btn-ghost(ng-click="exportPdf(modalDetail)") Export PDF
             button.btn-ghost(ng-click="exportExcel(modalDetail)") Export Excel
-            button.btn-primary(ng-click="modalDetail = null") Tutup
+            button.btn-primary(ng-click="closeModal('modalDetail')") Tutup
 
       //- Modal PDF Template
-      div.modal-overlay(ng-if="showPdfModal" ng-click="showPdfModal = false")
+      div.modal-overlay(ng-if="showPdfModal" ng-click="closeModal('showPdfModal', false)")
         div.modal-card(ng-click="$event.stopPropagation()")
           div.modal-header
             h3 Pilih Template PDF
-            button.modal-close(ng-click="showPdfModal = false") ×
+            button.modal-close(ng-click="closeModal('showPdfModal', false)") ×
           div.modal-body
             div.empty-state(ng-if="!pdfTemplates || pdfTemplates.length === 0")
               i.bi.bi-file-earmark-pdf
@@ -186,7 +186,7 @@ block content
                 strong {{ tpl.name }}
                 small {{ tpl.description }}
           div.modal-actions
-            button.btn-ghost(ng-click="showPdfModal = false") Tutup
+            button.btn-ghost(ng-click="closeModal('showPdfModal', false)") Tutup
 
       //- Toast
       div.toast-container(ng-if="toast.show")

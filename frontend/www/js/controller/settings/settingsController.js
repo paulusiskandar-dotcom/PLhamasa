@@ -30,6 +30,10 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
     $scope.erpTargets = [];
     $scope.modalErp = null;
 
+    // Generic modal closer — assigns on the controller scope so the value
+    // is not shadowed by the ng-if child scope of the modal overlay.
+    $scope.closeModal = function (name) { $scope[name] = null; };
+
     // ── Init ───────────────────────────────────────────────────
     function init() {
         $masterService.getCategories().then(function (r) {
@@ -187,7 +191,14 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
 
     $scope.testErpModal = function () {
         $scope.modalErp.testResult = null;
-        erpTargetService.testConnection($scope.modalErp.data).then(function (r) {
+        var m = $scope.modalErp;
+        // Editing a saved target without re-typing the password → test the stored
+        // (server-side decrypted) password by id. Otherwise test the typed config
+        // (add-new, or an existing target whose password was re-typed before save).
+        var p = (m.editing && m.id && !m.data.db_password)
+            ? erpTargetService.testConnectionById(m.id)
+            : erpTargetService.testConnection(m.data);
+        p.then(function (r) {
             $scope.modalErp.testResult = r.result || r;
         }).catch(function (err) {
             $scope.modalErp.testResult = { success: false, error: (err.data && err.data.message) || 'Connection failed' };
@@ -223,7 +234,7 @@ plmApp.controller('settingsController', function ($scope, $http, $timeout, $mast
 
     $scope.testErp = function (erp) {
         showToast('Testing...', 'info');
-        erpTargetService.testConnection({ host: erp.host, port: erp.port, db_name: erp.db_name, db_user: erp.db_user, db_password: '' }).then(function (r) {
+        erpTargetService.testConnectionById(erp.id).then(function (r) {
             var res = r.result || r;
             if (res.success) {
                 showToast('Connect berhasil — ' + res.version, 'success', 5000);
