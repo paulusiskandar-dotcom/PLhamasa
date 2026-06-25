@@ -160,31 +160,31 @@ block content
               |  Mulai
 
       //- Modal Detail (PUBLISHED)
-      div.modal-overlay(ng-if="modalDetail" ng-click="modalDetail = null")
+      div.modal-overlay(ng-if="modalDetail" ng-click="closeModal('modalDetail')")
         div.modal-card.modal-large(ng-click="$event.stopPropagation()")
           div.modal-header
             div
               h3 {{ modalDetail.cat_name }} — \#{{ modalDetail.revision_no | padNumber:3 }}
               span.pl-status.status-published PUBLISHED
-            button.modal-close(ng-click="modalDetail = null") ×
+            button.modal-close(ng-click="closeModal('modalDetail')") ×
           div.modal-body
             p.detail-meta
               | Posted by {{ modalDetail.posted_by_name }} pada {{ modalDetail.posted_at | dateTimeFormat }}
             table.detail-table(ng-if="modalDetail.items && modalDetail.items.length > 0")
               thead
                 tr
-                  th ig_id
-                  th pr_id
-                  th Harga/kg
+                  th Kode
+                  th Nama
+                  th.text-right(ng-repeat="pt in modalDetail.priceTypes") {{ pt.label }} {{ pt.group }}
               tbody
                 tr(ng-repeat="item in modalDetail.items")
                   td.mono {{ item.ig_id }}
-                  td.mono {{ item.pr_id }}
-                  td.mono.text-right {{ item.i_price | number:0 }}
+                  td {{ item.name }}
+                  td.mono.text-right(ng-repeat="pt in modalDetail.priceTypes") {{ item.prices[pt.code].current | number:0 }}
           div.modal-actions
             button.btn-ghost(ng-click="exportPdf(modalDetail)") Export PDF
             button.btn-ghost(ng-click="exportExcel(modalDetail)") Export Excel
-            button.btn-primary(ng-click="modalDetail = null") Tutup
+            button.btn-primary(ng-click="closeModal('modalDetail')") Tutup
 
       //- Modal Log
       div.modal-overlay(ng-if="modalLog" ng-click="closeLog()")

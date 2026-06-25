@@ -123,7 +123,7 @@ module.exports.listAll = async function (catId, currentUserId) {
                uc.username AS created_by_name,
                up.username AS posted_by_name,
                ul.username AS locked_by_name,
-               (SELECT COUNT(*) FROM price_list_item pli WHERE pli.price_list_id = pl.id) AS item_count,
+               (SELECT COUNT(DISTINCT pli.ig_id) FROM price_list_item pli WHERE pli.price_list_id = pl.id) AS item_count,
                (SELECT MAX(logged_at) FROM price_list_log pll WHERE pll.price_list_id = pl.id) AS last_log_at
         FROM price_list pl
         LEFT JOIN users uc ON uc.id = pl.created_by
@@ -571,7 +571,7 @@ module.exports.listPublished = async function ({ cat_id, period, sort_by, page, 
             pl.id, pl.cat_id, pl.cat_name, pl.revision_no,
             pl.posted_at, pl.posted_by,
             up.username AS posted_by_username,
-            (SELECT COUNT(*)::int FROM price_list_item pli WHERE pli.price_list_id = pl.id) AS item_count
+            (SELECT COUNT(DISTINCT pli.ig_id)::int FROM price_list_item pli WHERE pli.price_list_id = pl.id) AS item_count
         FROM price_list pl
         LEFT JOIN users up ON up.id = pl.posted_by
         ${whereClause}

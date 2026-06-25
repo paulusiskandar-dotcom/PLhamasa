@@ -43,6 +43,9 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     $scope.modalStart          = null;
     $scope.modalDetail         = null;
     $scope.modalLog            = null;
+    // Generic modal closer — assigns on the controller scope so the value
+    // is not shadowed by the ng-if child scope of the modal overlay.
+    $scope.closeModal          = function (name) { $scope[name] = null; };
     $scope.pdfTemplateOptions  = [];
     $scope.modalPdfTemplate    = null;
 

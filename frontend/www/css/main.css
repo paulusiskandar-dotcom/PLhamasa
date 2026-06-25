@@ -594,6 +594,58 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 /* ─── Table horizontal scroll ───────────────────────────────── */
 .table-scroll { overflow: visible; }
 
+/* ─── B2: Edit view — viewport-bounded, contained table panel ──
+   Scoped to .edit-view ONLY (global .table-scroll above and other
+   pages like view.pug are untouched). Turns the edit page into a
+   fixed-height flex column so the wide data table scrolls inside its
+   own panel on BOTH axes instead of scrolling the whole document
+   under the position:fixed sidebar. The sticky thead then anchors to
+   the panel top (no extra sticky CSS needed — its rules already set
+   background + z-index). A flex panel is used instead of a static
+   max-height calc because the chrome above the table is conditional
+   (the ~114px .modifier-bar only renders for OPEN+locked, the
+   .dim-filter-bar wraps) so no single calc offset is correct across
+   states — flex auto-fills whatever space remains. */
+.main-content.edit-view {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.edit-view .table-wrapper {
+  flex: 1 1 auto;
+  min-height: 0;          /* allow the panel to shrink so it can scroll */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;       /* wrapper clips; inner .table-scroll scrolls */
+}
+.edit-view .table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;         /* both axes contained here → sidebar safe */
+}
+.edit-view .data-table {
+  min-width: 900px;       /* floor so columns don't crush; panel scrolls below this */
+}
+
+/* ─── I1: windowed (virtual-scroll) edit table ────────────────
+   Renders only the visible row slice. Uniform row height is REQUIRED so the
+   spacer-row math stays exact: pin the body row height and stop the name cell
+   (the only multi-line source) from wrapping. Spacer rows reserve the off-
+   screen scroll height; their cells carry no padding/border so height is exact.
+   Scoped to .edit-view — other tables (view.pug) are unaffected. */
+.edit-view .data-table tbody tr { height: 48px; }
+.edit-view .data-table td.col-name {
+  max-width: 360px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edit-view .data-table tr.v-spacer { height: auto; }
+.edit-view .data-table tr.v-spacer td {
+  padding: 0;
+  border: 0;
+}
+
 /* ─── Generated-column header variants ──────────────────────── */
 .col-price-new {
   background: rgba(212,168,67,.22);
@@ -1334,6 +1386,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 
 .modal-large .modal-body {
   overflow-y: auto;
+  overflow-x: auto;
   padding: 18px 24px;
   flex: 1;
 }
@@ -2210,10 +2263,10 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .diff-new      { background: #E8F5E9; color: #2E7D32; }
 .diff-unchanged{ background: #F5F5F5; color: #9E9E9E; }
 
-/* Filter checkboxes under the diff table */
+/* Filter checkboxes above the diff table */
 .post-diff-filter {
   display: flex; gap: 14px; flex-wrap: wrap;
-  margin-top: 10px; font-size: 12px; color: var(--text-muted);
+  margin-bottom: 10px; font-size: 12px; color: var(--text-muted);
 }
 .post-diff-filter label {
   display: flex; align-items: center; gap: 4px; cursor: pointer; user-select: none;
@@ -2300,7 +2353,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
   width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed;
 }
 .post-preview-table thead th {
-  background: #1E3A5F; color: #fff; padding: 10px 8px;
+  background: #1E3A5F; color: #fff; padding: 8px 8px;
   font-weight: 600; font-size: 11px; letter-spacing: 0.5px;
   text-transform: uppercase; border: none;
 }
@@ -2312,7 +2365,7 @@ button:disabled, .btn-primary:disabled { opacity: .55; cursor: not-allowed; }
 .post-preview-table tbody tr.diff-row-unchanged { background: #FAFBFC; opacity: 0.8; }
 .post-preview-table tbody tr:hover { filter: brightness(0.97); }
 .post-preview-table tbody td {
-  padding: 6px 8px; vertical-align: middle; border: none;
+  padding: 8px 8px; vertical-align: middle; border: none;
 }
 .post-preview-table .col-name {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0;

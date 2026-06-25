@@ -44,6 +44,9 @@ plmApp.controller('publishedHistoryController', function ($scope, $http, $timeou
     $scope.totalPages     = 1;
     $scope.loading        = false;
     $scope.modalDetail    = null;
+    // Generic modal closer — assigns on the controller scope so the value
+    // is not shadowed by the ng-if child scope of the modal overlay.
+    $scope.closeModal     = function (name, val) { $scope[name] = (val === undefined ? null : val); };
     $scope.showPdfModal   = false;
     $scope.pdfTemplates   = [];
     $scope.pdfTargetItem  = null;

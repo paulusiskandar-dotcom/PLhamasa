@@ -94,6 +94,7 @@ module.exports = function (app) {
     app.put("/erp-target/:id",              auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._update);
     app.delete("/erp-target/:id",           auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._delete);
     app.post("/erp-target/:id/activate",    auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._activate);
+    app.post("/erp-target/:id/test",        auth.verifyToken, requireSuperadmin, require("./controllers/erpTarget")._testById);
 
     // ── Item Dimensions ───────────────────────────────────────────────────────
     const dimsCtrl = require('./controllers/itemDimensions');
