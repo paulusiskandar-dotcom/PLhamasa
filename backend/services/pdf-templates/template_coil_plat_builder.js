@@ -117,25 +117,32 @@ function makeRender(pagesConfig) {
                 if (!itemsArray || itemsArray.length === 0) return null;
                 const priceCounts = {};
                 itemsArray.forEach(it => {
-                    const price = it.prices && it.prices.cash_gudang && it.prices.cash_gudang.current;
-                    if (price > 0) {
-                        priceCounts[price] = (priceCounts[price] || 0) + 1;
+                    const cash = (it.prices && it.prices.cash_gudang && it.prices.cash_gudang.current) || 0;
+                    const kredit = (it.prices && it.prices.kredit_gudang && it.prices.kredit_gudang.current) || 0;
+                    if (cash > 0 || kredit > 0) {
+                        const key = `${cash}_${kredit}`;
+                        priceCounts[key] = (priceCounts[key] || 0) + 1;
                     }
                 });
                 
-                let modePrice = null;
+                let modeKey = null;
                 let maxCount = 0;
-                for (const price in priceCounts) {
-                    if (priceCounts[price] > maxCount) {
-                        maxCount = priceCounts[price];
-                        modePrice = parseFloat(price);
-                    } else if (priceCounts[price] === maxCount && parseFloat(price) > modePrice) {
-                        modePrice = parseFloat(price);
+                for (const key in priceCounts) {
+                    if (priceCounts[key] > maxCount) {
+                        maxCount = priceCounts[key];
+                        modeKey = key;
                     }
                 }
                 
-                if (modePrice) {
-                    const modeItems = itemsArray.filter(it => it.prices && it.prices.cash_gudang && it.prices.cash_gudang.current === modePrice);
+                if (modeKey) {
+                    const [cashStr, kreditStr] = modeKey.split('_');
+                    const cash = parseFloat(cashStr);
+                    const kredit = parseFloat(kreditStr);
+                    const modeItems = itemsArray.filter(it => {
+                        const c = (it.prices && it.prices.cash_gudang && it.prices.cash_gudang.current) || 0;
+                        const k = (it.prices && it.prices.kredit_gudang && it.prices.kredit_gudang.current) || 0;
+                        return c === cash && k === kredit;
+                    });
                     modeItems.sort((a, b) => b.weight - a.weight);
                     return modeItems[0];
                 }
