@@ -69,8 +69,8 @@ function makeRender(pagesConfig) {
             vLineColor: function () { return '#000000'; },
             paddingLeft:   function () { return 3; },
             paddingRight:  function () { return 3; },
-            paddingTop:    function () { return 3; },
-            paddingBottom: function () { return 3; },
+            paddingTop:    function () { return 2.8; },
+            paddingBottom: function () { return 2.8; },
         };
 
         const tableWidths = [
@@ -192,6 +192,25 @@ function makeRender(pagesConfig) {
                     })
                     .sort((a, b) => a.sortVal - b.sortVal)
                     .map(t => t.displayStr);
+            } else {
+                tebalsToRender = tebalsToRender.filter(tStr => {
+                    let is3Mtr = tStr.includes('@ 3MTR');
+                    let rawNumStr = tStr.split('@')[0].split('/')[0].trim();
+                    let sortVal = parseFloat(rawNumStr.replace(',', '.'));
+                    let key = sortVal + (is3Mtr ? 0.001 : 0);
+
+                    const t = mapByTebal[key];
+                    if (!t) return false;
+                    const hasCoilPrice = t.coilItem && t.coilItem.prices && (
+                        (t.coilItem.prices.cash_gudang && t.coilItem.prices.cash_gudang.current > 0) ||
+                        (t.coilItem.prices.kredit_gudang && t.coilItem.prices.kredit_gudang.current > 0)
+                    );
+                    const hasPlatPrice = t.platItem && t.platItem.prices && (
+                        (t.platItem.prices.cash_gudang && t.platItem.prices.cash_gudang.current > 0) ||
+                        (t.platItem.prices.kredit_gudang && t.platItem.prices.kredit_gudang.current > 0)
+                    );
+                    return hasCoilPrice || hasPlatPrice;
+                });
             }
 
             const rightRows = tebalsToRender.map(tStr => {
@@ -303,14 +322,14 @@ function makeRender(pagesConfig) {
                     const right = rightRows[i];
                     if (right) {
                         tableBody.push([
-                            { text: right.tLabel, alignment: 'center', fontSize: 10 },
-                            { text: fmtBerat(right.berat), alignment: 'center', fontSize: 10 },
-                            { text: fmtNum(right.coilCash), alignment: 'right', fontSize: 10 },
-                            { text: fmtNum(right.platCash), alignment: 'right', fontSize: 10 },
-                            { text: fmtNum(right.cashBtg), alignment: 'right', fontSize: 10 },
-                            { text: fmtNum(right.coilKredit), alignment: 'right', fontSize: 10 },
-                            { text: fmtNum(right.platKredit), alignment: 'right', fontSize: 10 },
-                            { text: fmtNum(right.kreditBtg), alignment: 'right', fontSize: 10 },
+                            { text: right.tLabel, alignment: 'center', fontSize: 9 },
+                            { text: fmtBerat(right.berat), alignment: 'center', fontSize: 9 },
+                            { text: fmtNum(right.coilCash), alignment: 'right', fontSize: 9 },
+                            { text: fmtNum(right.platCash), alignment: 'right', fontSize: 9 },
+                            { text: fmtNum(right.cashBtg), alignment: 'right', fontSize: 9 },
+                            { text: fmtNum(right.coilKredit), alignment: 'right', fontSize: 9 },
+                            { text: fmtNum(right.platKredit), alignment: 'right', fontSize: 9 },
+                            { text: fmtNum(right.kreditBtg), alignment: 'right', fontSize: 9 },
                         ]);
                     } else {
                         tableBody.push([
@@ -483,6 +502,7 @@ function makeRender(pagesConfig) {
                     headerRows: 4,
                     widths: currentTableWidths,
                     body: tableBody,
+                    dontBreakRows: true,
                 },
                 layout: tableLayout,
             });
@@ -491,7 +511,7 @@ function makeRender(pagesConfig) {
         const dd = {
             pageSize:        'A4',
             pageOrientation: 'landscape',
-            pageMargins:     [20, 20, 20, 20],
+            pageMargins:     [20, 12, 20, 12],
 
             content: content,
 
@@ -525,7 +545,7 @@ function makeRender(pagesConfig) {
 
             defaultStyle: {
                 font:     'Helvetica',
-                fontSize: 10,
+                fontSize: 9,
                 noWrap:   true,
             },
         };
