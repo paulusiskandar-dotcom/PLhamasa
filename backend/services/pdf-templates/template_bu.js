@@ -261,16 +261,16 @@ async function render({ items, customValues }) {
 
 
     const mainWidths = [
-        '6%', '5%',
-        '5.5%', '5.5%', '5.5%', '5.5%', // KS
-        '5.5%', '5.5%', '5.5%', '5.5%', // IS
-        '5.5%', '5.5%', '5.5%', '5.5%', // LS
-        '5.5%', '5.5%', '5.5%', '5.5%'  // SOLID
+        '4.5%', '4.3%',
+        '5.7%', '5.7%', '5.7%', '5.7%', // KS
+        '5.7%', '5.7%', '5.7%', '5.7%', // IS
+        '5.7%', '5.7%', '5.7%', '5.7%', // LS
+        '5.7%', '5.7%', '5.7%', '5.7%'  // SOLID
     ];
     const dd = {
         pageSize: 'A4',
         pageOrientation: 'landscape',
-        pageMargins: [10, 45, 10, 30],
+        pageMargins: [10, 35, 10, 25],
 
         header: function () {
             return {
@@ -285,9 +285,10 @@ async function render({ items, customValues }) {
         content: [
             {
                 text: 'HARGA CASH',
+                alignment: 'center',
                 bold: true,
-                fontSize: 11,
-                margin: [0, 0, 0, 2]
+                fontSize: 14,
+                margin: [0, 0, 0, 4]
             },
             {
                 table: {
@@ -296,19 +297,20 @@ async function render({ items, customValues }) {
                     body: [...createHeader(), ...buildBodyRows(false)],
                 },
                 layout: tableLayout,
-                margin: [0, 0, 0, 3]
+                margin: [0, 0, 0, 6]
             },
             {
                 text: 'HARGA KREDIT',
+                alignment: 'center',
                 bold: true,
-                fontSize: 11,
-                margin: [0, 0, 0, 2]
+                fontSize: 14,
+                margin: [0, 0, 0, 4]
             },
             {
                 table: {
-                    headerRows: 4,
+                    headerRows: 0,
                     widths: mainWidths,
-                    body: [...createHeader(), ...buildBodyRows(true)],
+                    body: [...buildBodyRows(true)],
                 },
                 layout: tableLayout,
             }
