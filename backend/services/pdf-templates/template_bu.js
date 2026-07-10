@@ -40,6 +40,11 @@ async function render({ items, customValues }) {
     const generatedAt = moment().tz('Asia/Jakarta').format('DD MMMM YYYY HH:mm');
     const hFill = '#e6e6e6';
 
+    function getPrice(item, priceType) {
+        if (!item || !item.prices || !item.prices[priceType] || !item.prices[priceType].current) return 0;
+        return item.prices[priceType].current;
+    }
+
     const grouped = {};
     items.forEach(item => {
         const size = extractSize(item.name);
@@ -53,15 +58,12 @@ async function render({ items, customValues }) {
             };
         }
 
-
-
         let brandKey = (item.i_brand || '').toUpperCase();
         if (brandKey === 'KS') {
-
             if (item.name.includes('520')) {
                 brandKey = 'KS_520';
             } else {
-                brandKey = 'KS_420';
+                brandKey = 'KS_420'; // Default to KS 420 for items without 520
             }
         } else if (brandKey === 'LS') {
             if (item.name.includes('420')) {
@@ -77,8 +79,26 @@ async function render({ items, customValues }) {
             }
         }
 
-        if (!grouped[size].brands[brandKey] || (!grouped[size].brands[brandKey].prices.cash_gudang && item.prices.cash_gudang)) {
+        const currentItem = grouped[size].brands[brandKey];
+        if (!currentItem) {
             grouped[size].brands[brandKey] = item;
+        } else {
+            const currentPrice = getPrice(currentItem, 'cash_gudang');
+            const newPrice = getPrice(item, 'cash_gudang');
+            
+            // Prioritize items with actual prices, 12m length, and TS tags
+            const scoreItem = (it, price) => {
+                let score = 0;
+                if (price > 0) score += 10000;
+                if (it.name.includes('12 m')) score += 1000;
+                if (it.name.match(/TS\s*\d+/i) || it.name.includes('BJTS')) score += 100;
+                // Prefer items that are not TEKUK if they are 12m, or something like that, but TS is higher priority
+                return score;
+            };
+
+            if (scoreItem(item, newPrice) > scoreItem(currentItem, currentPrice)) {
+                grouped[size].brands[brandKey] = item;
+            }
         }
     });
 
@@ -110,10 +130,7 @@ async function render({ items, customValues }) {
     }
 
 
-    function getPrice(item, priceType) {
-        if (!item || !item.prices || !item.prices[priceType] || !item.prices[priceType].current) return 0;
-        return item.prices[priceType].current;
-    }
+
 
 
     function buildBodyRows(isKredit) {
