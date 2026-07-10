@@ -89,6 +89,10 @@ module.exports._getById = async function (req, res) {
                 );
                 pl.items = (pl.items || []).concat(newRows);
             }
+            if (syncResult.removed > 0 && syncResult.removed_items) {
+                const removedSet = new Set(syncResult.removed_items);
+                pl.items = (pl.items || []).filter(function (item) { return !removedSet.has(item.ig_id); });
+            }
         }
 
         // Build price map from price_list_item: { ig_id: { pr_id: price } }
