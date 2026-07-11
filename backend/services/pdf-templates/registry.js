@@ -18,6 +18,8 @@ const TEMPLATES = {
     plat_strip:   require('./template_plat_strip'),
     beton_polos:  require('./template_bp'),
     beton_ulir:   require('./template_bu'),
+    siku_kecil:   require('./template_siku_kecil'),
+    siku_besar:   require('./template_siku_besar'),
     coil_plat_1200: require('./template_coil_plat_1200'),
     coil_plat_1500: require('./template_coil_plat_1500'),
     coil_plat_1800: require('./template_coil_plat_1800'),
@@ -37,6 +39,8 @@ async function _buildCache() {
     
     // Virtual category mapping
     map['COIL & PLAT HITAM'] = 'HRC_HR';
+    map['SIKU KECIL'] = 'SK';
+    map['SIKU BESAR'] = 'SK';
     
     _catCache   = map;
     _catCacheAt = Date.now();
