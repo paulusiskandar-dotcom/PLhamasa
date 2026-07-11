@@ -31,7 +31,8 @@ module.exports._getTemplateItems = async function (req, res) {
         if (!catId) catId = await registry.getCatId(req.params.key);
         if (!catId) return response.error(res, 'cat_id_required', null, 400);
 
-        const itemBrand = tpl.meta && tpl.meta.item_brand ? tpl.meta.item_brand : null;
+        const itemBrand   = tpl.meta && tpl.meta.item_brand ? tpl.meta.item_brand : null;
+        const namePattern = tpl.meta && tpl.meta.item_name_like ? tpl.meta.item_name_like : null;
         let catCondition = "cat_id = $1";
         let catParam = catId;
         if (catId === 'HRC_HR') {
@@ -43,13 +44,19 @@ module.exports._getTemplateItems = async function (req, res) {
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item
              WHERE ${catCondition} AND deleted_at IS NULL AND is_item = true
-               AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR'))
+               AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR') OR $3::text IS NOT NULL)
                AND ($2::text IS NULL OR i_brand = $2)
+               AND ($3::text IS NULL OR i_name ILIKE $3)
              ORDER BY i_name ASC`,
-            [catParam, itemBrand]
+            [catParam, itemBrand, namePattern]
         );
 
-        const igIds = items.map(function (i) { return i.ig_id; });
+        let filteredItems = items;
+        if (tpl.filterItems && typeof tpl.filterItems === 'function') {
+            filteredItems = items.filter(tpl.filterItems);
+        }
+
+        const igIds = filteredItems.map(function (i) { return i.ig_id; });
         const values = igIds.length ? await dbPLM().any(
             `SELECT ig_id, field_key, value
              FROM pdf_template_field_value
@@ -68,7 +75,7 @@ module.exports._getTemplateItems = async function (req, res) {
 
         return response.success(res, {
             template: enrichedTpl || tpl.meta,
-            items: items.map(function (it) {
+            items: filteredItems.map(function (it) {
                 return {
                     ig_id:         it.ig_id,
                     name:          it.i_name,
@@ -153,13 +160,15 @@ module.exports._render = async function (req, res) {
             }
         }
 
+        const namePattern = tpl.meta && tpl.meta.item_name_like ? tpl.meta.item_name_like : null;
         let igIds = [...new Set(allPlmPrices.map(function (p) { return p.ig_id; }))];
         const erpItems = igIds.length ? await dbERP().any(
             `SELECT ig_id, i_name, i_weight, un_name, i_brand
              FROM item WHERE ig_id = ANY($1::int[])
              AND deleted_at IS NULL AND is_item = true
-             AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR'))`,
-            [igIds]
+             AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR') OR $2::text IS NOT NULL)
+             AND ($2::text IS NULL OR i_name ILIKE $2)`,
+            [igIds, namePattern]
         ) : [];
 
         const priceIndex = {};
@@ -193,7 +202,12 @@ module.exports._render = async function (req, res) {
             customValues[r.ig_id][r.field_key] = r.value;
         });
 
-        const buffer = await tpl.render({ items, customValues });
+        let finalItems = items;
+        if (tpl.filterItems && typeof tpl.filterItems === 'function') {
+            finalItems = items.filter(tpl.filterItems);
+        }
+
+        const buffer = await tpl.render({ items: finalItems, customValues });
 
         const slug = tpl.meta.name.replace(/[^A-Za-z0-9]+/g, '_');
         const filename = slug + '_' + moment().tz('Asia/Jakarta').format('YYYYMMDD_HHmmss') + '.pdf';

@@ -24,6 +24,7 @@ const TEMPLATES = {
     coil_plat_1500: require('./template_coil_plat_1500'),
     coil_plat_1800: require('./template_coil_plat_1800'),
     special_grades: require('./template_special_grades'),
+    plat_kapal_bki: require('./template_plat_kapal_bki'),
 };
 
 let _catCache    = null;
