@@ -74,7 +74,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         $masterService.getCategories().then(function (res) {
             var rawCats = res.result || [];
             var mergedCats = rawCats.filter(function (c) { 
-                return c.id !== 'HRC' && c.id !== 'HR' && c.id !== 'CRC' && c.id !== 'CR'; 
+                return c.id !== 'HRC' && c.id !== 'HR' && c.id !== 'CRC' && c.id !== 'CR' && c.id !== 'CRNS'; 
             });
             mergedCats.push({ id: 'HRC_HR', name: 'Coil & Plat Hitam' });
             mergedCats.push({ id: 'CRC_CR', name: 'Coil & Plat Putih' });

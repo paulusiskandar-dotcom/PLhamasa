@@ -213,7 +213,7 @@ module.exports._start = async function (req, res) {
             // 1. Get items for this category from ERP (excluding blacklisted)
             let actualCatIds = cat_id;
             if (cat_id === 'HRC_HR') actualCatIds = ['HRC', 'HR', 'HRNS'];
-            if (cat_id === 'CRC_CR') actualCatIds = ['CRC', 'CR'];
+            if (cat_id === 'CRC_CR') actualCatIds = ['CRC', 'CR', 'CRNS'];
             const [allErpItems, blacklistedIds] = await Promise.all([
                 $itemModel.getItemByQuery({ cat_id: actualCatIds }),
                 $blacklist.getBlacklistedIds(),

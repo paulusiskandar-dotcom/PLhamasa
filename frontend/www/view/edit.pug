@@ -91,6 +91,14 @@ block content
                   style="background:none; border:none; padding:0 0 2px 0; font-weight:700; cursor:pointer; font-size:24px; font-family:inherit; transition:color 0.2s, border-color 0.2s; letter-spacing:-0.5px;"
                   ng-style="activeTab === 'CR' ? {'color': '#172B4D', 'border-bottom': '2px solid #0052cc'} : {'color': '#B3BAC5', 'border-bottom': '2px solid transparent'}"
                 ) Plat Putih
+                
+                span(style="color: #DFE1E6; font-size: 24px; font-weight: 300;") /
+                
+                button(
+                  ng-click="setTab('CRNS')" 
+                  style="background:none; border:none; padding:0 0 2px 0; font-weight:700; cursor:pointer; font-size:24px; font-family:inherit; transition:color 0.2s, border-color 0.2s; letter-spacing:-0.5px;"
+                  ng-style="activeTab === 'CRNS' ? {'color': '#172B4D', 'border-bottom': '2px solid #0052cc'} : {'color': '#B3BAC5', 'border-bottom': '2px solid transparent'}"
+                ) Plat Putih NS
 
               span.page-revision(style="margin-left: 4px; font-size: 20px; font-weight: 500; color: #6b778c;") \#{{ pl.revision_no | padNumber:3 }}
             p.page-sub(style="margin-bottom:0; margin-top:4px;") Edit harga price list

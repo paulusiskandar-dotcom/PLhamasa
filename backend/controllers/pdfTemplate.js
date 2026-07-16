@@ -40,14 +40,14 @@ module.exports._getTemplateItems = async function (req, res) {
             catParam = ['HRC', 'HR', 'HRNS'];
         } else if (catId === 'CRC_CR') {
             catCondition = "cat_id = ANY($1::text[])";
-            catParam = ['CRC', 'CR'];
+            catParam = ['CRC', 'CR', 'CRNS'];
         }
 
         const items = await dbERP().any(
             `SELECT ig_id, i_name, i_weight, un_name
              FROM item
              WHERE ${catCondition} AND deleted_at IS NULL AND is_item = true
-               AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR') OR $3::text IS NOT NULL)
+               AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR', 'CR') OR $3::text IS NOT NULL)
                AND ($2::text IS NULL OR i_brand = $2)
                AND ($3::text IS NULL OR i_name ILIKE $3)
              ORDER BY i_name ASC`,
@@ -169,7 +169,7 @@ module.exports._render = async function (req, res) {
             `SELECT ig_id, i_name, i_weight, un_name, i_brand
              FROM item WHERE ig_id = ANY($1::int[])
              AND deleted_at IS NULL AND is_item = true
-             AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR') OR $2::text IS NOT NULL)
+             AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR', 'CR') OR $2::text IS NOT NULL)
              AND ($2::text IS NULL OR i_name ILIKE $2)`,
             [igIds, namePattern]
         ) : [];

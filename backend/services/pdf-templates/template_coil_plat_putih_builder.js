@@ -44,11 +44,9 @@ function getBrand(item) {
 
 function parseThicknessAndWidth(name) {
     let tebal = 999;
-    let lebar = 1219; // default width
+    let lebar = 1219; // default fallback width
     let rawTebal = '';
 
-    // E.g. Coil Putih 0.40 x 1219 x C
-    // Or Plat Putih 0.4 mm x 4' x 8'
     const nameUpper = name.toUpperCase();
     
     // Parse Tebal
@@ -58,11 +56,35 @@ function parseThicknessAndWidth(name) {
         tebal = parseFloat(rawTebal.replace(',', '.'));
     }
 
-    // Parse Lebar
-    if (nameUpper.includes('1000') || nameUpper.includes('1X2')) {
-        lebar = 1000;
-    } else if (nameUpper.includes('1219') || nameUpper.includes('4\' X 8\'') || nameUpper.includes("4'X8'")) {
-        lebar = 1219;
+    // Isolate dimensions part after the thickness/mm
+    let rest = nameUpper;
+    const mmIndex = nameUpper.indexOf('MM');
+    if (mmIndex !== -1) {
+        rest = nameUpper.substring(mmIndex + 2).trim();
+    } else if (m) {
+        const index = nameUpper.indexOf(m[0].toUpperCase());
+        if (index !== -1) {
+            rest = nameUpper.substring(index + m[0].length).trim();
+        }
+    }
+
+    // Match first dimension/width in the rest of the string (e.g., "X 4", "X 4'", "X 1219", "X 882")
+    const widthMatch = rest.match(/(?:X|^|\s)\s*(\d+)\s*('?)/i);
+    if (widthMatch) {
+        const rawWidth = widthMatch[1];
+        const isInch = widthMatch[2] === "'";
+        const val = parseInt(rawWidth, 10);
+        
+        if (isInch || val < 10) {
+            // Inch/Feet conversion (standard sheet widths in feet)
+            if (val === 4) lebar = 1219;
+            else if (val === 3) lebar = 914;
+            else if (val === 5) lebar = 1524;
+            else if (val === 6) lebar = 1829;
+            else lebar = Math.round(val * 304.8); // general feet to mm
+        } else {
+            lebar = val;
+        }
     }
 
     return { tebal, lebar, rawTebal, isCoil: nameUpper.includes('COIL') };
