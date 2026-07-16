@@ -25,6 +25,8 @@ const TEMPLATES = {
     coil_plat_1800: require('./template_coil_plat_1800'),
     special_grades: require('./template_special_grades'),
     plat_kapal_bki: require('./template_plat_kapal_bki'),
+    coil_plat_putih_cash: require('./template_coil_plat_putih_cash'),
+    coil_plat_putih_kredit: require('./template_coil_plat_putih_kredit'),
 };
 
 let _catCache    = null;
@@ -40,6 +42,7 @@ async function _buildCache() {
     
     // Virtual category mapping
     map['COIL & PLAT HITAM'] = 'HRC_HR';
+    map['COIL & PLAT PUTIH'] = 'CRC_CR';
     map['SIKU KECIL'] = 'SK';
     map['SIKU BESAR'] = 'SK';
     

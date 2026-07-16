@@ -50,7 +50,7 @@ block content
         div.page-header-left
           div(ng-if="pl" style="display:flex; flex-direction:column; justify-content:center;")
             div(style="display:flex; align-items:baseline; gap: 12px;")
-              h2.page-title(ng-if="pl.cat_id !== 'HRC_HR'" style="margin-bottom:0;") {{ pl.cat_name }}
+              h2.page-title(ng-if="pl.cat_id !== 'HRC_HR' && pl.cat_id !== 'CRC_CR'" style="margin-bottom:0;") {{ pl.cat_name }}
               
               //- Category Tabs replacing Title for HRC_HR
               div(ng-if="pl.cat_id === 'HRC_HR'" style="display: flex; align-items: baseline; gap: 12px;")
@@ -75,6 +75,22 @@ block content
                   style="background:none; border:none; padding:0 0 2px 0; font-weight:700; cursor:pointer; font-size:24px; font-family:inherit; transition:color 0.2s, border-color 0.2s; letter-spacing:-0.5px;"
                   ng-style="activeTab === 'HRNS' ? {'color': '#172B4D', 'border-bottom': '2px solid #0052cc'} : {'color': '#B3BAC5', 'border-bottom': '2px solid transparent'}"
                 ) Plat Hitam NS
+
+              //- Category Tabs replacing Title for CRC_CR
+              div(ng-if="pl.cat_id === 'CRC_CR'" style="display: flex; align-items: baseline; gap: 12px;")
+                button(
+                  ng-click="setTab('CRC')" 
+                  style="background:none; border:none; padding:0 0 2px 0; font-weight:700; cursor:pointer; font-size:24px; font-family:inherit; transition:color 0.2s, border-color 0.2s; letter-spacing:-0.5px;"
+                  ng-style="activeTab === 'CRC' ? {'color': '#172B4D', 'border-bottom': '2px solid #0052cc'} : {'color': '#B3BAC5', 'border-bottom': '2px solid transparent'}"
+                ) Coil Putih
+                
+                span(style="color: #DFE1E6; font-size: 24px; font-weight: 300;") /
+                
+                button(
+                  ng-click="setTab('CR')" 
+                  style="background:none; border:none; padding:0 0 2px 0; font-weight:700; cursor:pointer; font-size:24px; font-family:inherit; transition:color 0.2s, border-color 0.2s; letter-spacing:-0.5px;"
+                  ng-style="activeTab === 'CR' ? {'color': '#172B4D', 'border-bottom': '2px solid #0052cc'} : {'color': '#B3BAC5', 'border-bottom': '2px solid transparent'}"
+                ) Plat Putih
 
               span.page-revision(style="margin-left: 4px; font-size: 20px; font-weight: 500; color: #6b778c;") \#{{ pl.revision_no | padNumber:3 }}
             p.page-sub(style="margin-bottom:0; margin-top:4px;") Edit harga price list

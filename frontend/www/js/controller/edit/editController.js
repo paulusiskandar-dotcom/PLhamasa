@@ -92,6 +92,8 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
             $scope.pl = data;
             if ($scope.pl.cat_id === 'HRC_HR') {
                 $scope.activeTab = 'HRC';
+            } else if ($scope.pl.cat_id === 'CRC_CR') {
+                $scope.activeTab = 'CRC';
             }
             $scope.priceTypes = data.priceTypes || [];
             $scope.hasGudangPabrik = $scope.priceTypes.some(function (pt) { return pt.group === 'Pabrik'; });
@@ -273,6 +275,7 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
         var f = $scope.filter;
         var filtered = $scope.items.filter(function (it) {
             if ($scope.pl && $scope.pl.cat_id === 'HRC_HR' && it.cat_id !== $scope.activeTab) return false;
+            if ($scope.pl && $scope.pl.cat_id === 'CRC_CR' && it.cat_id !== $scope.activeTab) return false;
             if (f.subcatId && String($scope.subcatAssignments[it.ig_id]) !== String(f.subcatId)) return false;
             if (f.brand && it.brand !== f.brand) return false;
             if (f.grade && it.grade !== f.grade) return false;

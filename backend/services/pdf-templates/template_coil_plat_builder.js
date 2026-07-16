@@ -59,6 +59,7 @@ function parseItemThickness(name) {
 function makeRender(pagesConfig) {
     return function render({ items, customValues }) {
         const generatedAt = moment().tz('Asia/Jakarta').format('DD MMM YYYY HH:mm');
+        const fsSize = pagesConfig[0].fontSize || 9;
 
         const content = [];
         
@@ -69,8 +70,8 @@ function makeRender(pagesConfig) {
             vLineColor: function () { return '#000000'; },
             paddingLeft:   function () { return 3; },
             paddingRight:  function () { return 3; },
-            paddingTop:    function () { return 2.5; },
-            paddingBottom: function () { return 2.5; },
+            paddingTop:    function () { return 2.4; },
+            paddingBottom: function () { return 2.4; },
         };
 
         const tableWidths = [
@@ -287,49 +288,49 @@ function makeRender(pagesConfig) {
                 
                 // ROW 1
                 tableBody.push([
-                    { text: 'SPHC/SS 400'.replace(/ /g, '\u00A0'), rowSpan: 2, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', relativePosition: { x: 0, y: 5 } },
-                    { text: 'BERAT'.replace(/ /g, '\u00A0'), rowSpan: 2, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', relativePosition: { x: 0, y: 5 } },
-                    { text: 'CASH', colSpan: 3, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
-                    { text: 'KREDIT', colSpan: 3, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
+                    { text: 'SPHC/SS 400'.replace(/ /g, '\u00A0'), rowSpan: 2, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', relativePosition: { x: 0, y: 5 } },
+                    { text: 'BERAT'.replace(/ /g, '\u00A0'), rowSpan: 2, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', relativePosition: { x: 0, y: 5 } },
+                    { text: 'CASH', colSpan: 3, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
+                    { text: 'KREDIT', colSpan: 3, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
                 ]);
 
                 // ROW 2
                 tableBody.push([
                     {}, // spanned
                     {}, // spanned
-                    { text: 'COIL', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'PLAT', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'COIL', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'PLAT', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'COIL', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'PLAT', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'COIL', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'PLAT', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
                 ]);
 
                 // ROW 3
                 const dynamicTblTitle = "TBL X " + (page.tableTitle.match(/\d+/) || [""])[0];
                 tableBody.push([
-                    { text: dynamicTblTitle.replace(/ /g, '\u00A0'), fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
-                    { text: '(kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
-                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: '(Rp/btg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: '(Rp/btg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: dynamicTblTitle.replace(/ /g, '\u00A0'), fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: '(kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: '(Rp/btg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: '(Rp/btg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
                 ]);
 
                 for (let i = 0; i < totalRows; i++) {
                     const right = rightRows[i];
                     if (right) {
                         tableBody.push([
-                            { text: right.tLabel, alignment: 'center', fontSize: 9 },
-                            { text: fmtBerat(right.berat), alignment: 'center', fontSize: 9 },
-                            { text: fmtNum(right.coilCash), alignment: 'right', fontSize: 9 },
-                            { text: fmtNum(right.platCash), alignment: 'right', fontSize: 9 },
-                            { text: fmtNum(right.cashBtg), alignment: 'right', fontSize: 9 },
-                            { text: fmtNum(right.coilKredit), alignment: 'right', fontSize: 9 },
-                            { text: fmtNum(right.platKredit), alignment: 'right', fontSize: 9 },
-                            { text: fmtNum(right.kreditBtg), alignment: 'right', fontSize: 9 },
+                            { text: right.tLabel, alignment: 'center', fontSize: fsSize },
+                            { text: fmtBerat(right.berat), alignment: 'center', fontSize: fsSize },
+                            { text: fmtNum(right.coilCash), alignment: 'right', fontSize: fsSize },
+                            { text: fmtNum(right.platCash), alignment: 'right', fontSize: fsSize },
+                            { text: fmtNum(right.cashBtg), alignment: 'right', fontSize: fsSize },
+                            { text: fmtNum(right.coilKredit), alignment: 'right', fontSize: fsSize },
+                            { text: fmtNum(right.platKredit), alignment: 'right', fontSize: fsSize },
+                            { text: fmtNum(right.kreditBtg), alignment: 'right', fontSize: fsSize },
                         ]);
                     } else {
                         tableBody.push([
@@ -347,30 +348,30 @@ function makeRender(pagesConfig) {
             } else {
                 // ROW 1
                 tableBody.push([
-                    { text: page.tableTitle.replace(/ /g, '\u00A0'), fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
-                    { text: 'CASH Rp/kg'.replace(/ /g, '\u00A0'), colSpan: 2, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: page.tableTitle.replace(/ /g, '\u00A0'), fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: 'CASH Rp/kg'.replace(/ /g, '\u00A0'), colSpan: 2, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
                     {},
                     { text: '', border: [false, false, false, false] },
                     { text: '', border: [true, true, true, false], colSpan: 2, fillColor: hFill },
                     {},
-                    { text: 'CASH', colSpan: 3, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
-                    { text: 'KREDIT', colSpan: 3, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
+                    { text: 'CASH', colSpan: 3, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
+                    { text: 'KREDIT', colSpan: 3, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] }, {}, {},
                 ]);
 
                 // ROW 2
                 tableBody.push([
-                    { text: 'TEBAL', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
-                    { text: 'COIL', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
-                    { text: 'PLAT', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: 'TEBAL', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: 'COIL', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
+                    { text: 'PLAT', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] },
                     { text: '', border: [false, false, false, false] },
-                    { text: 'SPHC/SS 400'.replace(/ /g, '\u00A0'), colSpan: 2, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', border: [true, false, true, true], relativePosition: { x: 0, y: -4 } },
+                    { text: 'SPHC/SS 400'.replace(/ /g, '\u00A0'), colSpan: 2, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', border: [true, false, true, true], relativePosition: { x: 0, y: -4 } },
                     {},
-                    { text: 'COIL', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'PLAT', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'COIL', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'PLAT', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
-                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'COIL', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'PLAT', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'COIL', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'PLAT', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
+                    { text: 'LEMBARAN', border: [true, true, true, false], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' },
                 ]);
 
                 // ROW 3
@@ -378,17 +379,17 @@ function makeRender(pagesConfig) {
                 const row3 = [];
                 if (left0) {
                     if (left0.type === 'data') {
-                        row3.push({ text: left0.label, alignment: 'center', fontSize: 9 });
-                        row3.push({ text: fmtNum(left0.coilPrice), alignment: 'right', fontSize: 9 });
-                        row3.push({ text: fmtNum(left0.platPrice), alignment: 'right', fontSize: 9 });
+                        row3.push({ text: left0.label, alignment: 'center', fontSize: fsSize });
+                        row3.push({ text: fmtNum(left0.coilPrice), alignment: 'right', fontSize: fsSize });
+                        row3.push({ text: fmtNum(left0.platPrice), alignment: 'right', fontSize: fsSize });
                     } else if (left0.type === 'header1') {
-                        row3.push({ text: left0.title, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                        row3.push({ text: left0.subtitle, colSpan: 2, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
+                        row3.push({ text: left0.title, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                        row3.push({ text: left0.subtitle, colSpan: 2, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
                         row3.push({});
                     } else if (left0.type === 'header2') {
-                        row3.push({ text: 'TEBAL', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                        row3.push({ text: 'COIL', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                        row3.push({ text: 'PLAT', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
+                        row3.push({ text: 'TEBAL', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                        row3.push({ text: 'COIL', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                        row3.push({ text: 'PLAT', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
                     } else {
                         row3.push({ text: '', border: [false, false, false, false] });
                         row3.push({ text: '', border: [false, false, false, false] });
@@ -404,14 +405,14 @@ function makeRender(pagesConfig) {
                 // Generate the dynamic header for the table, matching what was exactly used (e.g. "TBL X 1200")
                 const dynamicTblTitle = "TBL X " + (page.tableTitle.match(/\d+/) || [""])[0];
                 
-                row3.push({ text: dynamicTblTitle.replace(/ /g, '\u00A0'), fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] });
-                row3.push({ text: 'Berat (kg)'.replace(/ /g, '\u00A0'), fontSize: 9, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] });
-                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                row3.push({ text: '(Rp/btg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                row3.push({ text: '(Rp/btg)', border: [true, false, true, true], fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
+                row3.push({ text: dynamicTblTitle.replace(/ /g, '\u00A0'), fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] });
+                row3.push({ text: 'Berat (kg)'.replace(/ /g, '\u00A0'), fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center', margin: [0, 2, 0, 2] });
+                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                row3.push({ text: '(Rp/btg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                row3.push({ text: '(Rp/kg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                row3.push({ text: '(Rp/btg)', border: [true, false, true, true], fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
                 tableBody.push(row3);
                 
                 // ROW 4
@@ -419,9 +420,9 @@ function makeRender(pagesConfig) {
                 const left1 = leftRowsData[1];
                 if (left1) {
                     if (left1.type === 'data') {
-                        row4.push({ text: left1.label, alignment: 'center', fontSize: 9 });
-                        row4.push({ text: fmtNum(left1.coilPrice), alignment: 'right', fontSize: 9 });
-                        row4.push({ text: fmtNum(left1.platPrice), alignment: 'right', fontSize: 9 });
+                        row4.push({ text: left1.label, alignment: 'center', fontSize: fsSize });
+                        row4.push({ text: fmtNum(left1.coilPrice), alignment: 'right', fontSize: fsSize });
+                        row4.push({ text: fmtNum(left1.platPrice), alignment: 'right', fontSize: fsSize });
                     } else if (left1.type === 'spacer') {
                         row4.push({ text: '', border: [false, false, false, false] }, { text: '', border: [false, false, false, false] }, { text: '', border: [false, false, false, false] });
                     }
@@ -438,17 +439,17 @@ function makeRender(pagesConfig) {
                     
                     if (left) {
                         if (left.type === 'data') {
-                            rowArr.push({ text: left.label, alignment: 'center', fontSize: 9 });
-                            rowArr.push({ text: fmtNum(left.coilPrice), alignment: 'right', fontSize: 9 });
-                            rowArr.push({ text: fmtNum(left.platPrice), alignment: 'right', fontSize: 9 });
+                            rowArr.push({ text: left.label, alignment: 'center', fontSize: fsSize });
+                            rowArr.push({ text: fmtNum(left.coilPrice), alignment: 'right', fontSize: fsSize });
+                            rowArr.push({ text: fmtNum(left.platPrice), alignment: 'right', fontSize: fsSize });
                         } else if (left.type === 'header1') {
-                            rowArr.push({ text: left.title, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                            rowArr.push({ text: left.subtitle, colSpan: 2, fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
+                            rowArr.push({ text: left.title, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                            rowArr.push({ text: left.subtitle, colSpan: 2, fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
                             rowArr.push({});
                         } else if (left.type === 'header2') {
-                            rowArr.push({ text: 'TEBAL', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                            rowArr.push({ text: 'COIL', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
-                            rowArr.push({ text: 'PLAT', fontSize: 9, bold: true, fillColor: hFill, alignment: 'center' });
+                            rowArr.push({ text: 'TEBAL', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                            rowArr.push({ text: 'COIL', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
+                            rowArr.push({ text: 'PLAT', fontSize: fsSize, bold: true, fillColor: hFill, alignment: 'center' });
                         } else {
                             rowArr.push({ text: '', border: [false, false, false, false] });
                             rowArr.push({ text: '', border: [false, false, false, false] });
@@ -463,14 +464,14 @@ function makeRender(pagesConfig) {
                     rowArr.push({ text: '', border: [false, false, false, false] });
                     
                     if (right) {
-                        rowArr.push({ text: right.tLabel, alignment: 'center', fontSize: 9 });
-                        rowArr.push({ text: fmtBerat(right.berat), alignment: 'center', fontSize: 9 });
-                        rowArr.push({ text: fmtNum(right.coilCash), alignment: 'right', fontSize: 9 });
-                        rowArr.push({ text: fmtNum(right.platCash), alignment: 'right', fontSize: 9 });
-                        rowArr.push({ text: fmtNum(right.cashBtg), alignment: 'right', fontSize: 9 });
-                        rowArr.push({ text: fmtNum(right.coilKredit), alignment: 'right', fontSize: 9 });
-                        rowArr.push({ text: fmtNum(right.platKredit), alignment: 'right', fontSize: 9 });
-                        rowArr.push({ text: fmtNum(right.kreditBtg), alignment: 'right', fontSize: 9 });
+                        rowArr.push({ text: right.tLabel, alignment: 'center', fontSize: fsSize });
+                        rowArr.push({ text: fmtBerat(right.berat), alignment: 'center', fontSize: fsSize });
+                        rowArr.push({ text: fmtNum(right.coilCash), alignment: 'right', fontSize: fsSize });
+                        rowArr.push({ text: fmtNum(right.platCash), alignment: 'right', fontSize: fsSize });
+                        rowArr.push({ text: fmtNum(right.cashBtg), alignment: 'right', fontSize: fsSize });
+                        rowArr.push({ text: fmtNum(right.coilKredit), alignment: 'right', fontSize: fsSize });
+                        rowArr.push({ text: fmtNum(right.platKredit), alignment: 'right', fontSize: fsSize });
+                        rowArr.push({ text: fmtNum(right.kreditBtg), alignment: 'right', fontSize: fsSize });
                     } else {
                         rowArr.push({ text: '', border: [false, false, false, false] });
                         rowArr.push({ text: '', border: [false, false, false, false] });
@@ -511,7 +512,7 @@ function makeRender(pagesConfig) {
         const dd = {
             pageSize:        'A4',
             pageOrientation: 'landscape',
-            pageMargins:     [20, 12, 20, 12],
+            pageMargins:     [20, 12, 20, 28],
 
             content: content,
 
@@ -522,8 +523,8 @@ function makeRender(pagesConfig) {
                         { 
                             width: '*',
                             stack: [
-                                { text: '• Harga sudah termasuk PPN', fontSize: 9 },
-                                { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan', fontSize: 9 }
+                                { text: '• Harga sudah termasuk PPN', fontSize: fsSize },
+                                { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan', fontSize: fsSize }
                             ],
                             alignment: 'left'
                         },
@@ -531,13 +532,13 @@ function makeRender(pagesConfig) {
                             width: 'auto',
                             text: 'Page ' + currentPage + '/' + pageCount, 
                             alignment: 'center', 
-                            fontSize: 9 
+                            fontSize: fsSize 
                         },
                         { 
                             width: '*',
                             text: 'Jakarta, ' + generatedAt, 
                             alignment: 'right', 
-                            fontSize: 9 
+                            fontSize: fsSize 
                         },
                     ],
                 };
@@ -545,7 +546,7 @@ function makeRender(pagesConfig) {
 
             defaultStyle: {
                 font:     'Helvetica',
-                fontSize: 9,
+                fontSize: fsSize,
                 noWrap:   true,
             },
         };

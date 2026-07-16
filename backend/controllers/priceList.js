@@ -211,7 +211,9 @@ module.exports._start = async function (req, res) {
         } else {
             // Build from ERP baseline
             // 1. Get items for this category from ERP (excluding blacklisted)
-            const actualCatIds = cat_id === 'HRC_HR' ? ['HRC', 'HR', 'HRNS'] : cat_id;
+            let actualCatIds = cat_id;
+            if (cat_id === 'HRC_HR') actualCatIds = ['HRC', 'HR', 'HRNS'];
+            if (cat_id === 'CRC_CR') actualCatIds = ['CRC', 'CR'];
             const [allErpItems, blacklistedIds] = await Promise.all([
                 $itemModel.getItemByQuery({ cat_id: actualCatIds }),
                 $blacklist.getBlacklistedIds(),
@@ -223,7 +225,9 @@ module.exports._start = async function (req, res) {
                 return response.error(res, 'no_erp_items_for_category', null, 422);
             }
 
-            const catName = cat_id === 'HRC_HR' ? 'Coil & Plat Hitam' : (erpItems[0].cat_name || cat_id);
+            let catName = erpItems[0].cat_name || cat_id;
+            if (cat_id === 'HRC_HR') catName = 'Coil & Plat Hitam';
+            if (cat_id === 'CRC_CR') catName = 'Coil & Plat Putih';
             const ig_ids = erpItems.map(r => r.ig_id);
 
             // Build weight map

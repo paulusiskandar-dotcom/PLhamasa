@@ -3,9 +3,9 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     var CATEGORY_DISPLAY_NAMES = {
         'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP':    'Beton Polos',
         'BU':   'Beton Ulir',  'CN':   'CNP',         'HRC_HR':'Coil & Plat Hitam',
-        'CRC':  'Coil Putih',  'HBEAM':'H-Beam',       'INP':   'INP',
+        'CRC_CR':'Coil & Plat Putih', 'HBEAM':'H-Beam', 'INP': 'INP',
         'WF':   'IWF',         'PB':   'Plat Bordest',
-        'HRK':  'Plat Kapal',  'CR':   'Plat Putih',   'STLK':  'Plat Strip',
+        'HRK':  'Plat Kapal',  'STLK': 'Plat Strip',
         'SP':   'Sheetpile',   'SK':   'Siku',          'SB':    'Square Bar',
         'UNP':  'UNP',         'WM':   'Wire Mesh',
     };
@@ -14,13 +14,13 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         { catId: 'RBHM',  name: 'AS Hitam' },    { catId: 'RBPM',  name: 'AS Putih' },
         { catId: 'BP',    name: 'Beton Polos' },  { catId: 'BU',    name: 'Beton Ulir' },
         { catId: 'CN',    name: 'CNP' },           { catId: 'HRC_HR',name: 'Coil & Plat Hitam' },
-        { catId: 'CRC',   name: 'Coil Putih' },   { catId: 'HBEAM', name: 'H-Beam' },
+        { catId: 'CRC_CR',name: 'Coil & Plat Putih' }, { catId: 'HBEAM', name: 'H-Beam' },
         { catId: 'INP',   name: 'INP' },           { catId: 'WF',    name: 'IWF' },
         { catId: 'PB',    name: 'Plat Bordest' },
-        { catId: 'HRK',   name: 'Plat Kapal' },   { catId: 'CR',    name: 'Plat Putih' },
-        { catId: 'STLK',  name: 'Plat Strip' },   { catId: 'SP',    name: 'Sheetpile' },
-        { catId: 'SK',    name: 'Siku' },           { catId: 'SB',    name: 'Square Bar' },
-        { catId: 'UNP',   name: 'UNP' },           { catId: 'WM',    name: 'Wire Mesh' },
+        { catId: 'HRK',   name: 'Plat Kapal' },   { catId: 'STLK',  name: 'Plat Strip' },   
+        { catId: 'SP',    name: 'Sheetpile' },    { catId: 'SK',    name: 'Siku' },           
+        { catId: 'SB',    name: 'Square Bar' },   { catId: 'UNP',   name: 'UNP' },           
+        { catId: 'WM',    name: 'Wire Mesh' },
     ];
 
     $scope.sidebarHidden = localStorage.getItem('plm.sidebarHidden') === 'true';
@@ -73,8 +73,11 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
     function loadCategories() {
         $masterService.getCategories().then(function (res) {
             var rawCats = res.result || [];
-            var mergedCats = rawCats.filter(function (c) { return c.id !== 'HRC' && c.id !== 'HR'; });
+            var mergedCats = rawCats.filter(function (c) { 
+                return c.id !== 'HRC' && c.id !== 'HR' && c.id !== 'CRC' && c.id !== 'CR'; 
+            });
             mergedCats.push({ id: 'HRC_HR', name: 'Coil & Plat Hitam' });
+            mergedCats.push({ id: 'CRC_CR', name: 'Coil & Plat Putih' });
             mergedCats.sort(function (a, b) { return a.name.localeCompare(b.name); });
             $scope.categories = mergedCats;
             updateCategoriesAvailable();

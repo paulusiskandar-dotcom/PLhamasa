@@ -38,6 +38,9 @@ module.exports._getTemplateItems = async function (req, res) {
         if (catId === 'HRC_HR') {
             catCondition = "cat_id = ANY($1::text[])";
             catParam = ['HRC', 'HR', 'HRNS'];
+        } else if (catId === 'CRC_CR') {
+            catCondition = "cat_id = ANY($1::text[])";
+            catParam = ['CRC', 'CR'];
         }
 
         const items = await dbERP().any(
