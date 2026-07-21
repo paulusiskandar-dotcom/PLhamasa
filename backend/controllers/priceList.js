@@ -214,6 +214,7 @@ module.exports._start = async function (req, res) {
             let actualCatIds = cat_id;
             if (cat_id === 'HRC_HR') actualCatIds = ['HRC', 'HR', 'HRNS'];
             if (cat_id === 'CRC_CR') actualCatIds = ['CRC', 'CR', 'CRNS'];
+            if (cat_id === 'BP_KW') actualCatIds = ['BP', 'KW'];
             const [allErpItems, blacklistedIds] = await Promise.all([
                 $itemModel.getItemByQuery({ cat_id: actualCatIds }),
                 $blacklist.getBlacklistedIds(),
@@ -228,6 +229,7 @@ module.exports._start = async function (req, res) {
             let catName = erpItems[0].cat_name || cat_id;
             if (cat_id === 'HRC_HR') catName = 'Coil & Plat Hitam';
             if (cat_id === 'CRC_CR') catName = 'Coil & Plat Putih';
+            if (cat_id === 'BP_KW') catName = 'BETON POLOS & KAWAT BETON';
             const ig_ids = erpItems.map(r => r.ig_id);
 
             // Build weight map

@@ -63,6 +63,9 @@ module.exports.syncItemsFromErp = async function (plId, validPrIds) {
     } else if (pl.cat_id === 'CRC_CR') {
         catCondition = "i.cat_id = ANY($1::text[])";
         catParam = ['CRC', 'CR', 'CRNS'];
+    } else if (pl.cat_id === 'BP_KW') {
+        catCondition = "i.cat_id = ANY($1::text[])";
+        catParam = ['BP', 'KW'];
     }
     
     let q = `

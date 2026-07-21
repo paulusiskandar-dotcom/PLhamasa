@@ -1,7 +1,7 @@
 plmApp.controller('publishedHistoryController', function ($scope, $http, $timeout, pdfTemplateService) {
 
     var CATEGORY_DISPLAY_NAMES = {
-        'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP':    'Beton Polos',
+        'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP_KW':'Beton Polos & Kawat Beton',
         'BU':   'Beton Ulir',  'CN':   'CNP',          'HRC':   'Coil Hitam',
         'CRC':  'Coil Putih',  'HBEAM':'H-Beam',       'INP':   'INP',
         'WF':   'IWF',         'PB':   'Plat Bordest', 'HR':    'Plat Hitam',
@@ -12,7 +12,7 @@ plmApp.controller('publishedHistoryController', function ($scope, $http, $timeou
 
     var PILL_DEFS = [
         { cat_id: 'RBHM',  display_name: 'AS Hitam' },    { cat_id: 'RBPM',  display_name: 'AS Putih' },
-        { cat_id: 'BP',    display_name: 'Beton Polos' },  { cat_id: 'BU',    display_name: 'Beton Ulir' },
+        { cat_id: 'BP_KW', display_name: 'Beton Polos & Kawat Beton' },  { cat_id: 'BU',    display_name: 'Beton Ulir' },
         { cat_id: 'CN',    display_name: 'CNP' },           { cat_id: 'HRC',   display_name: 'Coil Hitam' },
         { cat_id: 'CRC',   display_name: 'Coil Putih' },   { cat_id: 'HBEAM', display_name: 'H-Beam' },
         { cat_id: 'INP',   display_name: 'INP' },           { cat_id: 'WF',    display_name: 'IWF' },
@@ -163,7 +163,15 @@ plmApp.controller('publishedHistoryController', function ($scope, $http, $timeou
 
     $scope.loadAllCategories = function () {
         $http.get(api.url + 'master/categories').then(function (res) {
-            $scope.allCategories = res.data.result || [];
+            var rawCats = res.data.result || [];
+            var mergedCats = rawCats.filter(function (c) { 
+                return c.id !== 'HRC' && c.id !== 'HR' && c.id !== 'CRC' && c.id !== 'CR' && c.id !== 'CRNS' && c.id !== 'BP' && c.id !== 'KW'; 
+            });
+            mergedCats.push({ id: 'HRC_HR', name: 'Coil & Plat Hitam' });
+            mergedCats.push({ id: 'CRC_CR', name: 'Coil & Plat Putih' });
+            mergedCats.push({ id: 'BP_KW', name: 'Beton Polos & Kawat Beton' });
+            mergedCats.sort(function (a, b) { return a.name.localeCompare(b.name); });
+            $scope.allCategories = mergedCats;
         });
     };
 

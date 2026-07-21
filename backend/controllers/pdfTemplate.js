@@ -41,6 +41,9 @@ module.exports._getTemplateItems = async function (req, res) {
         } else if (catId === 'CRC_CR') {
             catCondition = "cat_id = ANY($1::text[])";
             catParam = ['CRC', 'CR', 'CRNS'];
+        } else if (catId === 'BP_KW') {
+            catCondition = "cat_id = ANY($1::text[])";
+            catParam = ['BP', 'KW'];
         }
 
         const items = await dbERP().any(
@@ -166,7 +169,7 @@ module.exports._render = async function (req, res) {
         const namePattern = tpl.meta && tpl.meta.item_name_like ? tpl.meta.item_name_like : null;
         let igIds = [...new Set(allPlmPrices.map(function (p) { return p.ig_id; }))];
         const erpItems = igIds.length ? await dbERP().any(
-            `SELECT ig_id, i_name, i_weight, un_name, i_brand
+            `SELECT ig_id, i_name, i_weight, un_name, i_brand, cat_id
              FROM item WHERE ig_id = ANY($1::int[])
              AND deleted_at IS NULL AND is_item = true
              AND (i_group IS NULL OR i_group != 'N' OR cat_id IN ('HRC', 'CRC', 'HRNS', 'CRNS', 'HR', 'CR') OR $2::text IS NOT NULL)
@@ -188,6 +191,7 @@ module.exports._render = async function (req, res) {
                 weight:  parseFloat(it.i_weight) || 0,
                 un_name: it.un_name,
                 i_brand: it.i_brand,
+                cat_id:  it.cat_id,
                 prices:  priceIndex[it.ig_id] || {},
             };
         });

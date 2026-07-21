@@ -1,13 +1,13 @@
 const PdfPrinter = require('pdfmake/src/printer');
-const moment     = require('moment-timezone');
+const moment = require('moment-timezone');
 
 moment.locale('id');
 
 const fonts = {
     Helvetica: {
-        normal:      'Helvetica',
-        bold:        'Helvetica-Bold',
-        italics:     'Helvetica-Oblique',
+        normal: 'Helvetica',
+        bold: 'Helvetica-Bold',
+        italics: 'Helvetica-Oblique',
         bolditalics: 'Helvetica-BoldOblique',
     },
 };
@@ -32,10 +32,10 @@ function fmtBerat(b) {
 }
 
 const meta = {
-    name:         'Beton Polos',
-    cat_id:       'BP',
-    cat_name:     'BETON POLOS',
-    description:  'Template Beton Polos — A5 landscape, split cash & kredit',
+    name: 'Beton Polos & Kawat Beton',
+    cat_id: 'BP_KW',
+    cat_name: 'BETON POLOS & KAWAT BETON',
+    description: 'Template Beton Polos & Kawat Beton — A5 landscape, split cash & kredit',
     custom_fields: []
 };
 
@@ -54,10 +54,14 @@ function render({ items, customValues }) {
     items.forEach(item => {
         if (item.name && item.name.toUpperCase().includes('KAWAT BETON')) {
             kawatBetonItem = item;
+            return;
+        }
+        if (item.cat_id === 'KW' || (item.name && item.name.toUpperCase().includes('KAWAT'))) {
+            return;
         }
         const size = extractSize(item.name);
         if (size === 0) return; // Skip if no size found
-        
+
         if (!grouped[size]) {
             grouped[size] = {
                 size: size,
@@ -65,9 +69,9 @@ function render({ items, customValues }) {
                 brands: {}
             };
         }
-        
+
         // Use the first valid item per brand we encounter (usually Lurus/Tekuk have same price)
-        
+
         let brandKey = (item.i_brand || '').toUpperCase();
         if (brandKey === 'SSS') {
             brandKey = 'SOLID';
@@ -112,8 +116,8 @@ function render({ items, customValues }) {
     }
 
     // Helper to build a table row for a specific price mode (cash or kredit)
-    
-        function buildBodyRows(isKredit) {
+
+    function buildBodyRows(isKredit) {
         const typePabrik = isKredit ? 'kredit_pabrik' : 'cash_pabrik';
         const typeGudang = isKredit ? 'kredit_gudang' : 'cash_gudang';
 
@@ -124,7 +128,7 @@ function render({ items, customValues }) {
             const solidBrand = row.brands['SOLID'];
 
             const ksGudangKg = getPrice(ksBrand, typeGudang);
-            
+
             const isPabrikKg = getPrice(isBrand, typePabrik);
             const isGudangKg = getPrice(isBrand, typeGudang);
 
@@ -161,30 +165,30 @@ function render({ items, customValues }) {
             ];
         });
     }
-        const createHeader = () => {
-            const hFill = '#e6e6e6';
-            const totalHeight = (fsHeadLg + dynPadV * 2) * 2 + (fsHeadSm + dynPadV * 2) * 2;
-            const spaceNeeded = (totalHeight - fsHeadSm) / 2 - dynPadV;
-            return [
-                [
-                    {
-                        rowSpan: 4,
-                        fillColor: hFill,
-                        text: 'Ukuran',
-                        bold: true,
-                        alignment: 'center',
-                        fontSize: fsHeadSm,
-                        relativePosition: { x: 0, y: spaceNeeded }
-                    },
-                    {
-                        rowSpan: 4,
-                        fillColor: hFill,
-                        text: 'Berat',
-                        bold: true,
-                        alignment: 'center',
-                        fontSize: fsHeadSm,
-                        relativePosition: { x: 0, y: spaceNeeded }
-                    },
+    const createHeader = () => {
+        const hFill = '#e6e6e6';
+        const totalHeight = (fsHeadLg + dynPadV * 2) * 2 + (fsHeadSm + dynPadV * 2) * 2;
+        const spaceNeeded = (totalHeight - fsHeadSm) / 2 - dynPadV;
+        return [
+            [
+                {
+                    rowSpan: 4,
+                    fillColor: hFill,
+                    text: 'Ukuran',
+                    bold: true,
+                    alignment: 'center',
+                    fontSize: fsHeadSm,
+                    relativePosition: { x: 0, y: spaceNeeded }
+                },
+                {
+                    rowSpan: 4,
+                    fillColor: hFill,
+                    text: 'Berat',
+                    bold: true,
+                    alignment: 'center',
+                    fontSize: fsHeadSm,
+                    relativePosition: { x: 0, y: spaceNeeded }
+                },
                 { text: 'KS', colSpan: 4, alignment: 'center', bold: true, fontSize: fsHeadLg, fillColor: hFill }, {}, {}, {},
                 { text: 'IS', colSpan: 4, alignment: 'center', bold: true, fontSize: fsHeadLg, fillColor: hFill }, {}, {}, {},
                 { text: 'LS', colSpan: 4, alignment: 'center', bold: true, fontSize: fsHeadLg, fillColor: hFill }, {}, {}, {},
@@ -229,24 +233,24 @@ function render({ items, customValues }) {
         vLineWidth: function () { return 0.5; },
         hLineColor: function () { return '#000000'; },
         vLineColor: function () { return '#000000'; },
-        paddingLeft:   function () { return 2; },
-        paddingRight:  function () { return 2; },
-        paddingTop:    function () { return dynPadV; },
+        paddingLeft: function () { return 2; },
+        paddingRight: function () { return 2; },
+        paddingTop: function () { return dynPadV; },
         paddingBottom: function () { return dynPadV; },
     };
 
     const dd = {
-        pageSize:        'A4',
+        pageSize: 'A4',
         pageOrientation: 'landscape',
         pageMargins: [10, 35, 10, 25],
 
         header: function () {
             return {
-                text:      'HARGA BESI BETON POLOS',
+                text: 'HARGA BESI BETON POLOS',
                 alignment: 'center',
-                bold:      true,
-                fontSize:  16,
-                margin:    [0, 15, 0, 0],
+                bold: true,
+                fontSize: 16,
+                margin: [0, 15, 0, 0],
             };
         },
 
@@ -262,13 +266,13 @@ function render({ items, customValues }) {
                 table: {
                     headerRows: 4,
                     widths: [
-                        '4.5%', '4.3%', 
+                        '4.5%', '4.3%',
                         '5.7%', '5.7%', '5.7%', '5.7%', // KS
                         '5.7%', '5.7%', '5.7%', '5.7%', // IS
                         '5.7%', '5.7%', '5.7%', '5.7%', // LS
                         '5.7%', '5.7%', '5.7%', '5.7%'  // SOLID
                     ],
-                    body: [ ...createHeader(), ...buildBodyRows(false) ],
+                    body: [...createHeader(), ...buildBodyRows(false)],
                 },
                 layout: tableLayout,
                 margin: [0, 0, 0, 6]
@@ -284,13 +288,13 @@ function render({ items, customValues }) {
                 table: {
                     headerRows: 0,
                     widths: [
-                        '4.5%', '4.3%', 
+                        '4.5%', '4.3%',
                         '5.7%', '5.7%', '5.7%', '5.7%', // KS
                         '5.7%', '5.7%', '5.7%', '5.7%', // IS
                         '5.7%', '5.7%', '5.7%', '5.7%', // LS
                         '5.7%', '5.7%', '5.7%', '5.7%'  // SOLID
                     ],
-                    body: [ ...buildBodyRows(true) ],
+                    body: [...buildBodyRows(true)],
                 },
                 layout: tableLayout,
             }
@@ -308,14 +312,14 @@ function render({ items, customValues }) {
                         alignment: 'left',
                         width: '*'
                     },
-                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'center',  fontSize: fsMain, width: 'auto', margin: [0, 5, 0, 0] },
+                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'center', fontSize: fsMain, width: 'auto', margin: [0, 5, 0, 0] },
                     { text: 'Jakarta, ' + generatedAt, alignment: 'right', fontSize: fsMain, width: '*', margin: [0, 5, 0, 0] },
                 ],
             };
         },
 
         defaultStyle: {
-            font:     'Helvetica',
+            font: 'Helvetica',
             fontSize: fsMain,
         },
     };
@@ -323,18 +327,18 @@ function render({ items, customValues }) {
     // Remove the hard pageBreak if there are few items, but for 18 sizes it might overflow.
     // pdfmake automatically breaks pages inside tables, but a header might get separated.
     // I will remove pageBreak: 'before' so it fits naturally.
-    
-    
-    
-    
+
+
+
+
     if (kawatBetonItem) {
         const getKawatPrice = (isKredit) => {
             const typePabrik = isKredit ? 'kredit_pabrik' : 'cash_pabrik';
             const typeGudang = isKredit ? 'kredit_gudang' : 'cash_gudang';
-            
+
             let pKg = getPrice(kawatBetonItem, typePabrik);
             if (!pKg) pKg = getPrice(kawatBetonItem, typeGudang);
-            
+
             const w = kawatBetonItem.weight || 10;
             return fmtNum(pKg ? roundSpecial(pKg * w) : 0);
         };
@@ -367,10 +371,10 @@ function render({ items, customValues }) {
 
     return new Promise(function (resolve, reject) {
         const printer = new PdfPrinter(fonts);
-        const pdfDoc  = printer.createPdfKitDocument(dd);
-        const chunks  = [];
-        pdfDoc.on('data',  function (chunk) { chunks.push(chunk); });
-        pdfDoc.on('end',   function ()       { resolve(Buffer.concat(chunks)); });
+        const pdfDoc = printer.createPdfKitDocument(dd);
+        const chunks = [];
+        pdfDoc.on('data', function (chunk) { chunks.push(chunk); });
+        pdfDoc.on('end', function () { resolve(Buffer.concat(chunks)); });
         pdfDoc.on('error', reject);
         pdfDoc.end();
     });

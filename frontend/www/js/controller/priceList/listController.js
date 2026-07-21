@@ -1,7 +1,7 @@
 plmApp.controller('priceListListController', function ($scope, $timeout, priceListService, $masterService, pdfTemplateService) {
 
     var CATEGORY_DISPLAY_NAMES = {
-        'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP':    'Beton Polos',
+        'RBHM': 'AS Hitam',    'RBPM': 'AS Putih',    'BP_KW':'Beton Polos & Kawat Beton',
         'BU':   'Beton Ulir',  'CN':   'CNP',         'HRC_HR':'Coil & Plat Hitam',
         'CRC_CR':'Coil & Plat Putih', 'HBEAM':'H-Beam', 'INP': 'INP',
         'WF':   'IWF',         'PB':   'Plat Bordest',
@@ -12,7 +12,7 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
 
     var PILL_DEFS = [
         { catId: 'RBHM',  name: 'AS Hitam' },    { catId: 'RBPM',  name: 'AS Putih' },
-        { catId: 'BP',    name: 'Beton Polos' },  { catId: 'BU',    name: 'Beton Ulir' },
+        { catId: 'BP_KW', name: 'Beton Polos & Kawat Beton' },  { catId: 'BU',    name: 'Beton Ulir' },
         { catId: 'CN',    name: 'CNP' },           { catId: 'HRC_HR',name: 'Coil & Plat Hitam' },
         { catId: 'CRC_CR',name: 'Coil & Plat Putih' }, { catId: 'HBEAM', name: 'H-Beam' },
         { catId: 'INP',   name: 'INP' },           { catId: 'WF',    name: 'IWF' },
@@ -74,10 +74,11 @@ plmApp.controller('priceListListController', function ($scope, $timeout, priceLi
         $masterService.getCategories().then(function (res) {
             var rawCats = res.result || [];
             var mergedCats = rawCats.filter(function (c) { 
-                return c.id !== 'HRC' && c.id !== 'HR' && c.id !== 'CRC' && c.id !== 'CR' && c.id !== 'CRNS'; 
+                return c.id !== 'HRC' && c.id !== 'HR' && c.id !== 'CRC' && c.id !== 'CR' && c.id !== 'CRNS' && c.id !== 'BP' && c.id !== 'KW'; 
             });
             mergedCats.push({ id: 'HRC_HR', name: 'Coil & Plat Hitam' });
             mergedCats.push({ id: 'CRC_CR', name: 'Coil & Plat Putih' });
+            mergedCats.push({ id: 'BP_KW', name: 'Beton Polos & Kawat Beton' });
             mergedCats.sort(function (a, b) { return a.name.localeCompare(b.name); });
             $scope.categories = mergedCats;
             updateCategoriesAvailable();

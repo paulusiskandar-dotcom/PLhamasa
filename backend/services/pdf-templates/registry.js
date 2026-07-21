@@ -43,6 +43,7 @@ async function _buildCache() {
     // Virtual category mapping
     map['COIL & PLAT HITAM'] = 'HRC_HR';
     map['COIL & PLAT PUTIH'] = 'CRC_CR';
+    map['BETON POLOS & KAWAT BETON'] = 'BP_KW';
     map['SIKU KECIL'] = 'SK';
     map['SIKU BESAR'] = 'SK';
     
