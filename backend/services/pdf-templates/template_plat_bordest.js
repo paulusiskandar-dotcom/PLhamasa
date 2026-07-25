@@ -73,10 +73,10 @@ function render({ items, customValues }) {
     const hFill = '#E8ECF0';
 
     const headerRow1 = [
-        { text: 'UKURAN', rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
-        { text: 'BERAT',  rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
-        { text: 'CASH',   colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
-        { text: 'KREDIT', colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
+        { text: 'PLAT BORDEST', rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
+        { text: 'BERAT',        rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
+        { text: 'CASH',         colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
+        { text: 'KREDIT',       colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
     ];
 
     const headerRow2 = [
@@ -90,17 +90,7 @@ function render({ items, customValues }) {
     const dd = {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 30, 8, 25],
-
-        header: function () {
-            return {
-                text:      'PLAT BORDEST',
-                alignment: 'center',
-                bold:      true,
-                fontSize:  16,
-                margin:    [0, 8, 0, 6],
-            };
-        },
+        pageMargins:     [8, 10, 8, 25],
 
         content: [
             {
@@ -116,8 +106,8 @@ function render({ items, customValues }) {
                     vLineColor: function () { return '#000000'; },
                     paddingLeft:   function () { return 4; },
                     paddingRight:  function () { return 4; },
-                    paddingTop:    function () { return 4; },
-                    paddingBottom: function () { return 4; },
+                    paddingTop:    function () { return 3.5; },
+                    paddingBottom: function () { return 3.5; },
                 },
             },
         ],
@@ -126,8 +116,8 @@ function render({ items, customValues }) {
             return {
                 margin: [10, 5, 10, 0],
                 columns: [
-                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'left',  fontSize: 10 },
-                    { text: 'Jakarta, ' + generatedAt,                alignment: 'right', fontSize: 10 },
+                    { text: pageCount > 1 ? 'Page ' + currentPage + '/' + pageCount : '', alignment: 'left',  fontSize: 10 },
+                    { text: 'Jakarta, ' + generatedAt,                                      alignment: 'right', fontSize: 10 },
                 ],
             };
         },
