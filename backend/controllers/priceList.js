@@ -12,15 +12,7 @@ const { generateErpExcel } = require('../utils/excel');
 const $blacklist      = require('../models/blacklist');
 const $postErp        = require('../services/postErpService');
 const path            = require('path');
-const fs              = require('fs');
-
-// Round ERP baseline per-kg price (same as existing roundERP in price.js)
-function roundERP(raw) {
-    const r = Math.round(raw) % 100;
-    return r <= 49
-        ? Math.floor(raw / 100) * 100
-        : Math.ceil(raw / 100) * 100;
-}
+const { roundSpecial } = require('../utils/rounding');
 
 // ── GET /price-list[?cat_id=] ─────────────────────────────────────────────────
 

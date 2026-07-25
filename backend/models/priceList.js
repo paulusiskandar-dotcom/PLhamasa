@@ -3,15 +3,10 @@
  * All queries use global.dbPLM (PLhamasa DB) or global.dbERP (ERP read-only).
  */
 
+const { roundSpecial } = require('../utils/rounding');
+
 const dbPLM = () => global.dbPLM;
 const dbERP = () => global.dbERP;
-
-function roundSpecial(raw) {
-    const sisa = Math.round(raw) % 100;
-    return sisa <= 49
-        ? Math.floor(raw / 100) * 100
-        : Math.ceil(raw / 100) * 100;
-}
 
 // ── Auto-sync new ERP items into an OPEN price list ───────────────────────────
 

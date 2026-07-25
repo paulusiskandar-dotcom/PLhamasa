@@ -27,9 +27,9 @@ plmApp.controller('viewController', function ($scope, $timeout, priceListService
 
     // ── roundSpecial for per-btg calc ────────────────────────────
     function roundSpecial(raw) {
-        if (!raw) return 0;
+        if (!raw && raw !== 0) return 0;
         var sisa = Math.round(raw) % 100;
-        return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
+        return sisa <= 50 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
     }
 
     // ── Load data ────────────────────────────────────────────────

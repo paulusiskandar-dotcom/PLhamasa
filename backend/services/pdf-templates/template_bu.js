@@ -27,13 +27,11 @@ function fmtNum(n) {
     return Number(n).toLocaleString('id-ID');
 }
 
+const { roundSpecial } = require('../../utils/rounding');
+
 function fmtBerat(n) {
     if (!n || n === 0) return '-';
     return n.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function roundSpecial(val) {
-    return Math.round(val / 100) * 100;
 }
 
 async function render({ items, customValues }) {

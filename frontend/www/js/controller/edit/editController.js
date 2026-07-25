@@ -62,7 +62,7 @@ plmApp.controller('editController', function ($scope, $timeout, $window, priceLi
     function roundSpecial(raw) {
         if (!raw && raw !== 0) return 0;
         var sisa = Math.round(raw) % 100;
-        return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
+        return sisa <= 50 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
     }
 
     function formatThousand(num) {

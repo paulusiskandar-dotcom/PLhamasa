@@ -11,9 +11,10 @@ plmApp.controller("priceListController", function (
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-    function roundSpecial(raw) {   // per-unit rounding: 0-49 → floor, 50-99 → ceil
-        var r = raw % 100;
-        return r <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
+    function roundSpecial(raw) {   // per-unit rounding: 0-50 → floor, 51-99 → ceil
+        if (!raw && raw !== 0) return 0;
+        var r = Math.round(raw) % 100;
+        return r <= 50 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
     }
 
     function formatThousand(num) {

@@ -1,6 +1,7 @@
 'use strict';
 const PdfPrinter = require('pdfmake/src/printer');
 const moment     = require('moment-timezone');
+const { roundSpecial } = require('../../utils/rounding');
 
 moment.locale('id');
 
@@ -15,11 +16,7 @@ const fonts = {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function roundSpecial(raw) {
-    if (!raw) return 0;
-    const sisa = Math.round(raw) % 100;
-    return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
-}
+
 
 const _MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 

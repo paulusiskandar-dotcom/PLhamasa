@@ -2,6 +2,8 @@
  * postErpService.js — Post-to-ERP diff, execution, and cross-check logic
  */
 
+const { roundSpecial } = require('../utils/rounding');
+
 const dbPLM = () => global.dbPLM;
 const dbERP = () => global.dbERP;
 
@@ -11,13 +13,6 @@ const PR_LABELS = {
     3: 'kredit_pabrik',
     4: 'kredit_gudang',
 };
-
-function roundSpecial(raw) {
-    const sisa = Math.round(raw) % 100;
-    return sisa <= 49
-        ? Math.floor(raw / 100) * 100
-        : Math.ceil(raw / 100) * 100;
-}
 
 // Resolve the ERP connection to READ from, matching the DB that publish WRITES
 // to. Returns { erp, owned }: when a Settings erp_target is resolved, `erp` is a

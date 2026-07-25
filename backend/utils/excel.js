@@ -1,5 +1,6 @@
 const ExcelJS = require("exceljs");
 const path    = require("path");
+const { roundSpecial } = require("./rounding");
 
 // ─── Color palette ────────────────────────────────────────────────────────────
 const COLOR = {
@@ -134,11 +135,6 @@ module.exports.generateErpExcel = async function (priceListId) {
     COL_WIDTHS.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
 
     // 5. Data rows from row 4
-    function roundSpecial(raw) {
-        if (!raw) return 0;
-        const sisa = Math.round(raw) % 100;
-        return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
-    }
 
     items.forEach((item, idx) => {
         const prices = priceByIg[item.ig_id] || {};

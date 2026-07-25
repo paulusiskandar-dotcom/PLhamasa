@@ -1,5 +1,6 @@
 const PdfPrinter = require('pdfmake/src/printer');
 const moment     = require('moment-timezone');
+const { roundSpecial } = require('../../utils/rounding');
 
 moment.locale('id');
 
@@ -14,11 +15,7 @@ const fonts = {
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
-function roundSpecial(raw) {
-    if (!raw) return 0;
-    const sisa = Math.round(raw) % 100;
-    return sisa <= 49 ? Math.floor(raw / 100) * 100 : Math.ceil(raw / 100) * 100;
-}
+
 
 const EM = '-';  // em dash for null/zero cells
 

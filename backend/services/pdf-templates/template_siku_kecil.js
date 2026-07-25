@@ -12,11 +12,7 @@ const fonts = {
     },
 };
 
-// Siku special rounding: round up to the next 500
-function roundSpecialSiku(val) {
-    if (!val) return 0;
-    return Math.ceil(val / 500) * 500;
-}
+const { roundSpecial } = require('../../utils/rounding');
 
 function fmtNum(n) {
     if (n === null || n === undefined || n === '' || n === 0) return '-';
@@ -189,8 +185,8 @@ function render({ items, customValues }) {
             const msPrices = getPrices(msIt ? msIt.item : null);
             const msCashKg = msPrices.cashKg > 0 ? msPrices.cashKg - 50 : 0;
             const msKreditKg = msPrices.kreditKg > 0 ? msPrices.kreditKg - 50 : 0;
-            const msCashBtg = (msCashKg && msWt) ? roundSpecialSiku(msCashKg * msWt) : 0;
-            const msKreditBtg = (msKreditKg && msWt) ? roundSpecialSiku(msKreditKg * msWt) : 0;
+            const msCashBtg = (msCashKg && msWt) ? roundSpecial(msCashKg * msWt) : 0;
+            const msKreditBtg = (msKreditKg && msWt) ? roundSpecial(msKreditKg * msWt) : 0;
             
             row.push({ text: fmtNum(msCashKg), alignment: 'right' });
             row.push({ text: fmtNum(msKreditKg), alignment: 'right' });
@@ -206,8 +202,8 @@ function render({ items, customValues }) {
             const ksPrices = getPrices(ksIt ? ksIt.item : null);
             const ksCashKg = ksPrices.cashKg;
             const ksKreditKg = ksPrices.kreditKg;
-            const ksCashBtg = (ksCashKg && stdWt) ? roundSpecialSiku(ksCashKg * stdWt) : 0;
-            const ksKreditBtg = (ksKreditKg && stdWt) ? roundSpecialSiku(ksKreditKg * stdWt) : 0;
+            const ksCashBtg = (ksCashKg && stdWt) ? roundSpecial(ksCashKg * stdWt) : 0;
+            const ksKreditBtg = (ksKreditKg && stdWt) ? roundSpecial(ksKreditKg * stdWt) : 0;
             
             row.push({ text: fmtNum(ksCashKg), alignment: 'right' });
             row.push({ text: fmtNum(ksKreditKg), alignment: 'right' });
@@ -218,8 +214,8 @@ function render({ items, customValues }) {
             const delcoPrices = getPrices(delcoIt ? delcoIt.item : null);
             const delcoCashKg = delcoPrices.cashKg;
             const delcoKreditKg = delcoPrices.kreditKg;
-            const delcoCashBtg = (delcoCashKg && stdWt) ? roundSpecialSiku(delcoCashKg * stdWt) : 0;
-            const delcoKreditBtg = (delcoKreditKg && stdWt) ? roundSpecialSiku(delcoKreditKg * stdWt) : 0;
+            const delcoCashBtg = (delcoCashKg && stdWt) ? roundSpecial(delcoCashKg * stdWt) : 0;
+            const delcoKreditBtg = (delcoKreditKg && stdWt) ? roundSpecial(delcoKreditKg * stdWt) : 0;
             
             row.push({ text: fmtNum(delcoCashKg), alignment: 'right' });
             row.push({ text: fmtNum(delcoKreditKg), alignment: 'right' });
