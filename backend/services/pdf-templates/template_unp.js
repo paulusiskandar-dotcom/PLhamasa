@@ -38,7 +38,7 @@ const meta = {
     name:         'UNP',
     cat_id:       null,
     cat_name:     'UNP',
-    description:  'Template Besi UNP — A5 landscape, 9 kolom, multi-page',
+    description:  'Template Besi UNP — A5 landscape, 7 kolom, multi-page',
     custom_fields: [
         { key: 'ukuran', label: 'Ukuran', type: 'text' },
     ],
@@ -51,13 +51,18 @@ function render({ items, customValues }) {
 
     const rows = items.map(function (item) {
         const cv     = customValues[item.ig_id] || {};
-        const ukuran = cv.ukuran || '';
+        const ukuran = (cv.ukuran || '').trim();
         const weight = parseFloat(item.weight) || 0;
 
         const cgKg = (item.prices && item.prices.cash_gudang   && item.prices.cash_gudang.current)   || 0;
         const kgKg = (item.prices && item.prices.kredit_gudang && item.prices.kredit_gudang.current) || 0;
         const cpKg = (item.prices && item.prices.cash_pabrik   && item.prices.cash_pabrik.current)   || 0;
         const kpKg = (item.prices && item.prices.kredit_pabrik && item.prices.kredit_pabrik.current) || 0;
+
+        const hasPrices = (cgKg || kgKg || cpKg || kpKg);
+        if (!ukuran && !hasPrices) {
+            return null;
+        }
 
         const cgBtg = (cgKg && weight) ? roundSpecial(cgKg * weight) : 0;
         const kgBtg = (kgKg && weight) ? roundSpecial(kgKg * weight) : 0;
@@ -68,18 +73,16 @@ function render({ items, customValues }) {
             _weight: weight,
             _name:   item.name || '',
             cells: [
-                { text: item.name || '', alignment: 'left',   fontSize: 10 },
-                { text: ukuran,          alignment: 'center', fontSize: 10 },
-                { text: fmtBerat(weight),alignment: 'center', fontSize: 10 },
-                { text: fmtKg(cgKg),     alignment: 'right',  fontSize: 10 },
-                { text: fmtBtg(cgBtg),   alignment: 'right',  fontSize: 10 },
-                { text: fmtBtg(kgBtg),   alignment: 'right',  fontSize: 10 },
-                { text: fmtKg(cpKg),     alignment: 'right',  fontSize: 10 },
-                { text: fmtBtg(cpBtg),   alignment: 'right',  fontSize: 10 },
-                { text: fmtBtg(kpBtg),   alignment: 'right',  fontSize: 10 },
+                { text: ukuran,          alignment: 'left',   fontSize: 9.5 },
+                { text: fmtBerat(weight),alignment: 'center', fontSize: 9.5 },
+                { text: fmtKg(cgKg),     alignment: 'right',  fontSize: 9.5 },
+                { text: fmtBtg(cgBtg),   alignment: 'right',  fontSize: 9.5 },
+                { text: fmtBtg(kgBtg),   alignment: 'right',  fontSize: 9.5 },
+                { text: fmtBtg(cpBtg),   alignment: 'right',  fontSize: 9.5 },
+                { text: fmtBtg(kpBtg),   alignment: 'right',  fontSize: 9.5 },
             ],
         };
-    });
+    }).filter(Boolean);
 
     rows.sort(function (a, b) {
         if (a._weight !== b._weight) return a._weight - b._weight;
@@ -93,49 +96,47 @@ function render({ items, customValues }) {
     }
 
     const headerRow1 = [
-        h('Nama Barang', { rowSpan: 3, verticalAlignment: 'middle', fontSize: 10 }),
-        h('Ukuran',      { rowSpan: 3, verticalAlignment: 'middle', fontSize: 10 }),
-        h('BERAT',       { rowSpan: 2, verticalAlignment: 'middle', fontSize: 10 }),
-        h('GUDANG',      { colSpan: 3, fontSize: 10 }), {}, {},
-        h('PABRIK',      { colSpan: 3, fontSize: 10 }), {}, {},
+        h('Ukuran',      { rowSpan: 3, verticalAlignment: 'middle', fontSize: 9.5 }),
+        h('BERAT',       { rowSpan: 2, verticalAlignment: 'middle', fontSize: 9.5 }),
+        h('GUDANG',      { colSpan: 3, fontSize: 9.5 }), {}, {},
+        h('PABRIK',      { colSpan: 2, fontSize: 9.5 }), {},
     ];
 
     const headerRow2 = [
-        {}, {}, {},
-        h('CASH',   { colSpan: 2 }), {},
-        h('KREDIT'),
-        h('CASH',   { colSpan: 2 }), {},
-        h('KREDIT'),
+        {}, {},
+        h('CASH',   { colSpan: 2, fontSize: 9.5 }), {},
+        h('KREDIT', { fontSize: 9.5 }),
+        h('CASH',   { fontSize: 9.5 }),
+        h('KREDIT', { fontSize: 9.5 }),
     ];
 
     const headerRow3 = [
-        {}, {},
-        h('(kg)',  { fontSize: 9 }),
-        h('/kg',   { fontSize: 9 }),
-        h('/btg',  { fontSize: 9 }),
-        h('/btg',  { fontSize: 9 }),
-        h('/kg',   { fontSize: 9 }),
-        h('/btg',  { fontSize: 9 }),
-        h('/btg',  { fontSize: 9 }),
+        {},
+        h('(kg)',  { fontSize: 8.5 }),
+        h('/kg',   { fontSize: 8.5 }),
+        h('/btg',  { fontSize: 8.5 }),
+        h('/btg',  { fontSize: 8.5 }),
+        h('/btg',  { fontSize: 8.5 }),
+        h('/btg',  { fontSize: 8.5 }),
     ];
 
     const dd = {
         pageSize:        'A5',
         pageOrientation: 'landscape',
-        pageMargins:     [8, 12, 8, 32],
+        pageMargins:     [15, 14, 15, 32],
 
         content: [
             {
                 text:      'UNP',
                 alignment: 'center',
                 bold:      true,
-                fontSize:  14,
-                margin:    [0, 0, 0, 6],
+                fontSize:  13,
+                margin:    [0, 0, 0, 4],
             },
             {
                 table: {
                     headerRows: 3,
-                    widths: ['19%', '14%', '8%', '10%', '10%', '10%', '10%', '10%', '9%'],
+                    widths: ['28%', '12%', '12%', '12%', '12%', '12%', '12%'],
                     body:   [headerRow1, headerRow2, headerRow3, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
@@ -145,37 +146,38 @@ function render({ items, customValues }) {
                     vLineColor: function () { return '#000000'; },
                     paddingLeft:   function () { return 3; },
                     paddingRight:  function () { return 3; },
-                    paddingTop:    function () { return 2; },
-                    paddingBottom: function () { return 2; },
+                    paddingTop:    function () { return 2.45; },
+                    paddingBottom: function () { return 2.45; },
                 },
             },
         ],
 
         footer: function (currentPage, pageCount) {
             return {
-                margin: [8, 4, 8, 0],
+                margin: [15, 0, 15, 14],
                 columns: [
                     {
                         width: '*',
                         stack: [
-                            { text: '• Harga sudah termasuk PPN',                                fontSize: 9, margin: [0, 0, 0, 1] },
-                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',   fontSize: 9, margin: [0, 0, 0, 0] },
+                            { text: '• Harga sudah termasuk PPN',                                fontSize: 8.5, margin: [0, 0, 0, 1] },
+                            { text: '• Harga dapat berubah sewaktu-waktu tanpa pemberitahuan',   fontSize: 8.5, margin: [0, 0, 0, 0] },
                         ],
                     },
                     {
                         width:     'auto',
-                        text:      'Page ' + currentPage + '/' + pageCount,
-                        fontSize:  9,
+                        text:      pageCount > 1 ? ('Page ' + currentPage + '/' + pageCount) : '',
+                        fontSize:  8.5,
                         bold:      true,
                         alignment: 'center',
-                        margin:    [10, 0, 10, 0],
+                        margin:    [10, 9.5, 10, 0],
                     },
                     {
                         width:     'auto',
                         text:      generatedAt,
-                        fontSize:  9,
+                        fontSize:  8.5,
                         italics:   true,
                         alignment: 'right',
+                        margin:    [0, 9.5, 0, 0],
                     },
                 ],
             };
@@ -183,7 +185,7 @@ function render({ items, customValues }) {
 
         defaultStyle: {
             font:     'Helvetica',
-            fontSize: 10,
+            fontSize: 9.5,
         },
     };
 
