@@ -60,8 +60,6 @@ function render({ items, customValues }) {
             cells: [
                 { text: cv.ukuran || '',  alignment: 'left',   fontSize: 11 },
                 { text: fmtBerat(weight), alignment: 'center', fontSize: 11, bold: true },
-                { text: fmtNum(cpKg),     alignment: 'right',  fontSize: 11, color: '#C62828', bold: true },
-                { text: fmtNum(cgKg),     alignment: 'right',  fontSize: 11, color: '#C62828', bold: true },
                 { text: fmtNum(cpUnit),   alignment: 'right',  fontSize: 11 },
                 { text: fmtNum(cgUnit),   alignment: 'right',  fontSize: 11 },
                 { text: fmtNum(kpUnit),   alignment: 'right',  fontSize: 11 },
@@ -75,16 +73,14 @@ function render({ items, customValues }) {
     const hFill = '#E8ECF0';
 
     const headerRow1 = [
-        { text: 'UKURAN',         rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
-        { text: 'BERAT\n(KG)',    rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
-        { text: 'Rp/kg\nPABRIK', rowSpan: 2, alignment: 'center', bold: true, fontSize: 11, fillColor: hFill, color: '#C62828' },
-        { text: 'Rp/kg\nGUDANG', rowSpan: 2, alignment: 'center', bold: true, fontSize: 11, fillColor: hFill, color: '#C62828' },
-        { text: 'CASH',           colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
-        { text: 'KREDIT',         colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
+        { text: 'UKURAN',      rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
+        { text: 'BERAT\n(KG)', rowSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill },
+        { text: 'CASH',        colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
+        { text: 'KREDIT',      colSpan: 2, alignment: 'center', bold: true, fontSize: 12, fillColor: hFill }, {},
     ];
 
     const headerRow2 = [
-        {}, {}, {}, {},
+        {}, {},
         { text: 'PABRIK', alignment: 'center', bold: true, fontSize: 11, fillColor: hFill },
         { text: 'GUDANG', alignment: 'center', bold: true, fontSize: 11, fillColor: hFill },
         { text: 'PABRIK', alignment: 'center', bold: true, fontSize: 11, fillColor: hFill },
@@ -110,7 +106,7 @@ function render({ items, customValues }) {
             {
                 table: {
                     headerRows: 2,
-                    widths: ['28%', '10%', '10%', '10%', '10.5%', '10.5%', '10.5%', '10.5%'],
+                    widths: ['36%', '16%', '12%', '12%', '12%', '12%'],
                     body: [headerRow1, headerRow2, ...rows.map(function (r) { return r.cells; })],
                 },
                 layout: {
@@ -130,8 +126,8 @@ function render({ items, customValues }) {
             return {
                 margin: [10, 5, 10, 0],
                 columns: [
-                    { text: 'Page ' + currentPage + '/' + pageCount, alignment: 'left',  fontSize: 10 },
-                    { text: 'Jakarta, ' + generatedAt,                alignment: 'right', fontSize: 10 },
+                    { text: pageCount > 1 ? ('Page ' + currentPage + '/' + pageCount) : '', alignment: 'left',  fontSize: 10 },
+                    { text: 'Jakarta, ' + generatedAt,                                       alignment: 'right', fontSize: 10 },
                 ],
             };
         },
